@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Note, NoteWithOctave } from '../types/music';
+import type { Note, NoteWithOctave, Octave } from '../types/music';
 import { audioEngine } from '../utils/audioEngine';
 import './PianoKeyboard.css';
 
@@ -26,7 +26,7 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
   ];
 
   const handleKeyClick = async (note: Note) => {
-    const noteWithOctave = { note, octave: octave as any };
+    const noteWithOctave = { note, octave: octave as Octave };
     
     // Play the note sound
     try {
@@ -45,6 +45,7 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
   const isHighlighted = (note: Note) => {
     return highlightedNote?.note === note && highlightedNote?.octave === octave;
   };
+
 
   return (
     <div className="piano-keyboard">

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { SettingsProvider } from './contexts/SettingsContext'
 import NoteIdentification from './components/NoteIdentification'
 import ScoreTracker from './components/ScoreTracker'
 import './App.css'
@@ -18,25 +19,27 @@ function App() {
   }
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>Music Practice App</h1>
-        <p>Improve your ear training with interactive exercises</p>
-      </header>
-      
-      <main className="app-main">
-        <div className="score-section">
-          <ScoreTracker correct={score.correct} total={score.total} />
-          {score.total > 0 && (
-            <button onClick={resetScore} className="reset-button">
-              Reset Score
-            </button>
-          )}
-        </div>
+    <SettingsProvider>
+      <div className="app">
+        <header className="app-header">
+          <h1>Music Practice App</h1>
+          <p>Improve your ear training with interactive exercises</p>
+        </header>
         
-        <NoteIdentification onScoreUpdate={handleScoreUpdate} />
-      </main>
-    </div>
+        <main className="app-main">
+          <div className="score-section">
+            <ScoreTracker correct={score.correct} total={score.total} />
+            {score.total > 0 && (
+              <button onClick={resetScore} className="reset-button">
+                Reset Score
+              </button>
+            )}
+          </div>
+          
+          <NoteIdentification onScoreUpdate={handleScoreUpdate} />
+        </main>
+      </div>
+    </SettingsProvider>
   )
 }
 

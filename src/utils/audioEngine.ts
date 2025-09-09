@@ -1,5 +1,6 @@
 import * as Tone from 'tone';
-import type { Note, Octave, NoteWithOctave } from '../types/music';
+import type { Note, Octave, NoteWithOctave, NoteFilter } from '../types/music';
+import { isNotePlayable, ALL_NOTES } from '../types/music';
 
 export class AudioEngine {
   private synth: Tone.Synth;
@@ -35,6 +36,28 @@ export class AudioEngine {
     const randomOctave = Math.floor(Math.random() * (octaveMax - octaveMin + 1) + octaveMin) as Octave;
     
     return { note: randomNote, octave: randomOctave };
+  }
+
+  static getRandomNoteFromFilter(filter: NoteFilter): NoteWithOctave {
+    const { octaveRange } = filter;
+    const playableNotes: NoteWithOctave[] = [];
+
+    // Generate all possible notes within the filter constraints
+    for (let octave = octaveRange.min; octave <= octaveRange.max; octave++) {
+      for (const note of ALL_NOTES) {
+        const noteWithOctave: NoteWithOctave = { note, octave: octave as Octave };
+        if (isNotePlayable(noteWithOctave, filter)) {
+          playableNotes.push(noteWithOctave);
+        }
+      }
+    }
+
+    if (playableNotes.length === 0) {
+      throw new Error('No playable notes available with current filter settings');
+    }
+
+    const randomIndex = Math.floor(Math.random() * playableNotes.length);
+    return playableNotes[randomIndex];
   }
 }
 
