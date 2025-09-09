@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Note, NoteWithOctave } from '../types/music';
+import type { Note, NoteWithOctave, Octave } from '../types/music';
 import { audioEngine } from '../utils/audioEngine';
 import './PianoKeyboard.css';
 
@@ -18,15 +18,15 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
   // Black keys positioned between specific white keys
   // C# between C and D, D# between D and E, F# between F and G, G# between G and A, A# between A and B
   const blackKeys: { note: Note; leftOffset: number }[] = [
-    { note: 'C#', leftOffset: 42.5 },   // Between C(0) and D(1)
-    { note: 'D#', leftOffset: 102.5 },  // Between D(1) and E(2)  
-    { note: 'F#', leftOffset: 222.5 },  // Between F(3) and G(4)
-    { note: 'G#', leftOffset: 282.5 },  // Between G(4) and A(5)
-    { note: 'A#', leftOffset: 342.5 },  // Between A(5) and B(6)
+    { note: 'C#', leftOffset: 60 },   // Between C(0) and D(1)
+    { note: 'D#', leftOffset: 120 },  // Between D(1) and E(2)
+    { note: 'F#', leftOffset: 240 },  // Between F(3) and G(4)
+    { note: 'G#', leftOffset: 300 },  // Between G(4) and A(5)
+    { note: 'A#', leftOffset: 360 },  // Between A(5) and B(6)
   ];
 
   const handleKeyClick = async (note: Note) => {
-    const noteWithOctave = { note, octave: octave as any };
+    const noteWithOctave = { note, octave: octave as Octave };
     
     // Play the note sound
     try {
@@ -45,6 +45,7 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
   const isHighlighted = (note: Note) => {
     return highlightedNote?.note === note && highlightedNote?.octave === octave;
   };
+
 
   return (
     <div className="piano-keyboard">

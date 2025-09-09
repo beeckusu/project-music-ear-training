@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import type { NoteWithOctave } from '../types/music';
 import { audioEngine, AudioEngine } from '../utils/audioEngine';
+import { useSettings } from '../hooks/useSettings';
 import PianoKeyboard from './PianoKeyboard';
 import './NoteIdentification.css';
 
@@ -9,17 +10,18 @@ interface NoteIdentificationProps {
 }
 
 const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onScoreUpdate }) => {
+  const { settings } = useSettings();
   const [currentNote, setCurrentNote] = useState<NoteWithOctave | null>(null);
   const [userGuess, setUserGuess] = useState<NoteWithOctave | null>(null);
   const [feedback, setFeedback] = useState<string>('');
   const [isPlaying, setIsPlaying] = useState(false);
 
   const generateNewNote = useCallback(() => {
-    const newNote = AudioEngine.getRandomNote(4, 4); // Match keyboard octave
+    const newNote = AudioEngine.getRandomNoteFromFilter(settings.noteFilter);
     setCurrentNote(newNote);
     setUserGuess(null);
     setFeedback('Listen to the note and identify it on the keyboard');
-  }, []);
+  }, [settings.noteFilter]);
 
   const playCurrentNote = async () => {
     if (!currentNote) return;
