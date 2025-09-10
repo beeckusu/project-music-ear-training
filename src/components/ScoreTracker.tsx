@@ -4,20 +4,28 @@ import './ScoreTracker.css';
 interface ScoreTrackerProps {
   correct: number;
   total: number;
+  onReset: () => void;
 }
 
-const ScoreTracker: React.FC<ScoreTrackerProps> = ({ correct, total }) => {
+const ScoreTracker: React.FC<ScoreTrackerProps> = ({ correct, total, onReset }) => {
   const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
   
   return (
     <div className="score-tracker">
-      <div className="score-item">
-        <span className="score-label">Score:</span>
-        <span className="score-value">{correct}/{total}</span>
-      </div>
-      <div className="score-item">
-        <span className="score-label">Accuracy:</span>
-        <span className="score-value">{accuracy}%</span>
+      <div className="score-header">
+        <div className="score-items">
+          <div className="score-item">
+            <span className="score-label">Score:</span>
+            <span className="score-value">{correct}/{total}</span>
+          </div>
+          <div className="score-item">
+            <span className="score-label">Accuracy:</span>
+            <span className="score-value">{accuracy}%</span>
+          </div>
+        </div>
+        <button onClick={onReset} className="reset-button-compact">
+          Reset
+        </button>
       </div>
       <div className="progress-bar">
         <div 
