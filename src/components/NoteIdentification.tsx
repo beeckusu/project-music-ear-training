@@ -1,19 +1,19 @@
 import React, { useState, useCallback } from 'react';
-import type { NoteWithOctave } from '../types/music';
+import type { NoteWithOctave, GuessAttempt } from '../types/music';
 import { audioEngine, AudioEngine } from '../utils/audioEngine';
 import { useSettings } from '../hooks/useSettings';
 import PianoKeyboard from './PianoKeyboard';
 import './NoteIdentification.css';
 
 interface NoteIdentificationProps {
-  onScoreUpdate?: (correct: boolean) => void;
+  onGuessAttempt?: (attempt: GuessAttempt) => void;
 }
 
-const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onScoreUpdate }) => {
+const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt }) => {
   const { settings } = useSettings();
   const [currentNote, setCurrentNote] = useState<NoteWithOctave | null>(null);
   const [userGuess, setUserGuess] = useState<NoteWithOctave | null>(null);
-  const [feedback, setFeedback] = useState<string>('');
+  const [feedback, setFeedback] = useState<string>('Click "Start Practice" to begin your ear training session');
   const [isPlaying, setIsPlaying] = useState(false);
 
   const generateNewNote = useCallback(() => {
@@ -33,17 +33,28 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onScoreUpdate }
   };
 
   const handleNoteGuess = (guessedNote: NoteWithOctave) => {
-    if (!currentNote) return;
+    if (!currentNote) {
+      setFeedback('Please start practice first by clicking "Start Practice"');
+      return;
+    }
 
     setUserGuess(guessedNote);
     const isCorrect = guessedNote.note === currentNote.note && guessedNote.octave === currentNote.octave;
     
+    const attempt: GuessAttempt = {
+      id: `${Date.now()}-${Math.random()}`,
+      timestamp: new Date(),
+      actualNote: currentNote,
+      guessedNote: guessedNote,
+      isCorrect: isCorrect
+    };
+
+    onGuessAttempt?.(attempt);
+    
     if (isCorrect) {
       setFeedback('Correct! Great job!');
-      onScoreUpdate?.(true);
     } else {
       setFeedback(`Not quite. The correct answer was ${currentNote.note}${currentNote.octave}`);
-      onScoreUpdate?.(false);
     }
   };
 
@@ -76,12 +87,10 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onScoreUpdate }
           {feedback && <p className="feedback-text">{feedback}</p>}
         </div>
 
-        {currentNote && (
-          <PianoKeyboard 
-            onNoteClick={handleNoteGuess}
-            highlightedNote={userGuess || undefined}
-          />
-        )}
+        <PianoKeyboard 
+          onNoteClick={handleNoteGuess}
+          highlightedNote={userGuess || undefined}
+        />
       </div>
     </div>
   );
