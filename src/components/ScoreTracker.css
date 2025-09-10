@@ -1,28 +1,17 @@
 .score-tracker {
   background-color: #f8f9fa;
   border-radius: 12px;
-  padding: 16px;
-  margin: 16px 0;
+  padding: 20px;
+  margin: 20px 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.score-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.score-items {
-  display: flex;
-  gap: 24px;
 }
 
 .score-item {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  font-size: 14px;
+  margin-bottom: 10px;
+  font-size: 18px;
 }
 
 .score-label {
@@ -33,24 +22,7 @@
 .score-value {
   color: #333;
   font-weight: bold;
-  font-size: 18px;
-  margin-top: 2px;
-}
-
-.reset-button-compact {
-  background-color: #ff4757;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  font-size: 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-  font-weight: 500;
-}
-
-.reset-button-compact:hover {
-  background-color: #ff3742;
+  font-size: 20px;
 }
 
 .progress-bar {

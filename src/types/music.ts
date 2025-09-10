@@ -39,14 +39,6 @@ export interface NoteFilter {
   allowedNotes?: Note[];
 }
 
-export interface GuessAttempt {
-  id: string;
-  timestamp: Date;
-  actualNote: NoteWithOctave;
-  guessedNote: NoteWithOctave | null;
-  isCorrect: boolean;
-}
-
 export interface AppSettings {
   noteFilter: NoteFilter;
 }
