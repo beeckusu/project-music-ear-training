@@ -53,13 +53,24 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt 
     
     if (isCorrect) {
       setFeedback('Correct! Great job!');
+      setTimeout(() => {
+        startNewRound();
+      }, 1000);
     } else {
       setFeedback(`Not quite. The correct answer was ${currentNote.note}${currentNote.octave}`);
     }
   };
 
-  const startNewRound = () => {
-    generateNewNote();
+  const startNewRound = async () => {
+    const newNote = AudioEngine.getRandomNoteFromFilter(settings.noteFilter);
+    setCurrentNote(newNote);
+    setUserGuess(null);
+    setFeedback('Listen to the note and identify it on the keyboard');
+    
+    setIsPlaying(true);
+    await audioEngine.initialize();
+    audioEngine.playNote(newNote, '2n');
+    setTimeout(() => setIsPlaying(false), 500);
   };
 
   return (
