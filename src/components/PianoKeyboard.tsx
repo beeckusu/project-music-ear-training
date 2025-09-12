@@ -31,7 +31,7 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
     // Play the note sound
     try {
       await audioEngine.initialize();
-      audioEngine.playNote(noteWithOctave, '8n');
+      audioEngine.playNote(noteWithOctave, '2n');
     } catch (error) {
       console.warn('Failed to play note:', error);
     }
