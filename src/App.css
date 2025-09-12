@@ -8,6 +8,7 @@
   text-align: center;
   margin-bottom: 24px;
   color: white;
+  position: relative;
 }
 
 .app-header h1 {

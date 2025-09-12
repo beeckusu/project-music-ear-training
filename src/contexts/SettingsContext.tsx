@@ -8,6 +8,9 @@ export interface SettingsContextType {
   settings: AppSettings;
   updateNoteFilter: (filter: Partial<NoteFilter>) => void;
   resetToDefaults: () => void;
+  isSettingsOpen: boolean;
+  openSettings: () => void;
+  closeSettings: () => void;
 }
 
 const defaultSettings: AppSettings = {
@@ -22,6 +25,7 @@ interface SettingsProviderProps {
 
 export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) => {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const updateNoteFilter = (filterUpdates: Partial<NoteFilter>) => {
     setSettings(prevSettings => ({
@@ -37,10 +41,21 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     setSettings(defaultSettings);
   };
 
+  const openSettings = () => {
+    setIsSettingsOpen(true);
+  };
+
+  const closeSettings = () => {
+    setIsSettingsOpen(false);
+  };
+
   const value: SettingsContextType = {
     settings,
     updateNoteFilter,
-    resetToDefaults
+    resetToDefaults,
+    isSettingsOpen,
+    openSettings,
+    closeSettings
   };
 
   return (
