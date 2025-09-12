@@ -3,6 +3,8 @@ import { SettingsProvider } from './contexts/SettingsContext'
 import NoteIdentification from './components/NoteIdentification'
 import ScoreTracker from './components/ScoreTracker'
 import GuessHistory from './components/GuessHistory'
+import SettingsButton from './components/SettingsButton'
+import SettingsModal from './components/SettingsModal'
 import type { GuessAttempt } from './types/music'
 import './App.css'
 
@@ -31,6 +33,7 @@ function App() {
     <SettingsProvider>
       <div className="app">
         <header className="app-header">
+          <SettingsButton />
           <h1>Music Practice App</h1>
           <p>Improve your ear training with interactive exercises</p>
         </header>
@@ -43,6 +46,8 @@ function App() {
           
           <NoteIdentification onGuessAttempt={handleGuessAttempt} />
         </main>
+        
+        <SettingsModal />
       </div>
     </SettingsProvider>
   )
