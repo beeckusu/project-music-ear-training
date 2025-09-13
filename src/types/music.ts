@@ -47,14 +47,29 @@ export interface GuessAttempt {
   isCorrect: boolean;
 }
 
+export type NoteDuration = '8n' | '4n' | '2n' | '1n';
+
+export interface TimingSettings {
+  responseTimeLimit: number | null; // seconds, null = unlimited
+  autoAdvanceSpeed: number; // seconds
+  noteDuration: NoteDuration;
+}
+
 export interface AppSettings {
   noteFilter: NoteFilter;
+  timing: TimingSettings;
 }
 
 export const DEFAULT_NOTE_FILTER: NoteFilter = {
   octaveRange: { min: 4, max: 4 },
   keyType: 'all',
   allowedNotes: undefined
+};
+
+export const DEFAULT_TIMING_SETTINGS: TimingSettings = {
+  responseTimeLimit: 10, // 10 seconds default
+  autoAdvanceSpeed: 1.5, // 1.5 seconds auto-advance
+  noteDuration: '2n' // half note default
 };
 
 export const WHITE_KEYS: Note[] = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];

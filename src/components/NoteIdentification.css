@@ -75,4 +75,78 @@
   border-left: 3px solid #4CAF50;
   margin: 0;
   font-weight: 500;
+  color: #333;
+}
+
+/* Timer Section Styles */
+.timer-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 16px 0;
+}
+
+.unlimited-time-indicator {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.unlimited-time-indicator p {
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+}
+
+/* Pause state styles */
+.piano-container {
+  transition: opacity 0.3s ease;
+}
+
+.piano-container.paused {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .note-identification {
+    padding: 1rem;
+  }
+  
+  .note-identification h2 {
+    font-size: 1.8rem;
+  }
+  
+  .game-area {
+    gap: 1rem;
+  }
+  
+  .controls {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .primary-button, .secondary-button {
+    font-size: 1rem;
+    padding: 12px 20px;
+  }
+  
+  .feedback-text {
+    font-size: 1rem;
+  }
+  
+  .timer-section {
+    margin: 12px 0;
+  }
+  
+  .unlimited-time-indicator p {
+    font-size: 13px;
+    padding: 6px 12px;
+  }
 }

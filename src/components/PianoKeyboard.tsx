@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Note, NoteWithOctave, Octave } from '../types/music';
 import { audioEngine } from '../utils/audioEngine';
+import { useSettings } from '../hooks/useSettings';
 import './PianoKeyboard.css';
 
 interface PianoKeyboardProps {
@@ -14,6 +15,8 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
   highlightedNote,
   octave = 4 
 }) => {
+  const { settings } = useSettings();
+  const { noteDuration } = settings.timing;
   const whiteKeys: Note[] = ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C'];
   // Black keys positioned between specific white keys
   // C# between C and D, D# between D and E, F# between F and G, G# between G and A, A# between A and B
@@ -33,7 +36,7 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
     // Play the note sound
     try {
       await audioEngine.initialize();
-      audioEngine.playNote(noteWithOctave, '2n');
+      audioEngine.playNote(noteWithOctave, noteDuration);
     } catch (error) {
       console.warn('Failed to play note:', error);
     }
