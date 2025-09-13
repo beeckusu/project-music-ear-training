@@ -14,7 +14,7 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
   highlightedNote,
   octave = 4 
 }) => {
-  const whiteKeys: Note[] = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+  const whiteKeys: Note[] = ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C'];
   // Black keys positioned between specific white keys
   // C# between C and D, D# between D and E, F# between F and G, G# between G and A, A# between A and B
   const blackKeys: { note: Note; leftOffset: number }[] = [
@@ -25,8 +25,10 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
     { note: 'A#', leftOffset: 360 },  // Between A(5) and B(6)
   ];
 
-  const handleKeyClick = async (note: Note) => {
-    const noteWithOctave = { note, octave: octave as Octave };
+  const handleKeyClick = async (note: Note, keyIndex?: number) => {
+    // For the second C key (index 7), use the next octave
+    const actualOctave = (note === 'C' && keyIndex === 7) ? (octave + 1) as Octave : octave as Octave;
+    const noteWithOctave = { note, octave: actualOctave };
     
     // Play the note sound
     try {
@@ -42,19 +44,28 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
     }
   };
 
-  const isHighlighted = (note: Note) => {
-    return highlightedNote?.note === note && highlightedNote?.octave === octave;
+  const isHighlighted = (note: Note, keyIndex: number) => {
+    if (!highlightedNote || highlightedNote.note !== note) return false;
+    
+    // For C keys, check which octave we're highlighting
+    if (note === 'C') {
+      const keyOctave = keyIndex === 7 ? octave + 1 : octave;
+      return highlightedNote.octave === keyOctave;
+    }
+    
+    // For other keys, just check the current octave
+    return highlightedNote.octave === octave;
   };
 
 
   return (
     <div className="piano-keyboard">
       <div className="white-keys">
-        {whiteKeys.map((note) => (
+        {whiteKeys.map((note, index) => (
           <button
-            key={note}
-            className={`white-key ${isHighlighted(note) ? 'highlighted' : ''}`}
-            onClick={() => handleKeyClick(note)}
+            key={`${note}-${index}`}
+            className={`white-key ${isHighlighted(note, index) ? 'highlighted' : ''}`}
+            onClick={() => handleKeyClick(note, index)}
           >
             {note}
           </button>
@@ -64,7 +75,7 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
         {blackKeys.map(({ note, leftOffset }) => (
           <button
             key={note}
-            className={`black-key ${isHighlighted(note) ? 'highlighted' : ''}`}
+            className={`black-key ${isHighlighted(note, -1) ? 'highlighted' : ''}`}
             style={{ left: `${leftOffset}px` }}
             onClick={() => handleKeyClick(note)}
           >

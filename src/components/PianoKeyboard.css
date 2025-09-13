@@ -3,7 +3,7 @@
   display: inline-block;
   margin: 20px 0;
   user-select: none;
-  width: 420px; /* Fixed width: 7 keys × 60px each */
+  width: 480px; /* Fixed width: 8 keys × 60px each */
 }
 
 .white-keys {

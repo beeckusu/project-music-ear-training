@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import type { NoteWithOctave, GuessAttempt } from '../types/music';
 import { audioEngine, AudioEngine } from '../utils/audioEngine';
 import { useSettings } from '../hooks/useSettings';
@@ -33,7 +33,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt 
     }
 
     setUserGuess(guessedNote);
-    const isCorrect = guessedNote.note === currentNote.note && guessedNote.octave === currentNote.octave;
+    const isCorrect = guessedNote.note === currentNote.note;
     
     const attempt: GuessAttempt = {
       id: `${Date.now()}-${Math.random()}`,
@@ -51,7 +51,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt 
         startNewRound();
       }, 1000);
     } else {
-      setFeedback(`Not quite. The correct answer was ${currentNote.note}${currentNote.octave}`);
+      setFeedback(`Not quite. The correct answer was ${currentNote.note}`);
     }
   };
 
