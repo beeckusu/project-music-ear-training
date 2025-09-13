@@ -11,6 +11,7 @@ import './App.css'
 function App() {
   const [score, setScore] = useState({ correct: 0, total: 0 })
   const [guessHistory, setGuessHistory] = useState<GuessAttempt[]>([])
+  const [isPaused, setIsPaused] = useState(false)
 
   const handleScoreUpdate = (correct: boolean) => {
     setScore(prevScore => ({
@@ -29,10 +30,21 @@ function App() {
     setGuessHistory([])
   }
 
+  const togglePause = () => {
+    setIsPaused(prev => !prev)
+  }
+
   return (
     <SettingsProvider>
       <div className="app">
         <header className="app-header">
+          <button 
+            className="pause-button header-left"
+            onClick={togglePause}
+            aria-label={isPaused ? 'Resume' : 'Pause'}
+          >
+            {isPaused ? '▶️' : '⏸️'}
+          </button>
           <SettingsButton />
           <h1>Music Practice App</h1>
           <p>Improve your ear training with interactive exercises</p>
@@ -44,7 +56,11 @@ function App() {
             <GuessHistory attempts={guessHistory} />
           </div>
           
-          <NoteIdentification onGuessAttempt={handleGuessAttempt} />
+          <NoteIdentification 
+            onGuessAttempt={handleGuessAttempt} 
+            isPaused={isPaused}
+            onPauseChange={setIsPaused}
+          />
         </main>
         
         <SettingsModal />

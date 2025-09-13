@@ -1,12 +1,13 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { AppSettings, NoteFilter } from '../types/music';
-import { DEFAULT_NOTE_FILTER } from '../types/music';
+import type { AppSettings, NoteFilter, TimingSettings } from '../types/music';
+import { DEFAULT_NOTE_FILTER, DEFAULT_TIMING_SETTINGS } from '../types/music';
 
 export interface SettingsContextType {
   settings: AppSettings;
   updateNoteFilter: (filter: Partial<NoteFilter>) => void;
+  updateTimingSettings: (timing: Partial<TimingSettings>) => void;
   resetToDefaults: () => void;
   isSettingsOpen: boolean;
   openSettings: () => void;
@@ -14,7 +15,8 @@ export interface SettingsContextType {
 }
 
 const defaultSettings: AppSettings = {
-  noteFilter: DEFAULT_NOTE_FILTER
+  noteFilter: DEFAULT_NOTE_FILTER,
+  timing: DEFAULT_TIMING_SETTINGS
 };
 
 export const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -37,6 +39,16 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     }));
   };
 
+  const updateTimingSettings = (timingUpdates: Partial<TimingSettings>) => {
+    setSettings(prevSettings => ({
+      ...prevSettings,
+      timing: {
+        ...prevSettings.timing,
+        ...timingUpdates
+      }
+    }));
+  };
+
   const resetToDefaults = () => {
     setSettings(defaultSettings);
   };
@@ -52,6 +64,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   const value: SettingsContextType = {
     settings,
     updateNoteFilter,
+    updateTimingSettings,
     resetToDefaults,
     isSettingsOpen,
     openSettings,
