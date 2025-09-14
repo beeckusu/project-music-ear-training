@@ -1,13 +1,25 @@
 import * as Tone from 'tone';
 import type { Note, Octave, NoteWithOctave, NoteFilter } from '../types/music';
+import { InstrumentType } from '../types/music';
 import { isNotePlayable, ALL_NOTES } from '../types/music';
 
 export class AudioEngine {
-  private synth: Tone.Synth;
+  private instruments: Map<InstrumentType, any> = new Map();
   private isInitialized = false;
+  private currentInstrument: InstrumentType = InstrumentType.SYNTH;
+  private volume = 75;
 
   constructor() {
-    this.synth = new Tone.Synth().toDestination();
+    this.initializeInstruments();
+  }
+
+  private initializeInstruments() {
+    this.instruments.set(InstrumentType.SYNTH, new Tone.Synth().toDestination());
+    this.instruments.set(InstrumentType.PIANO, new Tone.PolySynth(Tone.Synth).toDestination());
+    this.instruments.set(InstrumentType.FM, new Tone.FMSynth().toDestination());
+    this.instruments.set(InstrumentType.MONO, new Tone.MonoSynth().toDestination());
+
+    this.updateVolume();
   }
 
   async initialize() {
@@ -17,13 +29,36 @@ export class AudioEngine {
     }
   }
 
+  setInstrument(instrument: InstrumentType) {
+    this.currentInstrument = instrument;
+  }
+
+  setVolume(volume: number) {
+    this.volume = Math.max(0, Math.min(100, volume));
+    this.updateVolume();
+  }
+
+  private updateVolume() {
+    const dbVolume = this.volume === 0 ? -Infinity : Tone.gainToDb(this.volume / 100);
+    this.instruments.forEach(instrument => {
+      if (instrument.volume) {
+        instrument.volume.value = dbVolume;
+      }
+    });
+  }
+
   playNote(noteWithOctave: NoteWithOctave, duration: string = '4n') {
     if (!this.isInitialized) {
       throw new Error('AudioEngine not initialized. Call initialize() first.');
     }
-    
+
+    const instrument = this.instruments.get(this.currentInstrument);
+    if (!instrument) {
+      throw new Error(`Instrument ${this.currentInstrument} not found`);
+    }
+
     const noteString = `${noteWithOctave.note}${noteWithOctave.octave}`;
-    this.synth.triggerAttackRelease(noteString, duration);
+    instrument.triggerAttackRelease(noteString, duration);
   }
 
   static noteToFrequency(noteWithOctave: NoteWithOctave): number {

@@ -49,6 +49,20 @@ export interface GuessAttempt {
 
 export type NoteDuration = '8n' | '4n' | '2n' | '1n';
 
+export const InstrumentType = {
+  SYNTH: 'synth',
+  PIANO: 'piano',
+  FM: 'fm',
+  MONO: 'mono'
+} as const;
+
+export type InstrumentType = typeof InstrumentType[keyof typeof InstrumentType];
+
+export interface AudioSettings {
+  volume: number; // 0-100
+  instrument: InstrumentType;
+}
+
 export interface TimingSettings {
   responseTimeLimit: number | null; // seconds, null = unlimited
   autoAdvanceSpeed: number; // seconds
@@ -58,12 +72,18 @@ export interface TimingSettings {
 export interface AppSettings {
   noteFilter: NoteFilter;
   timing: TimingSettings;
+  audio: AudioSettings;
 }
 
 export const DEFAULT_NOTE_FILTER: NoteFilter = {
   octaveRange: { min: 4, max: 4 },
   keyType: 'all',
   allowedNotes: undefined
+};
+
+export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
+  volume: 75,
+  instrument: InstrumentType.SYNTH
 };
 
 export const DEFAULT_TIMING_SETTINGS: TimingSettings = {

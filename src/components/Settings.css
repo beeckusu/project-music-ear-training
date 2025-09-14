@@ -195,11 +195,86 @@ select {
 input[type="range"] {
   width: 200px;
   margin-right: 12px;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  background: #ddd;
+  border-radius: 4px;
+  outline: none;
+  padding: 0;
+  margin: 0;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: #667eea;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: #667eea;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 8px;
+  background: #ddd;
+  border-radius: 4px;
+  border: none;
 }
 
 .range-value {
   font-weight: 500;
   color: #667eea;
+}
+
+/* Instrument Button Controls */
+.instrument-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.instrument-button {
+  padding: 10px 16px;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+  color: #495057;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.instrument-button:hover:not(.active) {
+  transform: translateY(-1px);
+  border-color: #667eea;
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2);
+}
+
+.instrument-button.active {
+  background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+  border-color: #5a67d8;
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.instrument-button.active:hover {
+  background: linear-gradient(145deg, #5a67d8 0%, #6b46c1 100%);
 }
 
 /* Octave Button Controls */
