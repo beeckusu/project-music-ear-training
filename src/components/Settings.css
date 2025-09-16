@@ -930,3 +930,359 @@ input[type="range"]::-moz-range-track {
     font-size: 11px;
   }
 }
+
+/* First-time setup styles */
+.first-time-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.first-time-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.3rem;
+}
+
+.first-time-header p {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 0.95rem;
+}
+
+.first-time-actions {
+  margin-top: 32px;
+  text-align: center;
+  padding-top: 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.begin-practice-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 14px 32px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.begin-practice-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+.setting-group small {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Mode Selector Styles */
+.mode-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.mode-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.mode-card:hover {
+  transform: translateY(-2px);
+  border-color: #667eea;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+}
+
+.mode-card.selected {
+  border-color: #667eea;
+  background: linear-gradient(145deg, #f0f4ff 0%, #e8f0fe 100%);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+}
+
+.mode-icon {
+  font-size: 2.5rem;
+  margin-right: 20px;
+  min-width: 60px;
+  text-align: center;
+}
+
+.mode-content {
+  flex: 1;
+}
+
+.mode-title {
+  margin: 0 0 8px 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.mode-description {
+  margin: 0;
+  font-size: 1rem;
+  color: #6c757d;
+  line-height: 1.4;
+}
+
+.mode-selected-indicator {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.mode-settings-section {
+  margin-top: 32px;
+  padding: 24px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+}
+
+.mode-settings-section h4 {
+  margin: 0 0 16px 0;
+  color: #495057;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.mode-specific-settings {
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Responsive Mode Cards */
+@media (max-width: 768px) {
+  .mode-card {
+    padding: 16px;
+  }
+
+  .mode-icon {
+    font-size: 2rem;
+    margin-right: 16px;
+    min-width: 50px;
+  }
+
+  .mode-title {
+    font-size: 1.2rem;
+  }
+
+  .mode-description {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .mode-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px 16px;
+  }
+
+  .mode-icon {
+    margin: 0 0 12px 0;
+    font-size: 2.5rem;
+  }
+
+  .mode-content {
+    width: 100%;
+  }
+}
+
+/* Mode Settings Components */
+.mode-settings-container {
+  padding: 0;
+}
+
+.mode-info {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  border: 1px solid #dee2e6;
+}
+
+.mode-info h4 {
+  margin: 0 0 8px 0;
+  color: #2c3e50;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.mode-info p {
+  margin: 0;
+  color: #6c757d;
+  line-height: 1.5;
+}
+
+.mode-preview {
+  background: #f0f4ff;
+  border: 1px solid #c3d9ff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 24px;
+}
+
+.mode-preview h5 {
+  margin: 0 0 16px 0;
+  color: #495057;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.preview-stats {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.preview-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e3f2fd;
+}
+
+.preview-stat:last-child {
+  border-bottom: none;
+}
+
+.stat-label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.stat-value {
+  color: #667eea;
+  font-weight: 500;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #667eea;
+}
+
+/* Mode Settings Responsive */
+@media (max-width: 768px) {
+  .mode-info {
+    padding: 16px;
+  }
+
+  .mode-preview {
+    padding: 16px;
+  }
+
+  .preview-stats {
+    gap: 8px;
+  }
+
+  .preview-stat {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}
+
+/* Restart Game Section */
+.restart-game-section {
+  margin-top: 32px;
+  padding: 24px;
+  background: linear-gradient(135deg, #fff5f5 0%, #ffeaea 100%);
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+}
+
+.restart-info {
+  margin-bottom: 16px;
+}
+
+.restart-info h4 {
+  margin: 0 0 8px 0;
+  color: #dc2626;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.restart-info p {
+  margin: 0;
+  color: #7f1d1d;
+  line-height: 1.4;
+}
+
+.restart-game-button {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.restart-game-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+}
+
+.restart-game-button:active {
+  transform: translateY(0);
+}
+
+/* Disabled pause button styles */
+.pause-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pause-button:disabled:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
