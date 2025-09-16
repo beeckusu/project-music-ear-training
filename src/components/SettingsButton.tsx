@@ -5,7 +5,7 @@ const SettingsButton: React.FC = () => {
   const { openSettings } = useSettings();
 
   return (
-    <button className="settings-button" onClick={openSettings} aria-label="Open Settings">
+    <button className="settings-button" onClick={() => openSettings()} aria-label="Open Settings">
       ⚙️
     </button>
   );

@@ -1,21 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { useSettings } from '../hooks/useSettings';
 import NoteRangeSettings from './settings/NoteRangeSettings';
-import PracticeModeSettings from './settings/PracticeModeSettings';
 import TimingSettings from './settings/TimingSettings';
-import GoalsSettings from './settings/GoalsSettings';
+import ModeSelector from './settings/ModeSelector';
 import AudioSettings from './settings/AudioSettings';
 import './Settings.css';
 
-type SettingsTab = 'notes' | 'modes' | 'timing' | 'goals' | 'audio';
+type SettingsTab = 'notes' | 'modes' | 'timing' | 'audio';
 
-const SettingsModal: React.FC = () => {
-  const { isSettingsOpen, closeSettings } = useSettings();
+interface SettingsModalProps {
+  onRestartGame?: () => void;
+}
+
+const SettingsModal: React.FC<SettingsModalProps> = ({ onRestartGame }) => {
+  const { isSettingsOpen, closeSettings, isFirstTimeSetup, defaultTab } = useSettings();
   const [activeTab, setActiveTab] = useState<SettingsTab>('notes');
 
   useEffect(() => {
     const handleEscKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !isFirstTimeSetup) {
         closeSettings();
       }
     };
@@ -29,34 +32,37 @@ const SettingsModal: React.FC = () => {
       document.removeEventListener('keydown', handleEscKey);
       document.body.style.overflow = 'unset';
     };
-  }, [isSettingsOpen, closeSettings]);
+  }, [isSettingsOpen, closeSettings, isFirstTimeSetup]);
+
+  useEffect(() => {
+    if (isSettingsOpen && defaultTab) {
+      setActiveTab(defaultTab as SettingsTab);
+    }
+  }, [isSettingsOpen, defaultTab]);
 
   if (!isSettingsOpen) return null;
 
   const handleBackdropClick = (event: React.MouseEvent) => {
-    if (event.target === event.currentTarget) {
+    if (event.target === event.currentTarget && !isFirstTimeSetup) {
       closeSettings();
     }
   };
 
   const tabs = [
+    { id: 'modes' as SettingsTab, label: 'Modes', icon: '🎮' },
     { id: 'notes' as SettingsTab, label: 'Note Range', icon: '🎵' },
-    { id: 'modes' as SettingsTab, label: 'Practice', icon: '🎯' },
     { id: 'timing' as SettingsTab, label: 'Timing', icon: '⏱️' },
-    { id: 'goals' as SettingsTab, label: 'Goals', icon: '🏆' },
     { id: 'audio' as SettingsTab, label: 'Audio', icon: '🔊' }
   ];
 
   const renderTabContent = () => {
     switch (activeTab) {
+      case 'modes':
+        return <ModeSelector onRestartGame={onRestartGame} />;
       case 'notes':
         return <NoteRangeSettings />;
-      case 'modes':
-        return <PracticeModeSettings />;
       case 'timing':
         return <TimingSettings />;
-      case 'goals':
-        return <GoalsSettings />;
       case 'audio':
         return <AudioSettings />;
       default:
@@ -68,14 +74,16 @@ const SettingsModal: React.FC = () => {
     <div className="settings-backdrop" onClick={handleBackdropClick}>
       <div className="settings-modal">
         <div className="settings-header">
-          <h2>Settings</h2>
-          <button 
-            className="settings-close-button" 
-            onClick={closeSettings}
-            aria-label="Close Settings"
-          >
-            ✕
-          </button>
+          <h2>{isFirstTimeSetup ? 'Welcome to Practice Mode!' : 'Settings'}</h2>
+          {!isFirstTimeSetup && (
+            <button
+              className="settings-close-button"
+              onClick={closeSettings}
+              aria-label="Close Settings"
+            >
+              ✕
+            </button>
+          )}
         </div>
         
         <div className="settings-tabs">

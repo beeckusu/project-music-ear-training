@@ -11,10 +11,11 @@ interface NoteIdentificationProps {
   onGuessAttempt?: (attempt: GuessAttempt) => void;
   isPaused?: boolean;
   onPauseChange?: (paused: boolean) => void;
+  resetTrigger?: number;
 }
 
-const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt, isPaused, onPauseChange }) => {
-  const { settings } = useSettings();
+const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt, isPaused, resetTrigger }) => {
+  const { settings, hasCompletedModeSetup, startFirstTimeSetup } = useSettings();
   const [currentNote, setCurrentNote] = useState<NoteWithOctave | null>(null);
   const [userGuess, setUserGuess] = useState<NoteWithOctave | null>(null);
   const [feedback, setFeedback] = useState<string>('Click "Start Practice" to begin your ear training session');
@@ -25,14 +26,13 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
   const { responseTimeLimit, autoAdvanceSpeed, noteDuration } = settings.timing;
 
   // Forward declare startNewRound for timer callback
-  const startNewRoundRef = useRef<() => Promise<void>>();
+  const startNewRoundRef = useRef<() => Promise<void>>(async () => {});
 
-  // Timer callback handlers
+  // Handle timer timeout
   const handleTimeUp = useCallback(() => {
+
     if (!currentNote) return;
-    
-    setIsInTimeout(true);
-    
+
     const attempt: GuessAttempt = {
       id: `${Date.now()}-${Math.random()}`,
       timestamp: new Date(),
@@ -43,20 +43,27 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
 
     onGuessAttempt?.(attempt);
     setFeedback(`Time's up! The correct answer was ${currentNote.note}`);
-    
+
+    // Set timeout state to prevent overlapping operations
+    setIsInTimeout(true);
+
     // Auto-advance to next note
     const advanceTime = Math.min(autoAdvanceSpeed, 2); // Max 2 seconds for timeout
     setTimeout(() => {
       setIsInTimeout(false);
-      startNewRoundRef.current?.();
+
+      // Start new round
+      if (startNewRoundRef.current) {
+        startNewRoundRef.current();
+      }
     }, advanceTime * 1000);
   }, [currentNote, onGuessAttempt, autoAdvanceSpeed]);
 
   // Initialize game timer
-  const { timeRemaining, isTimerActive, startTimer, stopTimer, pauseTimer, resetTimer } = useGameTimer({
+  const { timeRemaining, isTimerActive, startTimer, pauseTimer, resetTimer } = useGameTimer({
     timeLimit: responseTimeLimit,
     isPaused,
-    onTimeUp: handleTimeUp,
+    onTimeUp: handleTimeUp
   });
 
   // Handle pause state changes for feedback
@@ -118,30 +125,65 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     }
   };
 
+  const handleStartPractice = useCallback(() => {
+    if (!hasCompletedModeSetup) {
+      // First time: open mode setup
+      startFirstTimeSetup();
+    } else {
+      // Mode already set: start practice normally
+      if (startNewRoundRef.current) {
+        startNewRoundRef.current();
+      }
+    }
+  }, [hasCompletedModeSetup, startFirstTimeSetup]);
+
   const startNewRound = useCallback(async () => {
     const newNote = AudioEngine.getRandomNoteFromFilter(settings.noteFilter);
-    setCurrentNote(newNote);
-    setUserGuess(null);
-    
     // Reset timer state before starting new round
     resetTimer();
     
     setIsPlaying(true);
     await audioEngine.initialize();
     audioEngine.playNote(newNote, noteDuration);
-    
-    // Set feedback and start timer after note starts playing
+
+    setCurrentNote(newNote);
+    setUserGuess(null);
+
+    // Set feedback after note starts playing
     setTimeout(() => {
       setIsPlaying(false);
       setFeedback('Listen to the note and identify it on the keyboard');
-      
-      // Start the timer if time limit is set
-      startTimer();
-    }, 500); // Set feedback and start timer after note finishes playing
-  }, [settings.noteFilter, resetTimer, noteDuration, startTimer]);
+    }, 500);
+  }, [settings.noteFilter, resetTimer, noteDuration]);
 
-  // Set the ref for the timer callback
-  startNewRoundRef.current = startNewRound;
+  // Set the ref for the timer callback BEFORE any timer operations
+  useEffect(() => {
+    startNewRoundRef.current = startNewRound;
+  }, [startNewRound]);
+
+  // Start timer when currentNote changes and note finishes playing
+  useEffect(() => {
+    if (currentNote && !isPlaying && !isPaused && !isInTimeout && responseTimeLimit) {
+      startTimer();
+    }
+  }, [currentNote, isPlaying, isPaused, isInTimeout, responseTimeLimit, startTimer]);
+
+  // Reset game to initial state
+  const resetToInitialState = useCallback(() => {
+    setCurrentNote(null);
+    setUserGuess(null);
+    setFeedback('Click "Start Practice" to begin your ear training session');
+    setIsPlaying(false);
+    setIsInTimeout(false);
+    resetTimer();
+  }, [resetTimer]);
+
+  // Handle external reset trigger
+  useEffect(() => {
+    if (resetTrigger && resetTrigger > 0) {
+      resetToInitialState();
+    }
+  }, [resetTrigger, resetToInitialState]);
 
   return (
     <div className="note-identification">
@@ -149,8 +191,8 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
       
       <div className="game-area">
         <div className="controls">
-          <button 
-            onClick={currentNote ? playCurrentNote : startNewRound}
+          <button
+            onClick={currentNote ? playCurrentNote : handleStartPractice}
             disabled={isPlaying || isPaused}
             className="primary-button"
           >
@@ -175,7 +217,6 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
               timeLimit={responseTimeLimit}
               timeRemaining={timeRemaining}
               isActive={isTimerActive}
-              onTimeUp={handleTimeUp}
             />
           </div>
         )}

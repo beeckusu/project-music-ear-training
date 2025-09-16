@@ -122,44 +122,6 @@ export const useGameTimer = (options: GameTimerOptions): GameTimerReturn => {
     }
   }, [isPaused, isTimerActive, timeRemaining, timeLimit, isManuallyPaused, pauseTimer, onTimeUp, onTick]);
 
-  // Restart timer when time limit changes (but only if timer is active)
-  const prevTimeLimit = useRef(timeLimit);
-  useEffect(() => {
-    // Only restart if the time limit actually changed and timer is running
-    if (isTimerActive && timeLimit && prevTimeLimit.current !== timeLimit) {
-      prevTimeLimit.current = timeLimit;
-      
-      // Settings changed while timer was running, restart the timer with new settings
-      clearTimers();
-      setTimeRemaining(timeLimit);
-      
-      // Update timer every 100ms for smooth countdown
-      intervalRef.current = setInterval(() => {
-        setTimeRemaining(prev => {
-          const newTime = prev - 0.1;
-          if (newTime <= 0) {
-            // Time's up - clear the interval to prevent further updates
-            if (intervalRef.current) {
-              clearInterval(intervalRef.current);
-              intervalRef.current = null;
-            }
-            setIsTimerActive(false);
-            return 0;
-          }
-          onTick?.(newTime);
-          return newTime;
-        });
-      }, 100);
-      
-      // Auto-fail when time is up
-      timeoutRef.current = setTimeout(() => {
-        onTimeUp?.();
-      }, timeLimit * 1000);
-    } else {
-      prevTimeLimit.current = timeLimit;
-    }
-  }, [timeLimit, isTimerActive, clearTimers, onTimeUp, onTick]);
-
   // Cleanup timers on unmount
   useEffect(() => {
     return () => {
