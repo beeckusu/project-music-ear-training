@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import type { GuessAttempt } from '../types/music';
+import type { GuessAttempt } from '../types/game';
 import './GuessHistory.css';
 
 interface GuessHistoryProps {

@@ -85,7 +85,7 @@ const TimingSettings: React.FC = () => {
                 min="1"
                 max="30" 
                 step="1"
-                value={responseTimeLimit || DEFAULT_TIMING_SETTINGS.responseTimeLimit}
+                value={responseTimeLimit || DEFAULT_TIMING_SETTINGS.responseTimeLimit || 3}
                 onChange={(e) => handleTimeLimit(parseInt(e.target.value))}
                 className="timing-range"
               />

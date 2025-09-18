@@ -1,8 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { AppSettings, NoteFilter, TimingSettings, AudioSettings, ModeSettings } from '../types/music';
-import { DEFAULT_NOTE_FILTER, DEFAULT_TIMING_SETTINGS, DEFAULT_AUDIO_SETTINGS, DEFAULT_MODE_SETTINGS } from '../types/music';
+import type { NoteFilter, TimingSettings, AudioSettings } from '../types/music';
+import type { ModeSettings } from '../types/game';
+import type { AppSettings } from '../types/settings';
+import { DEFAULT_NOTE_FILTER, DEFAULT_TIMING_SETTINGS, DEFAULT_AUDIO_SETTINGS } from '../types/music';
+import { DEFAULT_MODE_SETTINGS } from '../types/game';
 
 export interface SettingsContextType {
   settings: AppSettings;

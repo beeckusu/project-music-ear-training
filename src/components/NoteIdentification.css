@@ -81,9 +81,67 @@
 /* Timer Section Styles */
 .timer-section {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   margin: 16px 0;
+  gap: 12px;
+}
+
+/* Rush Mode Progress Styles */
+.rush-progress {
+  text-align: center;
+}
+
+.rush-progress p {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+}
+
+/* Completion Controls Styles */
+.completion-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.completion-message {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  text-align: center;
+}
+
+.completion-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Responsive layout for completion actions */
+@media (max-width: 600px) {
+  .completion-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .completion-actions .primary-button,
+  .completion-actions .secondary-button {
+    min-width: 180px;
+  }
 }
 
 .unlimited-time-indicator {
