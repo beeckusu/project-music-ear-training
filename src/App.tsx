@@ -6,12 +6,12 @@ import ScoreTracker from './components/ScoreTracker'
 import GuessHistory from './components/GuessHistory'
 import SettingsButton from './components/SettingsButton'
 import SettingsModal from './components/SettingsModal'
-import type { GuessAttempt } from './types/game'
+import type { GuessAttempt } from './types/music'
 import './App.css'
 
 // Main app content component that can access settings context
 function AppContent() {
-  const { isSettingsOpen, closeSettings, settings } = useSettings()
+  const { isSettingsOpen, closeSettings } = useSettings()
   const [score, setScore] = useState({ correct: 0, total: 0 })
   const [guessHistory, setGuessHistory] = useState<GuessAttempt[]>([])
   const [isPaused, setIsPaused] = useState(false)
@@ -85,7 +85,6 @@ function AppContent() {
           onGuessAttempt={handleGuessAttempt}
           isPaused={gameIsPaused}
           resetTrigger={gameResetTrigger}
-          onScoreReset={resetScore}
         />
       </main>
 
