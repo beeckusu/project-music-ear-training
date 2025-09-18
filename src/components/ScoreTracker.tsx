@@ -23,9 +23,6 @@ const ScoreTracker: React.FC<ScoreTrackerProps> = ({ correct, total, onReset }) 
             <span className="score-value">{accuracy}%</span>
           </div>
         </div>
-        <button onClick={onReset} className="reset-button-compact">
-          Reset
-        </button>
       </div>
       <div className="progress-bar">
         <div 
