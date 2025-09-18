@@ -39,13 +39,6 @@ export interface NoteFilter {
   allowedNotes?: Note[];
 }
 
-export interface GuessAttempt {
-  id: string;
-  timestamp: Date;
-  actualNote: NoteWithOctave;
-  guessedNote: NoteWithOctave | null;
-  isCorrect: boolean;
-}
 
 export type NoteDuration = '8n' | '4n' | '2n' | '1n';
 
@@ -69,38 +62,6 @@ export interface TimingSettings {
   noteDuration: NoteDuration;
 }
 
-export type ModeType = 'rush' | 'survival' | 'sandbox';
-
-export interface RushModeSettings {
-  targetNotes: number; // Number of correct notes to hit
-}
-
-export interface SurvivalModeSettings {
-  sessionDuration: number; // Minutes to survive
-  healthDrainRate: number; // Health lost per second
-  healthRecovery: number; // Health gained per correct note
-  healthDamage: number; // Health lost per wrong note
-}
-
-export interface SandboxModeSettings {
-  sessionDuration: number; // Minutes to practice
-  targetAccuracy?: number; // Optional accuracy target
-  targetStreak?: number; // Optional streak target
-}
-
-export interface ModeSettings {
-  selectedMode: ModeType;
-  rush: RushModeSettings;
-  survival: SurvivalModeSettings;
-  sandbox: SandboxModeSettings;
-}
-
-export interface AppSettings {
-  noteFilter: NoteFilter;
-  timing: TimingSettings;
-  audio: AudioSettings;
-  modes: ModeSettings;
-}
 
 export const DEFAULT_NOTE_FILTER: NoteFilter = {
   octaveRange: { min: 4, max: 4 },
@@ -114,28 +75,11 @@ export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
 };
 
 export const DEFAULT_TIMING_SETTINGS: TimingSettings = {
-  responseTimeLimit: 10, // 10 seconds default
+  responseTimeLimit: 3, // 3 seconds default
   autoAdvanceSpeed: 1.5, // 1.5 seconds auto-advance
   noteDuration: '2n' // half note default
 };
 
-export const DEFAULT_MODE_SETTINGS: ModeSettings = {
-  selectedMode: 'sandbox',
-  rush: {
-    targetNotes: 25
-  },
-  survival: {
-    sessionDuration: 1, // 1 minute
-    healthDrainRate: 2, // 2 health per second
-    healthRecovery: 15, // 15 health per correct note
-    healthDamage: 25 // 25 health per wrong note
-  },
-  sandbox: {
-    sessionDuration: 1, // 1 minute
-    targetAccuracy: 80,
-    targetStreak: 10
-  }
-};
 
 export const WHITE_KEYS: Note[] = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 export const BLACK_KEYS: Note[] = ['C#', 'D#', 'F#', 'G#', 'A#'];

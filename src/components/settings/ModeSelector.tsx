@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSettings } from '../../hooks/useSettings';
-import type { ModeType } from '../../types/music';
+import type { ModeType } from '../../types/game';
 import RushModeSettings from './RushModeSettings';
 import SurvivalModeSettings from './SurvivalModeSettings';
 import SandboxModeSettings from './SandboxModeSettings';

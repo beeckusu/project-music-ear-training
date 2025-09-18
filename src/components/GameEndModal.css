@@ -1,0 +1,352 @@
+/* Game End Modal */
+.game-end-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5));
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.game-end-modal {
+  background: linear-gradient(145deg, #ffffff, #f8f9fa);
+  border-radius: 20px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow:
+    0 25px 80px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+  position: relative;
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.game-end-header {
+  position: relative;
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  padding: 2rem;
+  border-radius: 20px 20px 0 0;
+  text-align: center;
+  overflow: hidden;
+}
+
+.game-end-header::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 70% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+  animation: sparkle 3s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.1); }
+}
+
+.celebration-section {
+  position: relative;
+  z-index: 1;
+}
+
+.celebration-emoji {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  animation: bounce 1s ease-in-out infinite alternate;
+}
+
+@keyframes bounce {
+  from { transform: translateY(0); }
+  to { transform: translateY(-10px); }
+}
+
+.game-end-header h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.mode-completion {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+.performance-rating {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  display: inline-block;
+}
+
+.game-end-close-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.game-end-close-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.game-end-content {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.stats-section h3,
+.history-section h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.stat-item {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  padding: 1rem;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid rgba(0, 123, 255, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.game-end-modal .stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #007bff;
+  font-family: 'Courier New', monospace;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.history-item {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(90deg, #f8f9fa, #ffffff);
+  border-radius: 8px;
+  border-left: 3px solid #007bff;
+  transition: all 0.2s ease;
+}
+
+.history-item:hover {
+  background: linear-gradient(90deg, #e3f2fd, #f8f9fa);
+  transform: translateX(4px);
+}
+
+.history-time {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  color: #007bff;
+  font-size: 1rem;
+}
+
+.history-accuracy {
+  font-weight: 600;
+  color: #28a745;
+}
+
+.history-date {
+  color: #6c757d;
+  font-size: 0.875rem;
+  text-align: right;
+}
+
+.actions-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.action-button {
+  padding: 0.875rem 1.5rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.action-button.primary {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.action-button.primary:hover {
+  background: linear-gradient(135deg, #218838, #1e9f8a);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+}
+
+.action-button.secondary {
+  background: linear-gradient(135deg, #007bff, #6f42c1);
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.action-button.secondary:hover {
+  background: linear-gradient(135deg, #0056b3, #5a31a8);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+}
+
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .game-end-backdrop {
+    padding: 10px;
+  }
+
+  .game-end-modal {
+    max-height: 90vh;
+    border-radius: 16px;
+  }
+
+  .game-end-header {
+    padding: 1.5rem;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .game-end-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .celebration-emoji {
+    font-size: 3rem;
+  }
+
+  .performance-rating {
+    font-size: 1rem;
+  }
+
+  .game-end-content {
+    padding: 1.5rem;
+    gap: 1.5rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .game-end-modal .stat-value {
+    font-size: 1.25rem;
+  }
+
+  .history-item {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+    text-align: center;
+  }
+
+  .history-date {
+    text-align: center;
+  }
+
+  .action-button {
+    padding: 1rem 1.5rem;
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .game-end-content {
+    padding: 1rem;
+  }
+
+  .game-end-header {
+    padding: 1rem;
+  }
+
+  .stats-section h3,
+  .history-section h3 {
+    font-size: 1.1rem;
+  }
+}
