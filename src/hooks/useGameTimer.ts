@@ -38,7 +38,6 @@ export const useGameTimer = (options: GameTimerOptions): GameTimerReturn => {
 
   const startTimer = useCallback(() => {
     if (!timeLimit) return; // Unlimited time
-    
     clearTimers();
     setTimeRemaining(timeLimit);
     setIsTimerActive(true);
