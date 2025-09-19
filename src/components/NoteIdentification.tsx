@@ -69,20 +69,8 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
 
     onGuessAttempt?.(attempt);
     setFeedback(`Time's up! The correct answer was ${currentNote.note}`);
+    startTimeout();
 
-    // Set timeout state to prevent overlapping operations
-    setIsInTimeout(true);
-
-    // Auto-advance to next note
-    const advanceTime = Math.min(autoAdvanceSpeed, 2); // Max 2 seconds for timeout
-    setTimeout(() => {
-      setIsInTimeout(false);
-
-      // Start new round
-      if (startNewRoundRef.current) {
-        startNewRoundRef.current();
-      }
-    }, advanceTime * 1000);
   }, [currentNote, onGuessAttempt, autoAdvanceSpeed, isGameCompleted]);
 
   const { timeRemaining, isTimerActive, startTimer, stopTimer, resetTimer } = useGameTimer({
@@ -120,6 +108,15 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     audioEngine.playNote(currentNote, noteDuration);
     setTimeout(() => setIsPlaying(false), 500);
   };
+
+  const startTimeout = () => {
+    setIsInTimeout(true);
+    // Auto-advance to next note
+    const advanceTime = Math.min(autoAdvanceSpeed, 2); // Max 2 seconds for timeout
+    setTimeout(() => {
+      setIsInTimeout(false);
+    }, advanceTime * 1000);
+  }
 
   const handleNoteGuess = (guessedNote: NoteWithOctave) => {
     // If game is completed, allow piano playing but no game logic
@@ -170,6 +167,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     setFeedback(result.feedback);
 
     if (isCorrect) {
+      startTimeout();
       stopTimer(); // Stop timer on correct guess
     }
 
@@ -236,6 +234,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
       setGameState(prevState => prevState ? { ...prevState } : prevState);
     } else {
       // Reset timer to full time for new round in non-Rush modes
+      console.log("Resetting timer.");
       resetTimer();
     }
 
