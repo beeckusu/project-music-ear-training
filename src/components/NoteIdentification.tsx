@@ -103,14 +103,14 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     });
   }, []);
 
-  // Handle pause state changes for feedback
+  // Handle pause state changes
   useEffect(() => {
-    if (isPaused && isTimerActive) {
+    if (isPaused) {
       setFeedback('Game paused');
-    } else if (!isPaused && currentNote && !isTimerActive && !isInTimeout && gameState) {
+    } else if (currentNote && gameState && !isInTimeout) {
       setFeedback(gameState.getFeedbackMessage(true));
     }
-  }, [isPaused, isTimerActive, currentNote, isInTimeout, gameState]);
+  }, [isPaused]);
 
   const playCurrentNote = async () => {
     if (!currentNote) return;
@@ -262,7 +262,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
 
   // Start timer when currentNote changes and note finishes playing (but not if game is completed or in timeout)
   useEffect(() => {
-    const shouldStart = currentNote && !isPlaying && !isPaused && !isInTimeout && responseTimeLimit && gameState && !isGameCompleted && gameState.shouldStartTimer() && !isTimerActive;
+    const shouldStart = currentNote && !isPlaying && !isPaused && !isInTimeout && responseTimeLimit && gameState && !isGameCompleted && !isTimerActive;
 
     if (shouldStart) {
       startTimer();

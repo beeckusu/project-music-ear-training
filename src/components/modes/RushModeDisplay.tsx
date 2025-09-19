@@ -21,7 +21,11 @@ const RushModeDisplay: React.FC<RushModeDisplayProps> = ({
   onTimerUpdate
 }) => {
   // Initialize Rush timer (for Rush mode)
-  const { isTimerActive: isRushTimerActive, startTimer: startRushTimer } = useRushTimer({
+  const {
+    elapsedTime: rushElapsedTime,
+    isTimerActive: isRushTimerActive,
+    startTimer: startRushTimer
+  } = useRushTimer({
     isPaused,
     onTick: (time) => {
       if (onTimerUpdate) {
@@ -47,7 +51,7 @@ const RushModeDisplay: React.FC<RushModeDisplayProps> = ({
       {(currentNote || gameState.isCompleted) && (
         <div className="timer-section">
           <TimerCountUp
-            elapsedTime={gameState.isCompleted ? (gameState.completionTime || gameState.elapsedTime) : gameState.elapsedTime}
+            elapsedTime={gameState.isCompleted ? (gameState.completionTime || rushElapsedTime) : rushElapsedTime}
             isActive={isRushTimerActive && !gameState.isCompleted}
           />
           <div className="rush-progress">

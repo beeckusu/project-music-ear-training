@@ -127,11 +127,6 @@ export class RushGameStateImpl implements RushGameState {
     }
   };
 
-  shouldStartTimer = (): boolean => {
-    // Rush mode uses count-up timer, so regular timer should not start
-    return false;
-  };
-
   getTimerMode = (): 'count-up' | 'count-down' | 'none' => {
     return 'count-up';
   };
@@ -199,11 +194,6 @@ export class SurvivalGameStateImpl implements SurvivalGameState {
     // TODO: Implement survival mode start round logic
   };
 
-  shouldStartTimer = (): boolean => {
-    // Survival mode uses count-down timer
-    return true;
-  };
-
   getTimerMode = (): 'count-up' | 'count-down' | 'none' => {
     return 'count-down';
   };
@@ -268,11 +258,6 @@ export class SandboxGameStateImpl implements SandboxGameState {
     // TODO: Implement sandbox mode start round logic
   };
 
-  shouldStartTimer = (): boolean => {
-    // Sandbox mode uses count-down timer
-    return true;
-  };
-
   getTimerMode = (): 'count-up' | 'count-down' | 'none' => {
     return 'count-down';
   };
@@ -289,7 +274,6 @@ export interface GameStateWithDisplay extends BaseGameState {
   // Hooks for game state to control behavior
   getFeedbackMessage: (currentNote: boolean) => string;
   onStartNewRound: () => void;
-  shouldStartTimer: () => boolean;
   getTimerMode: () => 'count-up' | 'count-down' | 'none';
 }
 
