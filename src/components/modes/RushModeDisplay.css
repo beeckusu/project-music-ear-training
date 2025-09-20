@@ -1,0 +1,15 @@
+/* Rush Mode Progress Styles */
+.rush-progress {
+  text-align: center;
+}
+
+.rush-progress p {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+}

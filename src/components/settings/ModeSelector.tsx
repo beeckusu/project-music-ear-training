@@ -42,6 +42,11 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ onRestartGame }) => {
     updateModeSettings({ selectedMode: mode });
   };
 
+  const handleRestartGame = () => {
+    handleModeSelect(selectedMode);
+    onRestartGame();
+  }
+
   const handleBeginPractice = () => {
     completeModeSetup();
   };
@@ -118,7 +123,7 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ onRestartGame }) => {
           </div>
           <button
             className="restart-game-button secondary-button"
-            onClick={onRestartGame}
+            onClick={handleRestartGame}
           >
             🔄 Restart Current Session
           </button>

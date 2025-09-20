@@ -1,0 +1,16 @@
+/* Rush Mode Game End Modal Styles */
+
+/* Rush Mode Theme */
+.game-end-modal.rush-complete .game-end-header {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+}
+
+/* Rush-specific stat item themes */
+.stat-item.stat-neutral .stat-value {
+  color: #007bff;
+}
+
+/* Rush-specific history item themes */
+.history-item.history-neutral {
+  border-left-color: #007bff;
+}
