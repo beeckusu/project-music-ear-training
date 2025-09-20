@@ -35,6 +35,13 @@ const TimerCountUp: React.FC<TimerCountUpProps> = ({
 
   const progress = targetTime && targetTime > 0 ? Math.min((elapsedTime / targetTime) * 100, 100) : 0;
 
+  // SVG circle parameters
+  const size = 120;
+  const strokeWidth = 8;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * Math.PI * 2;
+  const offset = circumference - (progress / 100) * circumference;
+
   return (
     <div className={getTimerClass()}>
       <div className="timer-container">

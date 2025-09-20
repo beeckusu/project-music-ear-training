@@ -1,0 +1,82 @@
+/* Survival Mode Game End Modal Styles */
+
+/* Survival Mode Victory Theme */
+.game-end-modal.survival-victory .game-end-header {
+  background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+/* Survival Mode Defeat Theme */
+.game-end-modal.survival-defeat .game-end-header {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+}
+
+/* Survival-specific stat item themes */
+.stat-item.stat-success .stat-value {
+  color: #28a745;
+}
+
+.stat-item.stat-warning .stat-value {
+  color: #ffc107;
+}
+
+.stat-item.stat-failure .stat-value {
+  color: #dc3545;
+}
+
+/* Survival-specific history item themes */
+.history-item.history-victory {
+  border-left-color: #28a745;
+}
+
+.history-item.history-defeat {
+  border-left-color: #dc3545;
+}
+
+.history-item.history-victory:hover {
+  background: linear-gradient(90deg, #d4edda, #f8f9fa);
+}
+
+.history-item.history-defeat:hover {
+  background: linear-gradient(90deg, #f8d7da, #f8f9fa);
+}
+
+/* Survival-specific additional sections */
+.survival-outcome-section {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 123, 255, 0.1);
+}
+
+.survival-outcome-section h4 {
+  margin: 0 0 0.75rem 0;
+  color: #333;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.outcome-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.outcome-status {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.outcome-status.victory {
+  background: linear-gradient(135deg, #d4edda, #c3e6cb);
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.outcome-status.defeat {
+  background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}

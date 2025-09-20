@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import type { SandboxGameState } from '../../types/game';
-import type { CommonDisplayProps } from '../../game/GameStateFactory';
+import type { CommonDisplayProps, GameStateWithDisplay } from '../../game/GameStateFactory';
 import TimerCircular from '../TimerCircular';
 
 interface SandboxModeDisplayProps extends CommonDisplayProps {
@@ -8,14 +8,21 @@ interface SandboxModeDisplayProps extends CommonDisplayProps {
 }
 
 const SandboxModeDisplay: React.FC<SandboxModeDisplayProps> = ({
-  gameState: _gameState,
+  gameState,
   responseTimeLimit,
-  timeRemaining,
-  isTimerActive,
   currentNote,
-  isPaused: _isPaused,
-  onTimerUpdate: _onTimerUpdate
+  isPaused,
+  onTimeUp,
+  onTimerUpdate
 }) => {
+  // Get timer state from gameState
+  const gameStateWithDisplay = gameState as unknown as GameStateWithDisplay;
+  const { timeRemaining, isActive: isTimerActive } = gameStateWithDisplay.getTimerState();
+
+  // Update parent with timer state
+  useEffect(() => {
+    onTimerUpdate?.(timeRemaining, isTimerActive);
+  }, [timeRemaining, isTimerActive, onTimerUpdate]);
   return (
     <>
       {/* Individual Note Timer */}

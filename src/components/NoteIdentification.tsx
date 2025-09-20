@@ -5,7 +5,6 @@ import type { GameStateWithDisplay, GameActionResult } from '../game/GameStateFa
 import { createGameState } from '../game/GameStateFactory';
 import { audioEngine, AudioEngine } from '../utils/audioEngine';
 import { useSettings } from '../hooks/useSettings';
-import { useGameTimer } from '../hooks/useGameTimer';
 import { useGameHistory } from '../hooks/useGameHistory';
 import PianoKeyboard from './PianoKeyboard';
 import GameEndModal from './GameEndModal';
@@ -52,10 +51,26 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
   // Forward declare startNewRound for timer callback
   const startNewRoundRef = useRef<() => Promise<void>>(async () => {});
 
+  // Refs for values needed in handleTimeUp but shouldn't be dependencies
+  const gameStateRef = useRef(gameState);
+  const selectedModeRef = useRef(selectedMode);
+  const addSessionRef = useRef(addSession);
+  const onGameCompleteRef = useRef(onGameComplete);
+  const onScoreResetRef = useRef(onScoreReset);
+
+  // Keep refs updated
+  useEffect(() => {
+    gameStateRef.current = gameState;
+    selectedModeRef.current = selectedMode;
+    addSessionRef.current = addSession;
+    onGameCompleteRef.current = onGameComplete;
+    onScoreResetRef.current = onScoreReset;
+  });
+
   // Handle timer timeout
   const handleTimeUp = useCallback(() => {
     // Don't handle timeouts if game is completed
-    if (!gameState || isGameCompleted) return;
+    if (!gameStateRef.current || isGameCompleted) return;
 
     if (!currentNote) return;
 
@@ -68,54 +83,92 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     };
 
     onGuessAttempt?.(attempt);
-    setFeedback(`Time's up! The correct answer was ${currentNote.note}`);
+
+    // Handle timeout as incorrect guess for game state
+    const result: GameActionResult = gameStateRef.current.handleIncorrectGuess();
+
+    // Force React to re-render with the updated game state
+    setGameState(prevState => {
+      if (prevState) {
+        const newState = Object.assign(Object.create(Object.getPrototypeOf(prevState)), prevState);
+        return newState;
+      }
+      return prevState;
+    });
+
+    // Set timeout feedback, but include game result feedback
+    setFeedback(`Time's up! The correct answer was ${currentNote.note}. ${result.feedback}`);
+
+    // Handle game completion from timeout
+    if (result.gameCompleted && result.stats) {
+      setIsGameCompleted(true);
+
+      const session: GameSession = {
+        mode: selectedModeRef.current,
+        timestamp: new Date(),
+        completionTime: result.stats.completionTime,
+        accuracy: result.stats.accuracy,
+        totalAttempts: result.stats.totalAttempts,
+        settings: gameStateRef.current.getSessionSettings(),
+        results: gameStateRef.current.getSessionResults(result.stats)
+      };
+
+      addSessionRef.current(session);
+      setGameStats(result.stats);
+      onGameCompleteRef.current?.(result.stats);
+      onScoreResetRef.current?.();
+      setIsEndModalOpen(true);
+      return; // Don't start new round
+    }
+
     startTimeout();
+
+    // Start new round after timeout
+    const advanceTime = Math.min(autoAdvanceSpeed, 2);
+    setTimeout(() => {
+      setIsInTimeout(false);
+      if (startNewRoundRef.current) {
+        startNewRoundRef.current();
+      }
+    }, advanceTime * 1000);
 
   }, [currentNote, onGuessAttempt, autoAdvanceSpeed, isGameCompleted]);
 
-  const { timeRemaining, isTimerActive, startTimer, stopTimer, resetTimer } = useGameTimer({
-    timeLimit: responseTimeLimit,
-    isPaused,
-    onTimeUp: handleTimeUp
-  });
+  // Timer state will now be managed by individual mode displays
+  const [timeRemaining, setTimeRemaining] = useState<number>(0);
+  const [isTimerActive, setIsTimerActive] = useState<boolean>(false);
 
-  // Timer update callback for mode displays
-  const handleTimerUpdate = useCallback((time: number) => {
-    setGameState(prev => {
-      if (prev && Math.abs(prev.elapsedTime - time) > 0.2) { // Only update every 200ms to reduce re-renders
-        const newState = Object.assign(Object.create(Object.getPrototypeOf(prev)), prev);
-        newState.elapsedTime = time;
-        return newState;
-      }
-      return prev;
-    });
-  }, []);
 
   // Handle pause state changes
   useEffect(() => {
+    if (!gameState) return;
+
     if (isPaused) {
+      gameState.pauseTimer();
       setFeedback('Game paused');
-    } else if (currentNote && gameState && !isInTimeout) {
-      setFeedback(gameState.getFeedbackMessage(true));
+    } else {
+      // When unpausing, always resume timer if we have a current note and not in between-round timeout
+      if (currentNote && !isInTimeout) {
+        setFeedback(gameState.getFeedbackMessage(true));
+        gameState.resumeTimer();
+      }
     }
-  }, [isPaused]);
+  }, [isPaused, gameState, currentNote, isInTimeout]);
 
   const playCurrentNote = async () => {
     if (!currentNote) return;
-    
+
     setIsPlaying(true);
     await audioEngine.initialize();
     audioEngine.playNote(currentNote, noteDuration);
-    setTimeout(() => setIsPlaying(false), 500);
+    setTimeout(() => {
+        setIsPlaying(false)
+        gameState?.resumeTimer();
+    }, 500);
   };
 
   const startTimeout = () => {
     setIsInTimeout(true);
-    // Auto-advance to next note
-    const advanceTime = Math.min(autoAdvanceSpeed, 2); // Max 2 seconds for timeout
-    setTimeout(() => {
-      setIsInTimeout(false);
-    }, advanceTime * 1000);
   }
 
   const handleNoteGuess = (guessedNote: NoteWithOctave) => {
@@ -168,7 +221,6 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
 
     if (isCorrect) {
       startTimeout();
-      stopTimer(); // Stop timer on correct guess
     }
 
     // Handle game completion - use result.gameCompleted instead of gameState.isCompleted for immediate completion
@@ -181,12 +233,8 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
         completionTime: result.stats.completionTime,
         accuracy: result.stats.accuracy,
         totalAttempts: result.stats.totalAttempts,
-        settings: selectedMode === 'rush' ? { targetNotes: settings.modes.rush.targetNotes } : undefined,
-        results: {
-          notesCompleted: result.stats.correctAttempts,
-          longestStreak: result.stats.longestStreak,
-          averageTimePerNote: result.stats.averageTimePerNote
-        }
+        settings: gameState.getSessionSettings(),
+        results: gameState.getSessionResults(result.stats)
       };
 
       addSession(session);
@@ -203,6 +251,9 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
       const advanceTime = responseTimeLimit ? Math.min(autoAdvanceSpeed, remainingTime) : autoAdvanceSpeed;
 
       setTimeout(() => {
+        // Reset timer before starting new round
+        setIsInTimeout(false);
+        gameState.resetTimer();
         startNewRound();
       }, advanceTime * 1000);
     }
@@ -223,20 +274,16 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
   const startNewRound = useCallback(async () => {
     if (!gameState || isGameCompleted) return;
 
+    // Ensure timeout state is cleared when starting new round
+    setIsInTimeout(false);
+
     const newNote = AudioEngine.getRandomNoteFromFilter(settings.noteFilter);
 
     // Let game state handle start round logic
     gameState.onStartNewRound();
 
-    if (gameState.getTimerMode() === 'count-up') {
-      // Count-up timer is handled by the mode display
-      // Force state update for React re-render
-      setGameState(prevState => prevState ? { ...prevState } : prevState);
-    } else {
-      // Reset timer to full time for new round in non-Rush modes
-      console.log("Resetting timer.");
-      resetTimer();
-    }
+    // Force state update for React re-render
+    setGameState(prevState => prevState ? { ...prevState } : prevState);
 
     setIsPlaying(true);
     await audioEngine.initialize();
@@ -245,6 +292,13 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     setCurrentNote(newNote);
     setUserGuess(null);
 
+    // Initialize timer for the new round with update callback to trigger React re-renders
+    const handleTimeUpdate = (timeRemaining: number) => {
+      setTimeRemaining(timeRemaining);
+    };
+
+    gameState.initializeTimer(responseTimeLimit, !!isPaused, handleTimeUp, handleTimeUpdate);
+
     // Set feedback after note starts playing (only if not in timeout/intermission)
     setTimeout(() => {
       setIsPlaying(false);
@@ -252,21 +306,12 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
         setFeedback(gameState.getFeedbackMessage(true));
       }
     }, 500);
-  }, [settings.noteFilter, resetTimer, noteDuration, gameState, isGameCompleted]);
+  }, [settings.noteFilter, noteDuration, gameState, isGameCompleted, responseTimeLimit, isPaused, handleTimeUp]);
 
   // Set the ref for the timer callback BEFORE any timer operations
   useEffect(() => {
     startNewRoundRef.current = startNewRound;
   }, [startNewRound]);
-
-  // Start timer when currentNote changes and note finishes playing (but not if game is completed or in timeout)
-  useEffect(() => {
-    const shouldStart = currentNote && !isPlaying && !isPaused && !isInTimeout && responseTimeLimit && gameState && !isGameCompleted && !isTimerActive;
-
-    if (shouldStart) {
-      startTimer();
-    }
-  }, [currentNote, isPlaying, isPaused, isInTimeout, responseTimeLimit, startTimer, isGameCompleted, gameState, isTimerActive]);
 
   // Reset game to initial state
   const resetToInitialState = useCallback(() => {
@@ -275,13 +320,12 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     setIsPlaying(false);
     setIsInTimeout(false);
     setIsGameCompleted(false); // Reset completion state
-    resetTimer();
     const newGameState = createGameState(selectedMode, settings.modes);
     setGameState(newGameState);
     setFeedback(newGameState.getFeedbackMessage(false));
     setIsEndModalOpen(false);
     setGameStats(null);
-  }, [resetTimer, selectedMode, settings.modes]);
+  }, [selectedMode, settings.modes]);
 
   // Handle external reset trigger
   useEffect(() => {
@@ -317,10 +361,31 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
   return (
     <div className="note-identification">
       <div className="game-area">
+
+        {!isGameCompleted && (
+          <div className="feedback">
+            {feedback && <p className="feedback-text">{feedback}</p>}
+          </div>
+        )}
+
+        {/* Mode-specific Display */}
+        {gameState ? gameState.modeDisplay({
+          responseTimeLimit,
+          currentNote: !!currentNote,
+          isPaused: !!isPaused,
+          onTimeUp: handleTimeUp,
+          onTimerUpdate: (timeRemaining: number, isActive: boolean) => {
+            setTimeRemaining(timeRemaining);
+            setIsTimerActive(isActive);
+          }
+        }) : <div>Loading game state...</div>}
+
         <div className="controls">
           {isGameCompleted ? (
             <div className="completion-controls">
-              <p className="completion-message">🎉 Rush Mode Complete! Piano is now in free play mode.</p>
+              <p className="completion-message">
+                {gameState?.getCompletionMessage() || "🎉 Game Complete! Piano is now in free play mode."}
+              </p>
               <div className="completion-actions">
                 <button onClick={handleShowScores} className="primary-button">
                   📊 View Scores
@@ -352,22 +417,6 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
           )}
         </div>
 
-        {!isGameCompleted && (
-          <div className="feedback">
-            {feedback && <p className="feedback-text">{feedback}</p>}
-          </div>
-        )}
-
-        {/* Mode-specific Display */}
-        {gameState ? gameState.modeDisplay({
-          responseTimeLimit,
-          timeRemaining,
-          isTimerActive,
-          currentNote: !!currentNote,
-          isPaused: !!isPaused,
-          onTimerUpdate: handleTimerUpdate
-        }) : <div>Loading game state...</div>}
-
         <div className={isPaused ? 'piano-container paused' : 'piano-container'}>
           <PianoKeyboard
             onNoteClick={handleNoteGuess}
@@ -377,13 +426,15 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
       </div>
 
       {/* Game End Modal */}
-      {gameStats && (
+      {gameStats && gameState && (
         <GameEndModal
           isOpen={isEndModalOpen}
           onClose={handleCloseEndModal}
           gameStats={gameStats}
+          gameState={gameState}
           mode={selectedMode}
-          settings={selectedMode === 'rush' ? { targetNotes: settings.modes.rush.targetNotes } : undefined}
+          settings={gameState.getSessionSettings()}
+          sessionResults={gameState.getSessionResults(gameStats)}
           onPlayAgain={handlePlayAgain}
           onChangeSettings={handleChangeSettings}
         />

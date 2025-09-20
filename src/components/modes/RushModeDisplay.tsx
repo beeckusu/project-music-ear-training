@@ -1,9 +1,9 @@
 import React from 'react';
 import type { RushGameState, RushModeSettings } from '../../types/game';
-import type { CommonDisplayProps } from '../../game/GameStateFactory';
+import type { CommonDisplayProps, GameStateWithDisplay } from '../../game/GameStateFactory';
 import TimerCountUp from '../TimerCountUp';
 import TimerCircular from '../TimerCircular';
-import { useRushTimer } from '../../hooks/useRushTimer';
+import './RushModeDisplay.css';
 
 interface RushModeDisplayProps extends CommonDisplayProps {
   gameState: RushGameState;
@@ -14,36 +14,19 @@ const RushModeDisplay: React.FC<RushModeDisplayProps> = ({
   gameState,
   rushSettings,
   responseTimeLimit,
-  timeRemaining,
-  isTimerActive,
   currentNote,
   isPaused,
+  onTimeUp,
   onTimerUpdate
 }) => {
-  // Initialize Rush timer (for Rush mode)
-  const {
-    elapsedTime: rushElapsedTime,
-    isTimerActive: isRushTimerActive,
-    startTimer: startRushTimer
-  } = useRushTimer({
-    isPaused,
-    onTick: (time) => {
-      if (onTimerUpdate) {
-        onTimerUpdate(time);
-      }
-    }
-  });
+  // Get timer state from gameState
+  const gameStateWithDisplay = gameState as unknown as GameStateWithDisplay;
+  const { timeRemaining, isActive: isTimerActive } = gameStateWithDisplay.getTimerState();
 
-  // Start timer when current note is played for the first time in Rush mode
+  // Update parent with note timer state
   React.useEffect(() => {
-    // Use snapshot values to avoid dependency loops
-    const correctCount = gameState.correctCount;
-    const isCompleted = gameState.isCompleted;
-
-    if (currentNote && !isRushTimerActive && !isCompleted && correctCount === 0) {
-      startRushTimer();
-    }
-  }, [currentNote, isRushTimerActive, startRushTimer]);
+    onTimerUpdate?.(timeRemaining, isTimerActive);
+  }, [timeRemaining, isTimerActive, onTimerUpdate]);
 
   return (
     <>
@@ -51,8 +34,8 @@ const RushModeDisplay: React.FC<RushModeDisplayProps> = ({
       {(currentNote || gameState.isCompleted) && (
         <div className="timer-section">
           <TimerCountUp
-            elapsedTime={gameState.isCompleted ? (gameState.completionTime || rushElapsedTime) : rushElapsedTime}
-            isActive={isRushTimerActive && !gameState.isCompleted}
+            elapsedTime={gameState.elapsedTime}
+            isActive={!gameState.isCompleted && gameState.startTime !== undefined}
           />
           <div className="rush-progress">
             {gameState.isCompleted ? (

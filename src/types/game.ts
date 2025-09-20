@@ -1,3 +1,4 @@
+import React from 'react';
 import type { NoteWithOctave } from './music';
 
 export interface GuessAttempt {
@@ -34,6 +35,19 @@ export interface ModeSettings {
   sandbox: SandboxModeSettings;
 }
 
+export interface StatItem {
+  label: string;
+  value: string;
+  className?: string;
+}
+
+export interface HistoryItem {
+  primaryStat: string;
+  secondaryStat: string;
+  metadata: string;
+  className?: string;
+}
+
 export interface BaseGameState {
   elapsedTime: number;
   isCompleted: boolean;
@@ -41,6 +55,18 @@ export interface BaseGameState {
   longestStreak: number;
   currentStreak: number;
   startTime?: Date;
+
+  // End Screen Strategy Methods
+  getCelebrationEmoji(sessionResults: Record<string, any>): string;
+  getHeaderTitle(sessionResults: Record<string, any>): string;
+  getModeCompletionText(sessionResults: Record<string, any>): string;
+  getPerformanceRating(gameStats: GameStats, sessionResults: Record<string, any>): string;
+  getHeaderThemeClass(sessionResults: Record<string, any>): string;
+  getStatsItems(gameStats: GameStats, sessionResults: Record<string, any>): StatItem[];
+  getAdditionalStatsSection?(sessionResults: Record<string, any>): React.ReactNode;
+  getHistoryTitle(settings: Record<string, any>): string;
+  getHistoryItems(sessions: GameSession[]): HistoryItem[];
+  shouldShowHistory(sessions: GameSession[]): boolean;
 }
 
 export interface RushGameState extends BaseGameState {
@@ -54,6 +80,8 @@ export interface SurvivalGameState extends BaseGameState {
   healthDrainRate: number;
   healthRecovery: number;
   healthDamage: number;
+  correctCount: number;
+  survivalSettings: SurvivalModeSettings;
 }
 
 export interface SandboxGameState extends BaseGameState {
