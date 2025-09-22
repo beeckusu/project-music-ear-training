@@ -57,6 +57,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
   const addSessionRef = useRef(addSession);
   const onGameCompleteRef = useRef(onGameComplete);
   const onScoreResetRef = useRef(onScoreReset);
+  const currentNoteRef = useRef<NoteWithOctave | null>(currentNote);
 
   // Keep refs updated
   useEffect(() => {
@@ -65,6 +66,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     addSessionRef.current = addSession;
     onGameCompleteRef.current = onGameComplete;
     onScoreResetRef.current = onScoreReset;
+    currentNoteRef.current = currentNote;
   });
 
   // Handle timer timeout
@@ -72,12 +74,12 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     // Don't handle timeouts if game is completed
     if (!gameStateRef.current || isGameCompleted) return;
 
-    if (!currentNote) return;
+    if (!currentNoteRef.current) return;
 
     const attempt: GuessAttempt = {
       id: `${Date.now()}-${Math.random()}`,
       timestamp: new Date(),
-      actualNote: currentNote,
+      actualNote: currentNoteRef.current,
       guessedNote: null, // No guess made
       isCorrect: false
     };
@@ -97,7 +99,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     });
 
     // Set timeout feedback, but include game result feedback
-    setFeedback(`Time's up! The correct answer was ${currentNote.note}. ${result.feedback}`);
+    setFeedback(`Time's up! The correct answer was ${currentNoteRef.current.note}. ${result.feedback}`);
 
     // Handle game completion from timeout
     if (result.gameCompleted && result.stats) {
@@ -132,7 +134,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
       }
     }, advanceTime * 1000);
 
-  }, [currentNote, onGuessAttempt, autoAdvanceSpeed, isGameCompleted]);
+  }, [onGuessAttempt, autoAdvanceSpeed, isGameCompleted]);
 
   // Timer state will now be managed by individual mode displays
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
