@@ -26,6 +26,7 @@ export interface SandboxModeSettings {
   sessionDuration: number; // Minutes to practice
   targetAccuracy?: number; // Optional accuracy target
   targetStreak?: number; // Optional streak target
+  targetNotes?: number; // Optional notes target
 }
 
 export interface ModeSettings {
@@ -88,6 +89,8 @@ export interface SandboxGameState extends BaseGameState {
   sessionDuration: number;
   targetAccuracy?: number;
   targetStreak?: number;
+  targetNotes?: number;
+  correctAttempts: number;
 }
 
 export interface GameSession {
@@ -110,7 +113,7 @@ export interface GameStats {
 }
 
 export const DEFAULT_MODE_SETTINGS: ModeSettings = {
-  selectedMode: 'rush',
+  selectedMode: 'sandbox',
   rush: {
     targetNotes: 10
   },
@@ -123,6 +126,7 @@ export const DEFAULT_MODE_SETTINGS: ModeSettings = {
   sandbox: {
     sessionDuration: 1, // 1 minute
     targetAccuracy: 80,
-    targetStreak: 10
+    targetStreak: 10,
+    targetNotes: 20
   }
 };

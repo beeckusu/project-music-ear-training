@@ -41,6 +41,14 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     if (settings && selectedMode) {
       try {
         const newGameState = createGameState(selectedMode, settings.modes);
+
+        // Set completion callback for sandbox mode
+        if (selectedMode === 'sandbox' && (newGameState as any).setCompletionCallback) {
+          (newGameState as any).setCompletionCallback(() => {
+            handleGameCompletionRef.current();
+          });
+        }
+
         setGameState(newGameState);
       } catch (error) {
         console.error('Failed to create game state:', error);
@@ -58,6 +66,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
   const onGameCompleteRef = useRef(onGameComplete);
   const onScoreResetRef = useRef(onScoreReset);
   const currentNoteRef = useRef<NoteWithOctave | null>(currentNote);
+  const handleGameCompletionRef = useRef<() => void>(() => {});
 
   // Keep refs updated
   useEffect(() => {
@@ -67,6 +76,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     onGameCompleteRef.current = onGameComplete;
     onScoreResetRef.current = onScoreReset;
     currentNoteRef.current = currentNote;
+    handleGameCompletionRef.current = handleGameCompletion;
   });
 
   // Handle timer timeout
@@ -128,6 +138,9 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     // Start new round after timeout
     const advanceTime = Math.min(autoAdvanceSpeed, 2);
     setTimeout(() => {
+      // Don't continue if game is completed
+      if (isGameCompleted) return;
+
       setIsInTimeout(false);
       if (startNewRoundRef.current) {
         startNewRoundRef.current();
@@ -157,6 +170,46 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     }
   }, [isPaused, gameState, currentNote, isInTimeout]);
 
+  // Handle direct game completion (for timer-based modes)
+  const handleGameCompletion = useCallback(() => {
+    if (isGameCompleted || !gameState) return;
+
+    setIsGameCompleted(true);
+
+    // Try to get pre-calculated final stats from game state first
+    let finalStats: GameStats;
+    if ((gameState as any).getFinalStats && (gameState as any).getFinalStats()) {
+      finalStats = (gameState as any).getFinalStats();
+    } else {
+      // Fallback: Generate final stats for timer-based completion
+      const correctAttempts = (gameState as any).correctAttempts || 0;
+      finalStats = {
+        completionTime: gameState.elapsedTime,
+        accuracy: gameState.totalAttempts > 0 ? (correctAttempts / gameState.totalAttempts) * 100 : 0,
+        averageTimePerNote: correctAttempts > 0 ? gameState.elapsedTime / correctAttempts : 0,
+        longestStreak: gameState.longestStreak,
+        totalAttempts: gameState.totalAttempts,
+        correctAttempts: correctAttempts
+      };
+    }
+
+    const session: GameSession = {
+      mode: selectedMode,
+      timestamp: new Date(),
+      completionTime: finalStats.completionTime,
+      accuracy: finalStats.accuracy,
+      totalAttempts: finalStats.totalAttempts,
+      settings: gameState.getSessionSettings(),
+      results: gameState.getSessionResults(finalStats)
+    };
+
+    addSession(session);
+    setGameStats(finalStats);
+    onGameComplete?.(finalStats);
+    onScoreReset?.();
+    setIsEndModalOpen(true);
+  }, [isGameCompleted, gameState, selectedMode, addSession, onGameComplete, onScoreReset]);
+
   const playCurrentNote = async () => {
     if (!currentNote) return;
 
@@ -164,6 +217,9 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     await audioEngine.initialize();
     audioEngine.playNote(currentNote, noteDuration);
     setTimeout(() => {
+        // Don't continue if game is completed
+        if (isGameCompleted) return;
+
         setIsPlaying(false)
         gameState?.resumeTimer();
     }, 500);
@@ -253,6 +309,9 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
       const advanceTime = responseTimeLimit ? Math.min(autoAdvanceSpeed, remainingTime) : autoAdvanceSpeed;
 
       setTimeout(() => {
+        // Don't continue if game is completed
+        if (isGameCompleted) return;
+
         // Reset timer before starting new round
         setIsInTimeout(false);
         gameState.resetTimer();
@@ -303,6 +362,9 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
 
     // Set feedback after note starts playing (only if not in timeout/intermission)
     setTimeout(() => {
+      // Don't continue if game is completed
+      if (isGameCompleted) return;
+
       setIsPlaying(false);
       if (!isInTimeout) {
         setFeedback(gameState.getFeedbackMessage(true));
@@ -323,6 +385,14 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     setIsInTimeout(false);
     setIsGameCompleted(false); // Reset completion state
     const newGameState = createGameState(selectedMode, settings.modes);
+
+    // Set completion callback for sandbox mode
+    if (selectedMode === 'sandbox' && (newGameState as any).setCompletionCallback) {
+      (newGameState as any).setCompletionCallback(() => {
+        handleGameCompletionRef.current();
+      });
+    }
+
     setGameState(newGameState);
     setFeedback(newGameState.getFeedbackMessage(false));
     setIsEndModalOpen(false);
@@ -341,7 +411,8 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     resetToInitialState();
     // Wait a moment then start new round
     setTimeout(() => {
-      if (startNewRoundRef.current) {
+      // This is after reset, so isGameCompleted should be false, but check anyway
+      if (!isGameCompleted && startNewRoundRef.current) {
         startNewRoundRef.current();
       }
     }, 100);

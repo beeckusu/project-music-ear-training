@@ -23,9 +23,15 @@ export class SandboxGameStateImpl implements SandboxGameState {
   sessionDuration: number;
   targetAccuracy?: number;
   targetStreak?: number;
+  targetNotes?: number;
   sandboxSettings: SandboxModeSettings;
+  correctAttempts: number = 0;
+  private sessionCompleted: boolean = false;
+  private finalStats?: GameStats;
+  private completionCallback?: () => void;
 
   // Timer management
+  private sessionTimer: Timer;
   private noteTimer: Timer | null = null;
 
   constructor(sandboxSettings: SandboxModeSettings) {
@@ -33,6 +39,25 @@ export class SandboxGameStateImpl implements SandboxGameState {
     this.sessionDuration = sandboxSettings.sessionDuration;
     this.targetAccuracy = sandboxSettings.targetAccuracy;
     this.targetStreak = sandboxSettings.targetStreak;
+    this.targetNotes = sandboxSettings.targetNotes;
+
+    // Initialize session timer (count-down from session duration)
+    const sessionDurationSeconds = sandboxSettings.sessionDuration * 60; // minutes to seconds
+    this.sessionTimer = new Timer({ initialTime: sessionDurationSeconds, direction: 'down' }, {
+      onTimeUpdate: (time) => {
+        this.elapsedTime = sessionDurationSeconds - time;
+      },
+      onTimeUp: () => {
+        // When session time runs out, complete the game
+        if (!this.isCompleted) {
+          this.completeSession();
+          // Trigger the completion callback
+          if (this.completionCallback) {
+            this.completionCallback();
+          }
+        }
+      }
+    });
   }
 
   modeDisplay = (props: CommonDisplayProps) => (
@@ -43,22 +68,45 @@ export class SandboxGameStateImpl implements SandboxGameState {
   );
 
   handleCorrectGuess = (): GameActionResult => {
+    const newCurrentStreak = this.currentStreak + 1;
+    const newLongestStreak = Math.max(this.longestStreak, newCurrentStreak);
+    const newTotalAttempts = this.totalAttempts + 1;
+    const newCorrectAttempts = this.correctAttempts + 1;
+
+    // Update state
+    this.currentStreak = newCurrentStreak;
+    this.longestStreak = newLongestStreak;
+    this.totalAttempts = newTotalAttempts;
+    this.correctAttempts = newCorrectAttempts;
+
     // Pause note timer on correct guess (will be resumed/reset by game logic)
     this.noteTimer?.pause();
 
-    // TODO: Implement sandbox mode logic in future ticket
+    const currentAccuracy = (newCorrectAttempts / newTotalAttempts) * 100;
+
+    // Build feedback string with relevant progress
+    let feedback = `Correct! Accuracy: ${currentAccuracy.toFixed(1)}%`;
+    if (this.targetNotes) {
+      feedback += ` | Notes: ${newCorrectAttempts}/${this.targetNotes}`;
+    }
+    feedback += ` | Streak: ${newCurrentStreak}`;
+
     return {
       gameCompleted: false,
-      feedback: 'Correct!',
+      feedback,
       shouldAdvance: true
     };
   };
 
   handleIncorrectGuess = (): GameActionResult => {
-    // TODO: Implement sandbox mode logic in future ticket
+    this.currentStreak = 0;
+    this.totalAttempts = this.totalAttempts + 1;
+
+    const currentAccuracy = this.totalAttempts > 0 ? (this.correctAttempts / this.totalAttempts) * 100 : 0;
+
     return {
       gameCompleted: false,
-      feedback: 'Try again!',
+      feedback: `Incorrect. Accuracy: ${currentAccuracy.toFixed(1)}% | Streak reset`,
       shouldAdvance: false
     };
   };
@@ -75,7 +123,34 @@ export class SandboxGameStateImpl implements SandboxGameState {
   };
 
   onStartNewRound = (): void => {
-    // TODO: Implement sandbox mode start round logic
+    // Start session timer on first round
+    if (!this.startTime && !this.sessionCompleted) {
+      this.startTime = new Date();
+      this.sessionTimer.start();
+    }
+  };
+
+  setCompletionCallback = (callback: () => void): void => {
+    this.completionCallback = callback;
+  };
+
+  private completeSession = (): void => {
+    this.isCompleted = true;
+    this.sessionCompleted = true;
+    this.sessionTimer.stop();
+
+    // Generate final stats and check if targets were met
+    const finalStats: GameStats = {
+      completionTime: this.elapsedTime,
+      accuracy: this.totalAttempts > 0 ? (this.correctAttempts / this.totalAttempts) * 100 : 0,
+      averageTimePerNote: this.correctAttempts > 0 ? this.elapsedTime / this.correctAttempts : 0,
+      longestStreak: this.longestStreak,
+      totalAttempts: this.totalAttempts,
+      correctAttempts: this.correctAttempts
+    };
+
+    // Store the final stats for use in completion methods
+    this.finalStats = finalStats;
   };
 
   getTimerMode = (): 'count-up' | 'count-down' | 'none' => {
@@ -84,14 +159,47 @@ export class SandboxGameStateImpl implements SandboxGameState {
 
   getCompletionMessage = (): string => {
     if (!this.isCompleted) return '';
-    return '🎉 Sandbox Mode Complete! Piano is now in free play mode.';
+
+    const targetsMet = this.wereTargetsMet();
+    if (targetsMet) {
+      return '🎯 Targets Achieved! Piano is now in free play mode.';
+    } else {
+      return '📈 Practice Complete! Piano is now in free play mode.';
+    }
+  };
+
+  private wereTargetsMet = (): boolean => {
+    if (!this.finalStats) return false;
+
+    let accuracyMet = true;
+    let streakMet = true;
+    let notesMet = true;
+
+    if (this.targetAccuracy) {
+      accuracyMet = this.finalStats.accuracy >= this.targetAccuracy;
+    }
+
+    if (this.targetStreak) {
+      streakMet = this.finalStats.longestStreak >= this.targetStreak;
+    }
+
+    if (this.targetNotes) {
+      notesMet = this.finalStats.correctAttempts >= this.targetNotes;
+    }
+
+    return accuracyMet && streakMet && notesMet;
+  };
+
+  getFinalStats = (): GameStats | null => {
+    return this.finalStats || null;
   };
 
   getSessionSettings = (): Record<string, any> => {
     return {
       sessionDuration: this.sandboxSettings.sessionDuration,
       targetAccuracy: this.sandboxSettings.targetAccuracy,
-      targetStreak: this.sandboxSettings.targetStreak
+      targetStreak: this.sandboxSettings.targetStreak,
+      targetNotes: this.sandboxSettings.targetNotes
     };
   };
 
@@ -121,12 +229,18 @@ export class SandboxGameStateImpl implements SandboxGameState {
     return this.noteTimer?.getState() || { timeRemaining: 0, isActive: false };
   };
 
+  getSessionTimerState = (): { timeRemaining: number; isActive: boolean } => {
+    return this.sessionTimer.getState();
+  };
+
   pauseTimer = (): void => {
     this.noteTimer?.pause();
+    this.sessionTimer?.pause();
   };
 
   resumeTimer = (): void => {
     this.noteTimer?.resume();
+    this.sessionTimer?.resume();
   };
 
   resetTimer = (): void => {
@@ -135,21 +249,33 @@ export class SandboxGameStateImpl implements SandboxGameState {
 
   // End Screen Strategy Methods
   getCelebrationEmoji = (sessionResults: Record<string, any>): string => {
-    return '🎼';
+    const targetsMet = this.wereTargetsMet();
+    return targetsMet ? '🎯' : '🎼';
   };
 
   getHeaderTitle = (sessionResults: Record<string, any>): string => {
-    return 'Practice Complete!';
+    const targetsMet = this.wereTargetsMet();
+    return targetsMet ? 'Targets Achieved!' : 'Practice Complete!';
   };
 
   getModeCompletionText = (sessionResults: Record<string, any>): string => {
-    return 'Sandbox Practice Session';
+    const targetsMet = this.wereTargetsMet();
+    if (targetsMet) {
+      return 'All practice targets successfully achieved!';
+    } else {
+      return 'Practice session completed - keep working toward your targets!';
+    }
   };
 
   getPerformanceRating = (gameStats: GameStats, sessionResults: Record<string, any>): string => {
-    const accuracy = gameStats.accuracy;
     const sessionMinutes = Math.floor(gameStats.completionTime / 60);
+    const targetsMet = this.wereTargetsMet();
 
+    if (targetsMet) {
+      return `Perfect! All targets achieved! 🎆 (${sessionMinutes}m)`;
+    }
+
+    const accuracy = gameStats.accuracy;
     if (accuracy >= 90) return `Excellent Practice! 🌟 (${sessionMinutes}m)`;
     if (accuracy >= 75) return `Great Progress! 👍 (${sessionMinutes}m)`;
     if (accuracy >= 60) return `Good Effort! 📈 (${sessionMinutes}m)`;
@@ -157,7 +283,8 @@ export class SandboxGameStateImpl implements SandboxGameState {
   };
 
   getHeaderThemeClass = (sessionResults: Record<string, any>): string => {
-    return 'sandbox-complete';
+    const targetsMet = this.wereTargetsMet();
+    return targetsMet ? 'sandbox-success' : 'sandbox-complete';
   };
 
   getStatsItems = (gameStats: GameStats, sessionResults: Record<string, any>): StatItem[] => {
@@ -166,6 +293,10 @@ export class SandboxGameStateImpl implements SandboxGameState {
       const secs = Math.floor(seconds % 60);
       return `${minutes}:${secs.toString().padStart(2, '0')}`;
     };
+
+    const accuracyMet = !this.targetAccuracy || gameStats.accuracy >= this.targetAccuracy;
+    const streakMet = !this.targetStreak || gameStats.longestStreak >= this.targetStreak;
+    const notesMet = !this.targetNotes || gameStats.correctAttempts >= this.targetNotes;
 
     return [
       {
@@ -180,8 +311,10 @@ export class SandboxGameStateImpl implements SandboxGameState {
       },
       {
         label: 'Accuracy',
-        value: `${gameStats.accuracy.toFixed(1)}%`,
-        className: gameStats.accuracy >= 80 ? 'stat-success' : gameStats.accuracy >= 60 ? 'stat-neutral' : 'stat-warning'
+        value: this.targetAccuracy
+          ? `${gameStats.accuracy.toFixed(1)}% / ${this.targetAccuracy}%`
+          : `${gameStats.accuracy.toFixed(1)}%`,
+        className: accuracyMet ? 'stat-success' : 'stat-warning'
       },
       {
         label: 'Average per Note',
@@ -190,19 +323,36 @@ export class SandboxGameStateImpl implements SandboxGameState {
       },
       {
         label: 'Longest Streak',
-        value: gameStats.longestStreak.toString(),
-        className: 'stat-neutral'
+        value: this.targetStreak
+          ? `${gameStats.longestStreak} / ${this.targetStreak}`
+          : gameStats.longestStreak.toString(),
+        className: streakMet ? 'stat-success' : 'stat-warning'
       },
       {
-        label: 'Correct Notes',
-        value: `${gameStats.correctAttempts}/${gameStats.totalAttempts}`,
-        className: 'stat-neutral'
+        label: this.targetNotes ? 'Target Notes' : 'Correct Notes',
+        value: this.targetNotes
+          ? `${gameStats.correctAttempts} / ${this.targetNotes}`
+          : `${gameStats.correctAttempts}/${gameStats.totalAttempts}`,
+        className: this.targetNotes ? (notesMet ? 'stat-success' : 'stat-warning') : 'stat-neutral'
       }
     ];
   };
 
   getAdditionalStatsSection = (): React.ReactNode => {
-    return null; // Sandbox mode doesn't need additional sections
+    if (!this.targetAccuracy && !this.targetStreak && !this.targetNotes) {
+      return null; // No targets set, no additional section needed
+    }
+
+    const targetsMet = this.wereTargetsMet();
+
+    return React.createElement('div', {
+      className: `target-achievement ${targetsMet ? 'targets-met' : 'targets-missed'}`
+    }, [
+      React.createElement('h3', { key: 'title' }, 'Target Achievement'),
+      React.createElement('div', { key: 'status', className: 'achievement-status' },
+        targetsMet ? '🎯 All targets achieved!' : '📈 Keep working toward your targets!'
+      )
+    ]);
   };
 
   getHistoryTitle = (settings: Record<string, any>): string => {

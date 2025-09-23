@@ -53,6 +53,12 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ onRestartGame }) => {
 
   const modes = [
     {
+      mode: 'sandbox' as ModeType,
+      icon: '🎯',
+      title: 'Sandbox',
+      description: 'Practice at your own pace with optional targets'
+    },
+    {
       mode: 'rush' as ModeType,
       icon: '🏃‍♂️',
       title: 'Rush',
@@ -63,12 +69,6 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ onRestartGame }) => {
       icon: '❤️',
       title: 'Survival',
       description: 'Survive the time limit while keeping your health up'
-    },
-    {
-      mode: 'sandbox' as ModeType,
-      icon: '🎯',
-      title: 'Sandbox',
-      description: 'Practice at your own pace with optional targets'
     }
   ];
 
