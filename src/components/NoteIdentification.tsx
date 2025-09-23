@@ -20,7 +20,7 @@ interface NoteIdentificationProps {
 }
 
 const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt, isPaused, resetTrigger, onGameComplete, onScoreReset }) => {
-  const { settings, hasCompletedModeSetup, startFirstTimeSetup, openSettings, updateModeSettings } = useSettings();
+  const { settings, hasCompletedModeSetup, startFirstTimeSetup, openSettings } = useSettings();
   const { addSession } = useGameHistory();
   const [currentNote, setCurrentNote] = useState<NoteWithOctave | null>(null);
   const [userGuess, setUserGuess] = useState<NoteWithOctave | null>(null);
