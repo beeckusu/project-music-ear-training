@@ -13,6 +13,7 @@ export interface SettingsContextType {
   updateTimingSettings: (timing: Partial<TimingSettings>) => void;
   updateAudioSettings: (audio: Partial<AudioSettings>) => void;
   updateModeSettings: (modes: Partial<ModeSettings>) => void;
+  updateShowNoteLabels: (show: boolean) => void;
   resetToDefaults: () => void;
   isSettingsOpen: boolean;
   openSettings: (tab?: string) => void;
@@ -28,7 +29,8 @@ const defaultSettings: AppSettings = {
   noteFilter: DEFAULT_NOTE_FILTER,
   timing: DEFAULT_TIMING_SETTINGS,
   audio: DEFAULT_AUDIO_SETTINGS,
-  modes: DEFAULT_MODE_SETTINGS
+  modes: DEFAULT_MODE_SETTINGS,
+  showNoteLabels: false
 };
 
 export const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -84,6 +86,13 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     }));
   };
 
+  const updateShowNoteLabels = (show: boolean) => {
+    setSettings(prevSettings => ({
+      ...prevSettings,
+      showNoteLabels: show
+    }));
+  };
+
   const resetToDefaults = () => {
     setSettings(defaultSettings);
   };
@@ -118,6 +127,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     updateTimingSettings,
     updateAudioSettings,
     updateModeSettings,
+    updateShowNoteLabels,
     resetToDefaults,
     isSettingsOpen,
     openSettings,

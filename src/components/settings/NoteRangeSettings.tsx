@@ -4,8 +4,8 @@ import type { Note, KeyType, Octave } from '../../types/music';
 import { ALL_NOTES, WHITE_KEYS, BLACK_KEYS } from '../../types/music';
 
 const NoteRangeSettings: React.FC = () => {
-  const { settings, updateNoteFilter } = useSettings();
-  const { noteFilter } = settings;
+  const { settings, updateNoteFilter, updateShowNoteLabels } = useSettings();
+  const { noteFilter, showNoteLabels } = settings;
   
   const [minOctave, setMinOctave] = useState<number>(noteFilter.octaveRange.min);
   const [maxOctave, setMaxOctave] = useState<number>(noteFilter.octaveRange.max);
@@ -219,6 +219,19 @@ const NoteRangeSettings: React.FC = () => {
         </div>
       </div>
       
+      <div className="setting-group">
+        <label>Show Note Labels on Piano</label>
+        <input
+          type="checkbox"
+          checked={showNoteLabels}
+          onChange={(e) => updateShowNoteLabels(e.target.checked)}
+          className="setting-checkbox"
+        />
+        <p className="setting-description">
+          Display note names directly on the piano keys to help with learning.
+        </p>
+      </div>
+
       <div className="setting-group">
         <button 
           className="reset-button"

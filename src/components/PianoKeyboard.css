@@ -26,6 +26,7 @@
   font-size: 16px;
   color: #333;
   transition: all 0.1s ease;
+  position: relative;
 }
 
 .white-key:hover {
@@ -83,5 +84,41 @@
 
 .black-key.highlighted {
   background-color: #FF9800;
+  color: white;
+}
+
+/* Note label styling */
+.note-label {
+  display: inline-block;
+  font-weight: bold;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* White key note labels */
+.white-key .note-label {
+  font-size: 14px;
+  color: #666;
+  position: absolute;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.white-key.highlighted .note-label {
+  color: white;
+}
+
+/* Black key note labels */
+.black-key .note-label {
+  font-size: 10px;
+  color: #ccc;
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.black-key.highlighted .note-label {
   color: white;
 }

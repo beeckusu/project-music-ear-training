@@ -6,4 +6,5 @@ export interface AppSettings {
   timing: TimingSettings;
   audio: AudioSettings;
   modes: ModeSettings;
+  showNoteLabels: boolean;
 }
