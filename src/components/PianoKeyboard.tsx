@@ -10,13 +10,14 @@ interface PianoKeyboardProps {
   octave?: number;
 }
 
-const PianoKeyboard: React.FC<PianoKeyboardProps> = ({ 
-  onNoteClick, 
+const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
+  onNoteClick,
   highlightedNote,
-  octave = 4 
+  octave = 4
 }) => {
   const { settings } = useSettings();
   const { noteDuration } = settings.timing;
+  const { showNoteLabels } = settings;
   const whiteKeys: Note[] = ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C'];
   // Black keys positioned between specific white keys
   // C# between C and D, D# between D and E, F# between F and G, G# between G and A, A# between A and B
@@ -70,7 +71,7 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
             className={`white-key ${isHighlighted(note, index) ? 'highlighted' : ''}`}
             onClick={() => handleKeyClick(note, index)}
           >
-            {note}
+            {showNoteLabels && <span className="note-label">{note}</span>}
           </button>
         ))}
       </div>
@@ -82,7 +83,7 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
             style={{ left: `${leftOffset}px` }}
             onClick={() => handleKeyClick(note)}
           >
-            {note}
+            {showNoteLabels && <span className="note-label">{note}</span>}
           </button>
         ))}
       </div>
