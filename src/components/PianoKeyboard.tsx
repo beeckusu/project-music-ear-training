@@ -7,12 +7,14 @@ import './PianoKeyboard.css';
 interface PianoKeyboardProps {
   onNoteClick?: (noteWithOctave: NoteWithOctave) => void;
   highlightedNote?: NoteWithOctave;
+  correctNote?: NoteWithOctave;
   octave?: number;
 }
 
 const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
   onNoteClick,
   highlightedNote,
+  correctNote,
   octave = 4
 }) => {
   const { settings } = useSettings();
@@ -50,42 +52,67 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
 
   const isHighlighted = (note: Note, keyIndex: number) => {
     if (!highlightedNote || highlightedNote.note !== note) return false;
-    
+
     // For C keys, check which octave we're highlighting
     if (note === 'C') {
       const keyOctave = keyIndex === 7 ? octave + 1 : octave;
       return highlightedNote.octave === keyOctave;
     }
-    
+
     // For other keys, just check the current octave
     return highlightedNote.octave === octave;
+  };
+
+  const isCorrect = (note: Note, keyIndex: number) => {
+    if (!correctNote || correctNote.note !== note) return false;
+
+    // For C keys, check which octave we're highlighting
+    if (note === 'C') {
+      const keyOctave = keyIndex === 7 ? octave + 1 : octave;
+      return correctNote.octave === keyOctave;
+    }
+
+    // For other keys, just check the current octave
+    return correctNote.octave === octave;
   };
 
 
   return (
     <div className="piano-keyboard">
       <div className="white-keys">
-        {whiteKeys.map((note, index) => (
-          <button
-            key={`${note}-${index}`}
-            className={`white-key ${isHighlighted(note, index) ? 'highlighted' : ''}`}
-            onClick={() => handleKeyClick(note, index)}
-          >
-            {showNoteLabels && <span className="note-label">{note}</span>}
-          </button>
-        ))}
+        {whiteKeys.map((note, index) => {
+          const highlighted = isHighlighted(note, index);
+          const correct = isCorrect(note, index);
+          const className = `white-key ${highlighted ? 'highlighted' : ''} ${correct ? 'correct' : ''}`.trim();
+
+          return (
+            <button
+              key={`${note}-${index}`}
+              className={className}
+              onClick={() => handleKeyClick(note, index)}
+            >
+              {showNoteLabels && <span className="note-label">{note}</span>}
+            </button>
+          );
+        })}
       </div>
       <div className="black-keys">
-        {blackKeys.map(({ note, leftOffset }) => (
-          <button
-            key={note}
-            className={`black-key ${isHighlighted(note, -1) ? 'highlighted' : ''}`}
-            style={{ left: `${leftOffset}px` }}
-            onClick={() => handleKeyClick(note)}
-          >
-            {showNoteLabels && <span className="note-label">{note}</span>}
-          </button>
-        ))}
+        {blackKeys.map(({ note, leftOffset }) => {
+          const highlighted = isHighlighted(note, -1);
+          const correct = isCorrect(note, -1);
+          const className = `black-key ${highlighted ? 'highlighted' : ''} ${correct ? 'correct' : ''}`.trim();
+
+          return (
+            <button
+              key={note}
+              className={className}
+              style={{ left: `${leftOffset}px` }}
+              onClick={() => handleKeyClick(note)}
+            >
+              {showNoteLabels && <span className="note-label">{note}</span>}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

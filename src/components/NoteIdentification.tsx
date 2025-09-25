@@ -24,6 +24,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
   const { addSession } = useGameHistory();
   const [currentNote, setCurrentNote] = useState<NoteWithOctave | null>(null);
   const [userGuess, setUserGuess] = useState<NoteWithOctave | null>(null);
+  const [correctNoteHighlight, setCorrectNoteHighlight] = useState<NoteWithOctave | null>(null);
   const [feedback, setFeedback] = useState<string>('Click "Start Practice" to begin your ear training session');
   const [isPlaying, setIsPlaying] = useState(false);
   const [isInTimeout, setIsInTimeout] = useState(false);
@@ -110,6 +111,9 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
 
     // Set timeout feedback, but include game result feedback
     setFeedback(`Time's up! The correct answer was ${currentNoteRef.current.note}. ${result.feedback}`);
+
+    // Set correct note highlighting to show the answer in red
+    setCorrectNoteHighlight(currentNoteRef.current);
 
     // Handle game completion from timeout
     if (result.gameCompleted && result.stats) {
@@ -338,6 +342,9 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     // Ensure timeout state is cleared when starting new round
     setIsInTimeout(false);
 
+    // Clear correct note highlighting when starting new round
+    setCorrectNoteHighlight(null);
+
     const newNote = AudioEngine.getRandomNoteFromFilter(settings.noteFilter);
 
     // Let game state handle start round logic
@@ -381,6 +388,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
   const resetToInitialState = useCallback(() => {
     setCurrentNote(null);
     setUserGuess(null);
+    setCorrectNoteHighlight(null);
     setIsPlaying(false);
     setIsInTimeout(false);
     setIsGameCompleted(false); // Reset completion state
@@ -494,6 +502,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
           <PianoKeyboard
             onNoteClick={handleNoteGuess}
             highlightedNote={userGuess || undefined}
+            correctNote={correctNoteHighlight || undefined}
           />
         </div>
       </div>

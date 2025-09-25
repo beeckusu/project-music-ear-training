@@ -44,6 +44,11 @@
   color: white;
 }
 
+.white-key.correct {
+  background-color: #dc3545;
+  color: white;
+}
+
 .black-keys {
   position: absolute;
   top: 0;
@@ -84,6 +89,11 @@
 
 .black-key.highlighted {
   background-color: #FF9800;
+  color: white;
+}
+
+.black-key.correct {
+  background-color: #dc3545;
   color: white;
 }
 
