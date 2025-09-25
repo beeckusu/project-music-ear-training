@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { GameSession } from '../types/game';
-
-const GAME_HISTORY_KEY = 'music-practice-game-history';
+import { STORAGE_KEYS } from '../constants';
 const MAX_SESSIONS_PER_MODE = 50; // Prevent unlimited storage growth
 
 export interface GameHistoryHook {
@@ -18,7 +17,7 @@ export const useGameHistory = (): GameHistoryHook => {
   // Load history from localStorage on mount
   useEffect(() => {
     try {
-      const storedHistory = localStorage.getItem(GAME_HISTORY_KEY);
+      const storedHistory = localStorage.getItem(STORAGE_KEYS.GAME_HISTORY);
       if (storedHistory) {
         const parsedHistory = JSON.parse(storedHistory);
         // Convert timestamp strings back to Date objects
@@ -37,7 +36,7 @@ export const useGameHistory = (): GameHistoryHook => {
   // Save history to localStorage whenever it changes
   useEffect(() => {
     try {
-      localStorage.setItem(GAME_HISTORY_KEY, JSON.stringify(history));
+      localStorage.setItem(STORAGE_KEYS.GAME_HISTORY, JSON.stringify(history));
     } catch (error) {
       console.warn('Failed to save game history to localStorage:', error);
     }

@@ -13,8 +13,6 @@ const SurvivalModeDisplay: React.FC<SurvivalModeDisplayProps> = ({
   gameState,
   responseTimeLimit,
   currentNote,
-  isPaused,
-  onTimeUp,
   onTimerUpdate
 }) => {
   const healthPercentage = Math.round((gameState.health / gameState.maxHealth) * 100);

@@ -15,8 +15,6 @@ const RushModeDisplay: React.FC<RushModeDisplayProps> = ({
   rushSettings,
   responseTimeLimit,
   currentNote,
-  isPaused,
-  onTimeUp,
   onTimerUpdate
 }) => {
   // Get timer state from gameState

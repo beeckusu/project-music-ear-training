@@ -248,17 +248,17 @@ export class SandboxGameStateImpl implements SandboxGameState {
   };
 
   // End Screen Strategy Methods
-  getCelebrationEmoji = (sessionResults: Record<string, any>): string => {
+  getCelebrationEmoji = (_sessionResults: Record<string, any>): string => {
     const targetsMet = this.wereTargetsMet();
     return targetsMet ? '🎯' : '🎼';
   };
 
-  getHeaderTitle = (sessionResults: Record<string, any>): string => {
+  getHeaderTitle = (_sessionResults: Record<string, any>): string => {
     const targetsMet = this.wereTargetsMet();
     return targetsMet ? 'Targets Achieved!' : 'Practice Complete!';
   };
 
-  getModeCompletionText = (sessionResults: Record<string, any>): string => {
+  getModeCompletionText = (_sessionResults: Record<string, any>): string => {
     const targetsMet = this.wereTargetsMet();
     if (targetsMet) {
       return 'All practice targets successfully achieved!';
@@ -267,7 +267,7 @@ export class SandboxGameStateImpl implements SandboxGameState {
     }
   };
 
-  getPerformanceRating = (gameStats: GameStats, sessionResults: Record<string, any>): string => {
+  getPerformanceRating = (gameStats: GameStats, _sessionResults: Record<string, any>): string => {
     const sessionMinutes = Math.floor(gameStats.completionTime / 60);
     const targetsMet = this.wereTargetsMet();
 
@@ -282,12 +282,12 @@ export class SandboxGameStateImpl implements SandboxGameState {
     return `Keep Practicing! 💪 (${sessionMinutes}m)`;
   };
 
-  getHeaderThemeClass = (sessionResults: Record<string, any>): string => {
+  getHeaderThemeClass = (_sessionResults: Record<string, any>): string => {
     const targetsMet = this.wereTargetsMet();
     return targetsMet ? 'sandbox-success' : 'sandbox-complete';
   };
 
-  getStatsItems = (gameStats: GameStats, sessionResults: Record<string, any>): StatItem[] => {
+  getStatsItems = (gameStats: GameStats, _sessionResults: Record<string, any>): StatItem[] => {
     const formatTime = (seconds: number): string => {
       const minutes = Math.floor(seconds / 60);
       const secs = Math.floor(seconds % 60);
@@ -355,7 +355,8 @@ export class SandboxGameStateImpl implements SandboxGameState {
     ]);
   };
 
-  getHistoryTitle = (settings: Record<string, any>): string => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  getHistoryTitle = (_settings: Record<string, any>): string => {
     return 'Your Recent Practice Sessions';
   };
 

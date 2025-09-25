@@ -1,6 +1,8 @@
+import { TIMER_DIRECTION, type TimerDirection } from '../constants';
+
 export interface TimerConfig {
   initialTime: number;           // Starting time in seconds
-  direction: 'up' | 'down';      // Count up or down
+  direction: TimerDirection;      // Count up or down
   interval?: number;             // Update interval in ms (default: 100)
 }
 
@@ -13,7 +15,7 @@ export class Timer {
   private currentTime: number;
   private isActive: boolean = false;
   private isPaused: boolean = false;
-  private direction: 'up' | 'down';
+  private direction: TimerDirection;
   private interval: number;
   private intervalId: number | null = null;
   private startTime: number | null = null;
@@ -36,7 +38,7 @@ export class Timer {
 
     const now = Date.now();
 
-    if (this.direction === 'up') {
+    if (this.direction === TIMER_DIRECTION.UP) {
       if (!this.startTime) {
         this.startTime = now;
         this.totalPausedDuration = 0;
@@ -50,7 +52,7 @@ export class Timer {
     }
 
     this.intervalId = setInterval(() => {
-      if (this.direction === 'up') {
+      if (this.direction === TIMER_DIRECTION.UP) {
         const elapsed = (Date.now() - this.startTime! - this.totalPausedDuration) / 1000;
         this.currentTime = elapsed;
       } else {
@@ -82,7 +84,7 @@ export class Timer {
     this.stop();
     this.isPaused = true;
 
-    if (this.direction === 'up') {
+    if (this.direction === TIMER_DIRECTION.UP) {
       this.pausedTime = Date.now();
     }
     // For countdown, currentTime is already preserved
@@ -103,12 +105,12 @@ export class Timer {
 
   setTime(time: number): void {
     this.currentTime = time;
-    if (this.direction === 'up') {
+    if (this.direction === TIMER_DIRECTION.UP) {
       this.startTime = Date.now() - (time * 1000) - this.totalPausedDuration;
     }
   }
 
-  setDirection(direction: 'up' | 'down'): void {
+  setDirection(direction: TimerDirection): void {
     const wasActive = this.isActive;
     this.stop();
     this.direction = direction;

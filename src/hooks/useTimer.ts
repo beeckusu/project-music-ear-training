@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { TIMER_DIRECTION, type TimerDirection } from '../constants';
 
 export interface TimerConfig {
   initialTime: number;           // Starting time in seconds
-  direction: 'up' | 'down';      // Count up or down
+  direction: TimerDirection;      // Count up or down
   interval?: number;             // Update interval in ms (default: 100)
   autoStart?: boolean;           // Auto-start on mount
   isPaused?: boolean;            // External pause control
@@ -15,7 +16,7 @@ export interface TimerAPI {
   pauseTimer: () => void;
   resetTimer: () => void;
   setTime: (seconds: number) => void;
-  setDirection: (direction: 'up' | 'down') => void;
+  setDirection: (direction: TimerDirection) => void;
 
   // State
   currentTime: number;
@@ -61,7 +62,7 @@ export const useTimer = (config: TimerConfig, options: TimerOptions = {}): Timer
   const [currentTime, setCurrentTime] = useState<number>(initialTime);
   const [isActive, setIsActive] = useState(false);
   const [isManuallyPaused, setIsManuallyPaused] = useState(false);
-  const [timerDirection, setTimerDirection] = useState<'up' | 'down'>(direction);
+  const [timerDirection, setTimerDirection] = useState<TimerDirection>(direction);
 
   const intervalRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
@@ -91,7 +92,7 @@ export const useTimer = (config: TimerConfig, options: TimerOptions = {}): Timer
 
     const now = Date.now();
 
-    if (timerDirection === 'up') {
+    if (timerDirection === TIMER_DIRECTION.UP) {
       // Count-up timer: track elapsed time excluding paused duration
       if (!startTimeRef.current) {
         startTimeRef.current = now;
@@ -153,7 +154,7 @@ export const useTimer = (config: TimerConfig, options: TimerOptions = {}): Timer
     setIsActive(false);
     setIsManuallyPaused(true);
 
-    if (timerDirection === 'down') {
+    if (timerDirection === TIMER_DIRECTION.DOWN) {
       // For count-down, save the current remaining time
       savedTimeRef.current = currentTime;
     } else {
@@ -183,14 +184,14 @@ export const useTimer = (config: TimerConfig, options: TimerOptions = {}): Timer
     setCurrentTime(seconds);
     savedTimeRef.current = seconds;
 
-    if (timerDirection === 'up' && isActive) {
+    if (timerDirection === TIMER_DIRECTION.UP && isActive) {
       // For count-up, adjust start time to reflect the new current time
       const now = Date.now();
       startTimeRef.current = now - (seconds * 1000) - pausedTimeRef.current;
     }
   }, [timerDirection, isActive]);
 
-  const setDirection = useCallback((newDirection: 'up' | 'down') => {
+  const setDirection = useCallback((newDirection: TimerDirection) => {
     const wasActive = isActive;
     if (wasActive) {
       stopTimer();
@@ -208,7 +209,7 @@ export const useTimer = (config: TimerConfig, options: TimerOptions = {}): Timer
       clearTimer();
       setIsActive(false);
 
-      if (timerDirection === 'down') {
+      if (timerDirection === TIMER_DIRECTION.DOWN) {
         savedTimeRef.current = currentTime;
       } else {
         lastPauseStartRef.current = Date.now();
