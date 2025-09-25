@@ -5,6 +5,7 @@ import type { NoteFilter, TimingSettings, AudioSettings } from '../types/music';
 import type { ModeSettings } from '../types/game';
 import type { AppSettings } from '../types/settings';
 import { DEFAULT_NOTE_FILTER, DEFAULT_TIMING_SETTINGS, DEFAULT_AUDIO_SETTINGS } from '../types/music';
+import { SETTINGS_TABS } from '../constants';
 import { DEFAULT_MODE_SETTINGS } from '../types/game';
 
 export interface SettingsContextType {
@@ -44,7 +45,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isFirstTimeSetup, setIsFirstTimeSetup] = useState(false);
   const [hasCompletedModeSetup, setHasCompletedModeSetup] = useState(false);
-  const [defaultTab, setDefaultTab] = useState<string>('modes');
+  const [defaultTab, setDefaultTab] = useState<string>(SETTINGS_TABS.MODES);
 
   const updateNoteFilter = (filterUpdates: Partial<NoteFilter>) => {
     setSettings(prevSettings => ({
@@ -97,7 +98,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     setSettings(defaultSettings);
   };
 
-  const openSettings = (tab: string = 'modes') => {
+  const openSettings = (tab: string = SETTINGS_TABS.MODES) => {
     setDefaultTab(tab);
     setIsSettingsOpen(true);
   };
@@ -111,7 +112,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
 
   const startFirstTimeSetup = () => {
     setIsFirstTimeSetup(true);
-    setDefaultTab('modes');
+    setDefaultTab(SETTINGS_TABS.MODES);
     setIsSettingsOpen(true);
   };
 

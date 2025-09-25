@@ -1,5 +1,6 @@
 import React from 'react';
 import type { NoteWithOctave } from './music';
+import type { GameMode } from '../constants';
 
 export interface GuessAttempt {
   id: string;
@@ -9,7 +10,7 @@ export interface GuessAttempt {
   isCorrect: boolean;
 }
 
-export type ModeType = 'rush' | 'survival' | 'sandbox';
+export type ModeType = GameMode;
 
 export interface RushModeSettings {
   targetNotes: number; // Number of correct notes to hit

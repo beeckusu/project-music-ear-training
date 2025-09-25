@@ -179,19 +179,19 @@ export class RushGameStateImpl implements RushGameState {
   };
 
   // End Screen Strategy Methods
-  getCelebrationEmoji = (sessionResults: Record<string, any>): string => {
+  getCelebrationEmoji = (_sessionResults: Record<string, any>): string => {
     return '🎉';
   };
 
-  getHeaderTitle = (sessionResults: Record<string, any>): string => {
+  getHeaderTitle = (_sessionResults: Record<string, any>): string => {
     return 'Congratulations!';
   };
 
-  getModeCompletionText = (sessionResults: Record<string, any>): string => {
+  getModeCompletionText = (_sessionResults: Record<string, any>): string => {
     return 'Rush Mode Complete';
   };
 
-  getPerformanceRating = (gameStats: GameStats, sessionResults: Record<string, any>): string => {
+  getPerformanceRating = (gameStats: GameStats, _sessionResults: Record<string, any>): string => {
     const avgTimePerNote = gameStats.averageTimePerNote;
 
     if (avgTimePerNote <= 1.0) return 'Lightning Fast ⚡';
@@ -201,11 +201,11 @@ export class RushGameStateImpl implements RushGameState {
     return 'Methodical 🎭';
   };
 
-  getHeaderThemeClass = (sessionResults: Record<string, any>): string => {
+  getHeaderThemeClass = (_sessionResults: Record<string, any>): string => {
     return 'rush-complete';
   };
 
-  getStatsItems = (gameStats: GameStats, sessionResults: Record<string, any>): StatItem[] => {
+  getStatsItems = (gameStats: GameStats, _sessionResults: Record<string, any>): StatItem[] => {
     const formatTime = (seconds: number): string => {
       const minutes = Math.floor(seconds / 60);
       const secs = Math.floor(seconds % 60);

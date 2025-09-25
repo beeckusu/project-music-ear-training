@@ -6,6 +6,7 @@ import { createGameState } from '../game/GameStateFactory';
 import { audioEngine, AudioEngine } from '../utils/audioEngine';
 import { useSettings } from '../hooks/useSettings';
 import { useGameHistory } from '../hooks/useGameHistory';
+import { SETTINGS_TABS, GAME_MODES } from '../constants';
 import PianoKeyboard from './PianoKeyboard';
 import GameEndModal from './GameEndModal';
 import './NoteIdentification.css';
@@ -44,7 +45,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
         const newGameState = createGameState(selectedMode, settings.modes);
 
         // Set completion callback for sandbox mode
-        if (selectedMode === 'sandbox' && (newGameState as any).setCompletionCallback) {
+        if (selectedMode === GAME_MODES.SANDBOX && (newGameState as any).setCompletionCallback) {
           (newGameState as any).setCompletionCallback(() => {
             handleGameCompletionRef.current();
           });
@@ -155,7 +156,6 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
 
   // Timer state will now be managed by individual mode displays
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
-  const [isTimerActive, setIsTimerActive] = useState<boolean>(false);
 
 
   // Handle pause state changes
@@ -236,7 +236,6 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
   const handleNoteGuess = (guessedNote: NoteWithOctave) => {
     // If game is completed, allow piano playing but no game logic
     if (!gameState || isGameCompleted) {
-      // Just play the note, no scoring or feedback
       return;
     }
 
@@ -377,7 +376,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
         setFeedback(gameState.getFeedbackMessage(true));
       }
     }, 500);
-  }, [settings.noteFilter, noteDuration, gameState, isGameCompleted, responseTimeLimit, isPaused, handleTimeUp]);
+  }, [settings.noteFilter, noteDuration, gameState, isGameCompleted, responseTimeLimit, isInTimeout, isPaused, handleTimeUp]);
 
   // Set the ref for the timer callback BEFORE any timer operations
   useEffect(() => {
@@ -395,7 +394,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     const newGameState = createGameState(selectedMode, settings.modes);
 
     // Set completion callback for sandbox mode
-    if (selectedMode === 'sandbox' && (newGameState as any).setCompletionCallback) {
+    if (selectedMode === GAME_MODES.SANDBOX && (newGameState as any).setCompletionCallback) {
       (newGameState as any).setCompletionCallback(() => {
         handleGameCompletionRef.current();
       });
@@ -424,11 +423,11 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
         startNewRoundRef.current();
       }
     }, 100);
-  }, [resetToInitialState]);
+  }, [isGameCompleted, resetToInitialState]);
 
   const handleChangeSettings = useCallback(() => {
     setIsEndModalOpen(false);
-    openSettings('modes');
+    openSettings(SETTINGS_TABS.MODES);
   }, [openSettings]);
 
   const handleCloseEndModal = useCallback(() => {
@@ -455,9 +454,8 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
           currentNote: !!currentNote,
           isPaused: !!isPaused,
           onTimeUp: handleTimeUp,
-          onTimerUpdate: (timeRemaining: number, isActive: boolean) => {
+          onTimerUpdate: (timeRemaining: number) => {
             setTimeRemaining(timeRemaining);
-            setIsTimerActive(isActive);
           }
         }) : <div>Loading game state...</div>}
 

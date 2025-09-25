@@ -7,7 +7,7 @@ interface ScoreTrackerProps {
   onReset: () => void;
 }
 
-const ScoreTracker: React.FC<ScoreTrackerProps> = ({ correct, total, onReset }) => {
+const ScoreTracker: React.FC<ScoreTrackerProps> = ({ correct, total }) => {
   const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
   
   return (

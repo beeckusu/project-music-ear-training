@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useSettings } from '../hooks/useSettings';
+import { SETTINGS_TABS, type SettingsTab } from '../constants';
 import NoteRangeSettings from './settings/NoteRangeSettings';
 import TimingSettings from './settings/TimingSettings';
 import ModeSelector from './settings/ModeSelector';
 import AudioSettings from './settings/AudioSettings';
 import './Settings.css';
-
-type SettingsTab = 'notes' | 'modes' | 'timing' | 'audio';
 
 interface SettingsModalProps {
   onRestartGame?: () => void;
@@ -14,7 +13,7 @@ interface SettingsModalProps {
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ onRestartGame }) => {
   const { isSettingsOpen, closeSettings, isFirstTimeSetup, defaultTab } = useSettings();
-  const [activeTab, setActiveTab] = useState<SettingsTab>('notes');
+  const [activeTab, setActiveTab] = useState<SettingsTab>(SETTINGS_TABS.NOTES);
 
   useEffect(() => {
     const handleEscKey = (event: KeyboardEvent) => {
@@ -49,21 +48,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onRestartGame }) => {
   };
 
   const tabs = [
-    { id: 'modes' as SettingsTab, label: 'Modes', icon: '🎮' },
-    { id: 'notes' as SettingsTab, label: 'Note Range', icon: '🎵' },
-    { id: 'timing' as SettingsTab, label: 'Timing', icon: '⏱️' },
-    { id: 'audio' as SettingsTab, label: 'Audio', icon: '🔊' }
+    { id: SETTINGS_TABS.MODES, label: 'Modes', icon: '🎮' },
+    { id: SETTINGS_TABS.NOTES, label: 'Note Range', icon: '🎵' },
+    { id: SETTINGS_TABS.TIMING, label: 'Timing', icon: '⏱️' },
+    { id: SETTINGS_TABS.AUDIO, label: 'Audio', icon: '🔊' }
   ];
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'modes':
+      case SETTINGS_TABS.MODES:
         return <ModeSelector onRestartGame={onRestartGame} />;
-      case 'notes':
+      case SETTINGS_TABS.NOTES:
         return <NoteRangeSettings />;
-      case 'timing':
+      case SETTINGS_TABS.TIMING:
         return <TimingSettings />;
-      case 'audio':
+      case SETTINGS_TABS.AUDIO:
         return <AudioSettings />;
       default:
         return null;

@@ -7,6 +7,7 @@ import type {
   SandboxModeSettings,
   GameStats
 } from '../types/game';
+import { GAME_MODES } from '../constants';
 import { RushGameStateImpl } from './RushGameState';
 import { SurvivalGameStateImpl } from './SurvivalGameState';
 import { SandboxGameStateImpl } from './SandboxGameState';
@@ -63,11 +64,11 @@ export function createGameState(
   }
 ): GameStateWithDisplay {
   switch (mode) {
-    case 'rush':
+    case GAME_MODES.RUSH:
       return new RushGameStateImpl(modeSettings.rush);
-    case 'survival':
+    case GAME_MODES.SURVIVAL:
       return new SurvivalGameStateImpl(modeSettings.survival);
-    case 'sandbox':
+    case GAME_MODES.SANDBOX:
     default:
       return new SandboxGameStateImpl(modeSettings.sandbox);
   }

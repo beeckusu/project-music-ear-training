@@ -11,7 +11,7 @@ import './App.css'
 
 // Main app content component that can access settings context
 function AppContent() {
-  const { isSettingsOpen, closeSettings, settings } = useSettings()
+  const { isSettingsOpen, closeSettings } = useSettings()
   const [score, setScore] = useState({ correct: 0, total: 0 })
   const [guessHistory, setGuessHistory] = useState<GuessAttempt[]>([])
   const [isPaused, setIsPaused] = useState(false)

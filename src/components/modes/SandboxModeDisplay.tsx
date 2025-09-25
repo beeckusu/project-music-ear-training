@@ -13,8 +13,6 @@ const SandboxModeDisplay: React.FC<SandboxModeDisplayProps> = ({
   gameState,
   responseTimeLimit,
   currentNote,
-  isPaused,
-  onTimeUp,
   onTimerUpdate
 }) => {
   // Get timer state from gameState
