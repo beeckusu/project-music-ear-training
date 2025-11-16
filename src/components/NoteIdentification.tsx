@@ -7,6 +7,7 @@ import { audioEngine, AudioEngine } from '../utils/audioEngine';
 import { useSettings } from '../hooks/useSettings';
 import { useGameHistory } from '../hooks/useGameHistory';
 import { SETTINGS_TABS, GAME_MODES } from '../constants';
+import { GameOrchestrator } from '../game/GameOrchestrator';
 import PianoKeyboard from './PianoKeyboard';
 import GameEndModal from './GameEndModal';
 import './NoteIdentification.css';
@@ -38,10 +39,25 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
   const { selectedMode } = settings.modes;
   const [gameState, setGameState] = useState<GameStateWithDisplay | null>(null);
 
-  // Initialize game state when settings are ready
+  // Initialize orchestrator
+  const orchestratorRef = useRef<GameOrchestrator | null>(null);
+  const [, forceUpdate] = useState({});
+
+  // Initialize orchestrator and game state when settings are ready
   useEffect(() => {
     if (settings && selectedMode) {
       try {
+        // Initialize orchestrator if not already created
+        if (!orchestratorRef.current) {
+          orchestratorRef.current = new GameOrchestrator();
+          orchestratorRef.current.start();
+
+          // Subscribe to state machine changes to trigger re-renders
+          orchestratorRef.current.subscribe(() => {
+            forceUpdate({});
+          });
+        }
+
         const newGameState = createGameState(selectedMode, settings.modes);
 
         // Set completion callback for sandbox mode
@@ -56,6 +72,14 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
         console.error('Failed to create game state:', error);
       }
     }
+
+    // Cleanup orchestrator on unmount
+    return () => {
+      if (orchestratorRef.current) {
+        orchestratorRef.current.stop();
+        orchestratorRef.current = null;
+      }
+    };
   }, [selectedMode, settings]);
 
   // Forward declare startNewRound for timer callback
