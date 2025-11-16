@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import type { SandboxGameState } from '../../types/game';
 import type { CommonDisplayProps, GameStateWithDisplay } from '../../game/GameStateFactory';
 import TimerCircular from '../TimerCircular';
-import TimerCountUp from '../TimerCountUp';
+import TimerDigital from '../TimerDigital';
 import './SandboxModeDisplay.css';
 
 interface SandboxModeDisplayProps extends CommonDisplayProps {
@@ -37,7 +37,7 @@ const SandboxModeDisplay: React.FC<SandboxModeDisplayProps> = ({
         <div className="sandbox-stats-section">
           {/* Session Timer */}
           <div className="session-timer">
-            <TimerCountUp
+            <TimerDigital
               elapsedTime={sessionTimerState.timeRemaining}
               isActive={sessionTimerState.isActive && !gameState.isCompleted}
             />

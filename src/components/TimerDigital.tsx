@@ -1,14 +1,14 @@
 import React from 'react';
-import './TimerCountUp.css';
+import './TimerDigital.css';
 
-interface TimerCountUpProps {
+interface TimerDigitalProps {
   elapsedTime: number; // in seconds
   isActive: boolean;
   showProgress?: boolean;
   targetTime?: number; // Optional target time to show progress against
 }
 
-const TimerCountUp: React.FC<TimerCountUpProps> = ({
+const TimerDigital: React.FC<TimerDigitalProps> = ({
   elapsedTime,
   isActive,
   showProgress = false,
@@ -98,4 +98,4 @@ const TimerCountUp: React.FC<TimerCountUpProps> = ({
   );
 };
 
-export default TimerCountUp;
+export default TimerDigital;

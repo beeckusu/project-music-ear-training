@@ -1,7 +1,7 @@
 import React from 'react';
 import type { RushGameState, RushModeSettings } from '../../types/game';
 import type { CommonDisplayProps, GameStateWithDisplay } from '../../game/GameStateFactory';
-import TimerCountUp from '../TimerCountUp';
+import TimerDigital from '../TimerDigital';
 import TimerCircular from '../TimerCircular';
 import './RushModeDisplay.css';
 
@@ -31,7 +31,7 @@ const RushModeDisplay: React.FC<RushModeDisplayProps> = ({
       {/* Rush Mode Timer Section */}
       {(currentNote || gameState.isCompleted) && (
         <div className="timer-section">
-          <TimerCountUp
+          <TimerDigital
             elapsedTime={gameState.elapsedTime}
             isActive={!gameState.isCompleted && gameState.startTime !== undefined}
           />
