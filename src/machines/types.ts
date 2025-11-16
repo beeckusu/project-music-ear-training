@@ -105,7 +105,6 @@ export interface GameMachineContext {
 
   // Feedback state
   feedbackMessage: string;
-  showCorrectAnswer: boolean;
 }
 
 /**
