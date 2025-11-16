@@ -196,12 +196,13 @@ export const gameStateMachine = createMachine({
         [GameAction.PLAY_AGAIN]: {
           target: SessionState.PLAYING,
           actions: assign({
-            // Reset context but preserve longestStreak
+            // Reset all context for a fresh game
             currentNote: null,
             userGuess: null,
             correctCount: 0,
             totalAttempts: 0,
             currentStreak: 0,
+            longestStreak: 0,
             elapsedTime: 0,
             sessionDuration: 0,
             attemptHistory: [],

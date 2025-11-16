@@ -17,16 +17,16 @@ describe('Game State Machine', () => {
       expect(actor.getSnapshot().matches('idle')).toBe(true);
     });
 
-    it.each([
-      { field: 'correctCount', expected: 0 },
-      { field: 'totalAttempts', expected: 0 },
-      { field: 'currentStreak', expected: 0 },
-      { field: 'longestStreak', expected: 0 },
-      { field: 'currentNote', expected: null },
-      { field: 'userGuess', expected: null },
-    ])('should initialize $field to $expected', ({ field, expected }) => {
+    it('should initialize with default context', () => {
       const context = actor.getSnapshot().context;
-      expect(context[field as keyof typeof context]).toBe(expected);
+      expect(context.correctCount).toBe(0);
+      expect(context.totalAttempts).toBe(0);
+      expect(context.currentStreak).toBe(0);
+      expect(context.longestStreak).toBe(0);
+      expect(context.currentNote).toBeNull();
+      expect(context.userGuess).toBeNull();
+      expect(context.feedbackMessage).toBe('');
+      expect(context.attemptHistory).toEqual([]);
     });
   });
 
@@ -98,20 +98,42 @@ describe('Game State Machine', () => {
       expect(actor.getSnapshot().context.userGuess).toBe('C');
     });
 
-    it.each`
-      event                         | correctCount | totalAttempts | currentStreak | feedbackMessage
-      ${GameAction.CORRECT_GUESS}   | ${1}         | ${1}          | ${1}          | ${'Correct!'}
-      ${GameAction.INCORRECT_GUESS} | ${0}         | ${1}          | ${0}          | ${'Incorrect!'}
-    `('should update context on $event', ({ event, correctCount, totalAttempts, currentStreak, feedbackMessage }) => {
+    it('should increment stats on CORRECT_GUESS', () => {
       actor.send({ type: GameAction.NOTE_PLAYED });
       actor.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
-      actor.send({ type: event });
 
+      // Assert before
+      expect(actor.getSnapshot().context.correctCount).toBe(0);
+      expect(actor.getSnapshot().context.totalAttempts).toBe(0);
+      expect(actor.getSnapshot().context.currentStreak).toBe(0);
+
+      actor.send({ type: GameAction.CORRECT_GUESS });
+
+      // Assert after
       const context = actor.getSnapshot().context;
-      expect(context.correctCount).toBe(correctCount);
-      expect(context.totalAttempts).toBe(totalAttempts);
-      expect(context.currentStreak).toBe(currentStreak);
-      expect(context.feedbackMessage).toBe(feedbackMessage);
+      expect(context.correctCount).toBe(1);
+      expect(context.totalAttempts).toBe(1);
+      expect(context.currentStreak).toBe(1);
+      expect(context.longestStreak).toBe(1);
+      expect(context.feedbackMessage).toBe('Correct!');
+    });
+
+    it('should increment total attempts but not correct count on INCORRECT_GUESS', () => {
+      actor.send({ type: GameAction.NOTE_PLAYED });
+      actor.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
+
+      // Assert before
+      expect(actor.getSnapshot().context.correctCount).toBe(0);
+      expect(actor.getSnapshot().context.totalAttempts).toBe(0);
+
+      actor.send({ type: GameAction.INCORRECT_GUESS });
+
+      // Assert after
+      const context = actor.getSnapshot().context;
+      expect(context.correctCount).toBe(0);
+      expect(context.totalAttempts).toBe(1);
+      expect(context.currentStreak).toBe(0);
+      expect(context.feedbackMessage).toBe('Incorrect!');
     });
 
     it('should increment longestStreak on CORRECT_GUESS', () => {
@@ -151,19 +173,22 @@ describe('Game State Machine', () => {
       expect(context.longestStreak).toBe(2);
     });
 
-    it.each`
-      field                  | expectedValue
-      ${'feedbackMessage'}   | ${''}
-      ${'currentNote'}       | ${null}
-      ${'userGuess'}         | ${null}
-    `('should clear $field on ADVANCE_ROUND', ({ field, expectedValue }) => {
+    it('should clear round data on ADVANCE_ROUND', () => {
       actor.send({ type: GameAction.NOTE_PLAYED });
       actor.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
       actor.send({ type: GameAction.CORRECT_GUESS });
+
+      // Assert before - these should have values
+      expect(actor.getSnapshot().context.feedbackMessage).toBe('Correct!');
+      expect(actor.getSnapshot().context.userGuess).toBe('C');
+
       actor.send({ type: GameAction.ADVANCE_ROUND });
 
+      // Assert after - round data cleared
       const context = actor.getSnapshot().context;
-      expect(context[field as keyof typeof context]).toBe(expectedValue);
+      expect(context.feedbackMessage).toBe('');
+      expect(context.currentNote).toBeNull();
+      expect(context.userGuess).toBeNull();
     });
 
     it('should reset context on START_GAME but preserve longestStreak across sessions', () => {
@@ -204,12 +229,7 @@ describe('Game State Machine', () => {
       expect(actor.getSnapshot().matches('playing.waiting_input')).toBe(true);
     });
 
-    it.each`
-      field
-      ${'correctCount'}
-      ${'totalAttempts'}
-      ${'currentStreak'}
-    `('should preserve $field when pausing and resuming', ({ field }) => {
+    it('should preserve context when pausing and resuming', () => {
       actor.send({ type: GameAction.START_GAME });
       actor.send({ type: GameAction.NOTE_PLAYED });
       actor.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
@@ -221,44 +241,34 @@ describe('Game State Machine', () => {
       actor.send({ type: GameAction.RESUME });
 
       const contextAfterResume = actor.getSnapshot().context;
-      expect(contextAfterResume[field as keyof typeof contextAfterResume]).toBe(
-        contextBeforePause[field as keyof typeof contextBeforePause]
-      );
+      expect(contextAfterResume.correctCount).toBe(contextBeforePause.correctCount);
+      expect(contextAfterResume.totalAttempts).toBe(contextBeforePause.totalAttempts);
+      expect(contextAfterResume.currentStreak).toBe(contextBeforePause.currentStreak);
     });
   });
 
   describe('Play Again vs Reset', () => {
-    it.each`
-      field              | expectedValue
-      ${'correctCount'}  | ${0}
-      ${'totalAttempts'} | ${0}
-      ${'currentStreak'} | ${0}
-    `('should reset $field to $expectedValue on PLAY_AGAIN', ({ field, expectedValue }) => {
+    it('should reset all stats on PLAY_AGAIN', () => {
       actor.send({ type: GameAction.START_GAME });
       actor.send({ type: GameAction.NOTE_PLAYED });
       actor.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
       actor.send({ type: GameAction.CORRECT_GUESS });
       actor.send({ type: GameAction.COMPLETE });
 
-      actor.send({ type: GameAction.PLAY_AGAIN });
-
-      const context = actor.getSnapshot().context;
-      expect(context[field as keyof typeof context]).toBe(expectedValue);
-    });
-
-    it('should preserve longestStreak on PLAY_AGAIN', () => {
-      actor.send({ type: GameAction.START_GAME });
-      actor.send({ type: GameAction.NOTE_PLAYED });
-      actor.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
-      actor.send({ type: GameAction.CORRECT_GUESS });
-      actor.send({ type: GameAction.COMPLETE });
-
-      const longestBeforePlayAgain = actor.getSnapshot().context.longestStreak;
+      // Assert before - should have stats
+      expect(actor.getSnapshot().context.correctCount).toBe(1);
+      expect(actor.getSnapshot().context.totalAttempts).toBe(1);
+      expect(actor.getSnapshot().context.currentStreak).toBe(1);
+      expect(actor.getSnapshot().context.longestStreak).toBe(1);
 
       actor.send({ type: GameAction.PLAY_AGAIN });
 
+      // Assert after - all stats reset for fresh game
       const context = actor.getSnapshot().context;
-      expect(context.longestStreak).toBe(longestBeforePlayAgain);
+      expect(context.correctCount).toBe(0);
+      expect(context.totalAttempts).toBe(0);
+      expect(context.currentStreak).toBe(0);
+      expect(context.longestStreak).toBe(0);
       expect(actor.getSnapshot().matches('playing.playing_note')).toBe(true);
     });
   });
