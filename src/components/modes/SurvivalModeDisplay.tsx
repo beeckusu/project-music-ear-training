@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import type { SurvivalGameState } from '../../types/game';
 import type { CommonDisplayProps, GameStateWithDisplay } from '../../game/GameStateFactory';
 import TimerCircular from '../TimerCircular';
-import TimerCountUp from '../TimerCountUp';
+import TimerDigital from '../TimerDigital';
 import './SurvivalModeDisplay.css';
 
 interface SurvivalModeDisplayProps extends CommonDisplayProps {
@@ -52,7 +52,7 @@ const SurvivalModeDisplay: React.FC<SurvivalModeDisplayProps> = ({
         <div className="survival-stats-section">
           {/* Session Timer */}
           <div className="survival-timer">
-            <TimerCountUp
+            <TimerDigital
               elapsedTime={survivalTimeRemaining}
               isActive={!gameState.isCompleted && gameState.startTime !== undefined}
             />
