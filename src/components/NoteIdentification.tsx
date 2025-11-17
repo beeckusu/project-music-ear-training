@@ -3,7 +3,7 @@ import type { NoteWithOctave } from '../types/music';
 import type { GuessAttempt, GameStats, GameSession } from '../types/game';
 import type { GameStateWithDisplay, GameActionResult } from '../game/GameStateFactory';
 import { createGameState } from '../game/GameStateFactory';
-import { audioEngine, AudioEngine } from '../utils/audioEngine';
+import { AudioEngine } from '../utils/audioEngine';
 import { useSettings } from '../hooks/useSettings';
 import { useGameHistory } from '../hooks/useGameHistory';
 import { SETTINGS_TABS, GAME_MODES } from '../constants';
@@ -28,7 +28,6 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
   const [userGuess, setUserGuess] = useState<NoteWithOctave | null>(null);
   const [correctNoteHighlight, setCorrectNoteHighlight] = useState<NoteWithOctave | null>(null);
   const [feedback, setFeedback] = useState<string>('Click "Start Practice" to begin your ear training session');
-  const [isPlaying, setIsPlaying] = useState(false);
   const [isInTimeout, setIsInTimeout] = useState(false);
   const [isEndModalOpen, setIsEndModalOpen] = useState(false);
   const [gameStats, setGameStats] = useState<GameStats | null>(null);
@@ -42,6 +41,9 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
   // Initialize orchestrator
   const orchestratorRef = useRef<GameOrchestrator | null>(null);
   const [, forceUpdate] = useState({});
+
+  // Derive isPlaying from orchestrator state machine
+  const isPlaying = orchestratorRef.current?.isPlayingNote() || false;
 
   // Initialize orchestrator and game state when settings are ready
   useEffect(() => {
@@ -57,6 +59,9 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
             forceUpdate({});
           });
         }
+
+        // Configure orchestrator with note duration from settings
+        orchestratorRef.current.setNoteDuration(noteDuration);
 
         const newGameState = createGameState(selectedMode, settings.modes);
 
@@ -80,7 +85,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
         orchestratorRef.current = null;
       }
     };
-  }, [selectedMode, settings]);
+  }, [selectedMode, settings, noteDuration]);
 
   // Forward declare startNewRound for timer callback
   const startNewRoundRef = useRef<() => Promise<void>>(async () => {});
@@ -239,16 +244,13 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
   }, [isGameCompleted, gameState, selectedMode, addSession, onGameComplete, onScoreReset]);
 
   const playCurrentNote = async () => {
-    if (!currentNote) return;
+    if (!currentNote || !orchestratorRef.current) return;
 
-    setIsPlaying(true);
-    await audioEngine.initialize();
-    audioEngine.playNote(currentNote, noteDuration);
+    await orchestratorRef.current.replayNote();
     setTimeout(() => {
         // Don't continue if game is completed
         if (isGameCompleted) return;
 
-        setIsPlaying(false)
         gameState?.resumeTimer();
     }, 500);
   };
@@ -360,7 +362,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
   }, [hasCompletedModeSetup, startFirstTimeSetup]);
 
   const startNewRound = useCallback(async () => {
-    if (!gameState || isGameCompleted) return;
+    if (!gameState || isGameCompleted || !orchestratorRef.current) return;
 
     // Ensure timeout state is cleared when starting new round
     setIsInTimeout(false);
@@ -376,9 +378,8 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     // Force state update for React re-render
     setGameState(prevState => prevState ? { ...prevState } : prevState);
 
-    setIsPlaying(true);
-    await audioEngine.initialize();
-    audioEngine.playNote(newNote, noteDuration);
+    // Use orchestrator to play the note
+    await orchestratorRef.current.playCurrentNote(newNote);
 
     setCurrentNote(newNote);
     setUserGuess(null);
@@ -395,12 +396,11 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
       // Don't continue if game is completed
       if (isGameCompleted) return;
 
-      setIsPlaying(false);
       if (!isInTimeout) {
         setFeedback(gameState.getFeedbackMessage(true));
       }
     }, 500);
-  }, [settings.noteFilter, noteDuration, gameState, isGameCompleted, responseTimeLimit, isInTimeout, isPaused, handleTimeUp]);
+  }, [settings.noteFilter, gameState, isGameCompleted, responseTimeLimit, isInTimeout, isPaused, handleTimeUp]);
 
   // Set the ref for the timer callback BEFORE any timer operations
   useEffect(() => {
@@ -412,7 +412,6 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     setCurrentNote(null);
     setUserGuess(null);
     setCorrectNoteHighlight(null);
-    setIsPlaying(false);
     setIsInTimeout(false);
     setIsGameCompleted(false); // Reset completion state
     const newGameState = createGameState(selectedMode, settings.modes);

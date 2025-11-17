@@ -2,6 +2,8 @@ import { createActor, type Actor } from 'xstate';
 import { gameStateMachine } from '../machines/gameStateMachine';
 import type { GameMachineContext, GameEvent } from '../machines/types';
 import { SessionState, RoundState, GameAction } from '../machines/types';
+import { audioEngine } from '../utils/audioEngine';
+import type { NoteWithOctave, NoteDuration } from '../types/music';
 
 /**
  * GameOrchestrator
@@ -26,6 +28,8 @@ import { SessionState, RoundState, GameAction } from '../machines/types';
 export class GameOrchestrator {
   private actor: Actor<typeof gameStateMachine>;
   private subscriptions: Array<() => void> = [];
+  private currentNote: NoteWithOctave | null = null;
+  private noteDuration: NoteDuration = '2n';
 
   constructor() {
     // Create the state machine actor
@@ -240,6 +244,67 @@ export class GameOrchestrator {
    */
   playAgain(): void {
     this.send({ type: GameAction.PLAY_AGAIN });
+  }
+
+  // ========================================
+  // Audio Playback
+  // ========================================
+
+  /**
+   * Set the note duration for audio playback
+   */
+  setNoteDuration(duration: NoteDuration): void {
+    this.noteDuration = duration;
+  }
+
+  /**
+   * Play the current note
+   * Handles PLAYING_NOTE → WAITING_INPUT transition
+   */
+  async playCurrentNote(note: NoteWithOctave): Promise<void> {
+    this.currentNote = note;
+
+    // Initialize audio engine if needed
+    await audioEngine.initialize();
+
+    // Transition to PLAYING_NOTE state
+    // (This would be triggered by the component/game logic before calling this method)
+
+    // Play the note
+    audioEngine.playNote(note, this.noteDuration);
+
+    // After note finishes playing, dispatch NOTE_PLAYED to transition to WAITING_INPUT
+    // Wait for the note to finish (approximate duration)
+    setTimeout(() => {
+      this.send({ type: GameAction.NOTE_PLAYED });
+    }, 500); // 500ms matches the component's current behavior
+  }
+
+  /**
+   * Replay the current note
+   * Listens for REPLAY_NOTE action from state machine
+   */
+  async replayNote(): Promise<void> {
+    if (!this.currentNote) {
+      console.warn('No current note to replay');
+      return;
+    }
+
+    // Initialize audio engine if needed
+    await audioEngine.initialize();
+
+    // Send REPLAY_NOTE action to state machine
+    this.send({ type: GameAction.REPLAY_NOTE });
+
+    // Play the note again
+    audioEngine.playNote(this.currentNote, this.noteDuration);
+  }
+
+  /**
+   * Get the current note being played
+   */
+  getCurrentNoteWithOctave(): NoteWithOctave | null {
+    return this.currentNote;
   }
 
 }
