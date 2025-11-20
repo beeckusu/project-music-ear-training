@@ -9,13 +9,15 @@ interface PianoKeyboardProps {
   highlightedNote?: NoteWithOctave;
   correctNote?: NoteWithOctave;
   octave?: number;
+  disabled?: boolean;
 }
 
 const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
   onNoteClick,
   highlightedNote,
   correctNote,
-  octave = 4
+  octave = 4,
+  disabled = false
 }) => {
   const { settings } = useSettings();
   const { noteDuration } = settings.timing;
@@ -32,10 +34,13 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
   ];
 
   const handleKeyClick = async (note: Note, keyIndex?: number) => {
+    // Don't handle clicks if disabled
+    if (disabled) return;
+
     // For the second C key (index 7), use the next octave
     const actualOctave = (note === 'C' && keyIndex === 7) ? (octave + 1) as Octave : octave as Octave;
     const noteWithOctave = { note, octave: actualOctave };
-    
+
     // Play the note sound
     try {
       await audioEngine.initialize();
@@ -43,7 +48,7 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
     } catch (error) {
       console.warn('Failed to play note:', error);
     }
-    
+
     // Call the parent callback
     if (onNoteClick) {
       onNoteClick(noteWithOctave);
@@ -90,6 +95,7 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
               key={`${note}-${index}`}
               className={className}
               onClick={() => handleKeyClick(note, index)}
+              disabled={disabled}
             >
               {showNoteLabels && <span className="note-label">{note}</span>}
             </button>
@@ -108,6 +114,7 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
               className={className}
               style={{ left: `${leftOffset}px` }}
               onClick={() => handleKeyClick(note)}
+              disabled={disabled}
             >
               {showNoteLabels && <span className="note-label">{note}</span>}
             </button>
