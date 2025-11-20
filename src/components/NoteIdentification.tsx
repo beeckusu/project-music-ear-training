@@ -173,11 +173,9 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
       return; // Don't start new round
     }
 
-    startTimeout();
-
-    // Start new round after timeout
+    // Start new round after timeout - use orchestrator timer to prevent race conditions
     const advanceTime = Math.min(autoAdvanceSpeed, 2);
-    setTimeout(() => {
+    orchestratorRef.current?.scheduleAdvanceAfterTimeout(() => {
       // Don't continue if game is completed
       if (isGameCompleted) return;
 
@@ -261,7 +259,8 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     if (!currentNote || !orchestratorRef.current) return;
 
     await orchestratorRef.current.replayNote();
-    setTimeout(() => {
+    // Use orchestrator timer to prevent race conditions
+    orchestratorRef.current.scheduleAudioResume(() => {
         // Don't continue if game is completed
         if (isGameCompleted) return;
 
@@ -323,10 +322,6 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     // Set feedback
     setFeedback(result.feedback);
 
-    if (isCorrect) {
-      startTimeout();
-    }
-
     // Handle game completion - use result.gameCompleted instead of gameState.isCompleted for immediate completion
     if (result.gameCompleted && result.stats) {
       // Transition state machine to COMPLETED
@@ -357,7 +352,8 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
       const remainingTime = responseTimeLimit ? timeRemaining : autoAdvanceSpeed;
       const advanceTime = responseTimeLimit ? Math.min(autoAdvanceSpeed, remainingTime) : autoAdvanceSpeed;
 
-      setTimeout(() => {
+      // Use orchestrator timer to prevent race conditions
+      orchestratorRef.current?.scheduleAdvanceAfterCorrectGuess(() => {
         // Don't continue if game is completed
         if (isGameCompleted) return;
 
@@ -418,7 +414,8 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     gameState.initializeTimer(responseTimeLimit, !!isPaused, handleTimeUp, handleTimeUpdate);
 
     // Set feedback after note starts playing (only if not in timeout/intermission)
-    setTimeout(() => {
+    // Use orchestrator timer to prevent race conditions
+    orchestratorRef.current?.scheduleFeedbackUpdate(() => {
       // Don't continue if game is completed
       if (isGameCompleted) return;
 
@@ -468,8 +465,8 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
   // Handle completion actions
   const handlePlayAgain = useCallback(() => {
     resetToInitialState();
-    // Wait a moment then start new round
-    setTimeout(() => {
+    // Wait a moment then start new round - use orchestrator timer to prevent race conditions
+    orchestratorRef.current?.schedulePlayAgainDelay(() => {
       // This is after reset, so isGameCompleted should be false, but check anyway
       if (!isGameCompleted && startNewRoundRef.current) {
         startNewRoundRef.current();
