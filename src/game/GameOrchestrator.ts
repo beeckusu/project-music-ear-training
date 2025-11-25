@@ -35,6 +35,12 @@ export class GameOrchestrator {
   private activeTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
   private timerCallbacks: Map<string, () => void> = new Map();
 
+  // Game flow callbacks - allows component to react to orchestrator decisions
+  private onTimeoutCallback?: (correctNote: NoteWithOctave) => void;
+  private onAutoAdvanceCallback?: () => void;
+  private onFeedbackUpdateCallback?: (message: string) => void;
+  private onRoundStartCallback?: (note: NoteWithOctave) => void;
+
   constructor() {
     // Create the state machine actor
     this.actor = createActor(gameStateMachine);
@@ -277,7 +283,8 @@ export class GameOrchestrator {
    * Pause the game
    */
   pause(): void {
-    // Clear timers on pause to prevent them from firing while paused
+    // Always clear timers on pause to prevent them from firing while paused
+    // This includes auto-advance timers during intermission
     this.clearAllTimers();
     this.send({ type: GameAction.PAUSE });
   }
@@ -419,6 +426,107 @@ export class GameOrchestrator {
    */
   schedulePlayAgainDelay(callback: () => void, delay: number): void {
     this.scheduleTimer('play-again-delay', callback, delay);
+  }
+
+  // ========================================
+  // Game Flow Callback Configuration
+  // ========================================
+
+  /**
+   * Configure callback for when round times out
+   */
+  setOnTimeoutCallback(callback: (correctNote: NoteWithOctave) => void): void {
+    this.onTimeoutCallback = callback;
+  }
+
+  /**
+   * Configure callback for auto-advance after correct guess
+   */
+  setOnAutoAdvanceCallback(callback: () => void): void {
+    this.onAutoAdvanceCallback = callback;
+  }
+
+  /**
+   * Configure callback for feedback updates
+   */
+  setOnFeedbackUpdateCallback(callback: (message: string) => void): void {
+    this.onFeedbackUpdateCallback = callback;
+  }
+
+  /**
+   * Configure callback for when new round starts
+   */
+  setOnRoundStartCallback(callback: (note: NoteWithOctave) => void): void {
+    this.onRoundStartCallback = callback;
+  }
+
+  // ========================================
+  // Round Flow Management
+  // ========================================
+
+  /**
+   * Handle timeout event
+   * Manages state transitions and auto-advance scheduling
+   */
+  handleTimeout(autoAdvanceSpeed: number): void {
+    if (!this.currentNote) return;
+
+    // Send timeout event to state machine
+    this.send({ type: GameAction.TIMEOUT });
+
+    // Notify component about timeout (for UI updates)
+    this.onTimeoutCallback?.(this.currentNote);
+
+    // Schedule auto-advance to next round
+    const advanceTime = Math.min(autoAdvanceSpeed, 2);
+    this.scheduleAdvanceAfterTimeout(() => {
+      // Advance to next round in state machine
+      this.send({ type: GameAction.ADVANCE_ROUND });
+
+      // Notify component to start new round
+      this.onAutoAdvanceCallback?.();
+    }, advanceTime * 1000);
+  }
+
+  /**
+   * Handle auto-advance after correct guess
+   * @param advanceTimeMs - Delay in milliseconds before advancing
+   */
+  handleAutoAdvance(advanceTimeMs: number): void {
+    this.scheduleAdvanceAfterCorrectGuess(() => {
+      // Advance to next round in state machine
+      this.send({ type: GameAction.ADVANCE_ROUND });
+
+      // Notify component to start new round
+      this.onAutoAdvanceCallback?.();
+    }, advanceTimeMs);
+  }
+
+  /**
+   * Start a new round with a given note
+   * Coordinates note playback and feedback timing
+   */
+  async startRound(note: NoteWithOctave, feedbackMessage: string): Promise<void> {
+    // Clear correct note highlighting when starting new round
+    this.currentNote = note;
+
+    // If in IDLE state, start the game first
+    if (this.isIdle()) {
+      this.startGame();
+    }
+
+    // Play the note (handles PLAYING_NOTE state transition)
+    await this.playCurrentNote(note);
+
+    // Notify component that round started
+    this.onRoundStartCallback?.(note);
+
+    // Schedule feedback update after note plays
+    this.scheduleFeedbackUpdate(() => {
+      if (!this.isInIntermission()) {
+        this.onFeedbackUpdateCallback?.(feedbackMessage);
+      }
+    }, 500);
   }
 
 }
