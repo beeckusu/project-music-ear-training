@@ -9,11 +9,16 @@ import type {
   GameSession
 } from '../types/game';
 import type { CommonDisplayProps, GameActionResult } from './GameStateFactory';
+import type { IGameMode } from './IGameMode';
+import type { NoteWithOctave } from '../types/music';
+import type { NoteFilter } from '../types/filters';
+import { AudioEngine } from '../utils/audioEngine';
+import { GAME_MODES } from '../constants';
 import RushModeDisplay from '../components/modes/RushModeDisplay';
 import { Timer } from '../utils/Timer';
 import '../components/strategies/RushGameEndModal.css';
 
-export class RushGameStateImpl implements RushGameState {
+export class RushGameStateImpl implements RushGameState, IGameMode {
   elapsedTime: number = 0;
   isCompleted: boolean = false;
   totalAttempts: number = 0;
@@ -281,5 +286,25 @@ export class RushGameStateImpl implements RushGameState {
 
   shouldShowHistory = (sessions: GameSession[]): boolean => {
     return sessions.length > 0;
+  };
+
+  // ========================================
+  // IGameMode Implementation
+  // ========================================
+
+  generateNote = (filter: NoteFilter): NoteWithOctave => {
+    return AudioEngine.getRandomNoteFromFilter(filter);
+  };
+
+  validateGuess = (guess: NoteWithOctave, actual: NoteWithOctave): boolean => {
+    return guess.note === actual.note;
+  };
+
+  isGameComplete = (): boolean => {
+    return this.isCompleted;
+  };
+
+  getMode = (): string => {
+    return GAME_MODES.RUSH;
   };
 }

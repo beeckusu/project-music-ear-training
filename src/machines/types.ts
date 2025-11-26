@@ -23,7 +23,6 @@ export type SessionState = typeof SessionState[keyof typeof SessionState];
  * Only active when session is in PLAYING state.
  */
 export const RoundState = {
-  PLAYING_NOTE: 'playing_note',
   WAITING_INPUT: 'waiting_input',
   PROCESSING_GUESS: 'processing_guess',
   TIMEOUT_INTERMISSION: 'timeout_intermission'
@@ -46,8 +45,6 @@ export const GameAction = {
   PLAY_AGAIN: 'play_again',
 
   // Round lifecycle
-  NOTE_PLAYED: 'note_played',
-  REPLAY_NOTE: 'replay_note',
   ADVANCE_ROUND: 'advance_round',
 
   // User input
@@ -119,8 +116,6 @@ export type GameEvent =
   | { type: typeof GameAction.COMPLETE }
   | { type: typeof GameAction.RESET }
   | { type: typeof GameAction.PLAY_AGAIN }
-  | { type: typeof GameAction.NOTE_PLAYED }
-  | { type: typeof GameAction.REPLAY_NOTE }
   | { type: typeof GameAction.ADVANCE_ROUND }
   | { type: typeof GameAction.MAKE_GUESS; guessedNote: Note }
   | { type: typeof GameAction.CORRECT_GUESS }

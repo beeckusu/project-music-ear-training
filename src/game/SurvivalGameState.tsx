@@ -9,11 +9,16 @@ import type {
   GameSession
 } from '../types/game';
 import type { CommonDisplayProps, GameActionResult } from './GameStateFactory';
+import type { IGameMode } from './IGameMode';
+import type { NoteWithOctave } from '../types/music';
+import type { NoteFilter } from '../types/filters';
+import { AudioEngine } from '../utils/audioEngine';
+import { GAME_MODES } from '../constants';
 import SurvivalModeDisplay from '../components/modes/SurvivalModeDisplay';
 import { Timer } from '../utils/Timer';
 import '../components/strategies/SurvivalGameEndModal.css';
 
-export class SurvivalGameStateImpl implements SurvivalGameState {
+export class SurvivalGameStateImpl implements SurvivalGameState, IGameMode {
   elapsedTime: number = 0;
   isCompleted: boolean = false;
   totalAttempts: number = 0;
@@ -391,4 +396,23 @@ export class SurvivalGameStateImpl implements SurvivalGameState {
     return sessions.length > 0;
   };
 
+  // ========================================
+  // IGameMode Implementation
+  // ========================================
+
+  generateNote = (filter: NoteFilter): NoteWithOctave => {
+    return AudioEngine.getRandomNoteFromFilter(filter);
+  };
+
+  validateGuess = (guess: NoteWithOctave, actual: NoteWithOctave): boolean => {
+    return guess.note === actual.note;
+  };
+
+  isGameComplete = (): boolean => {
+    return this.isCompleted;
+  };
+
+  getMode = (): string => {
+    return GAME_MODES.SURVIVAL;
+  };
 }

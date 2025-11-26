@@ -9,11 +9,16 @@ import type {
   GameSession
 } from '../types/game';
 import type { CommonDisplayProps, GameActionResult } from './GameStateFactory';
+import type { IGameMode } from './IGameMode';
+import type { NoteWithOctave } from '../types/music';
+import type { NoteFilter } from '../types/filters';
+import { AudioEngine } from '../utils/audioEngine';
+import { GAME_MODES } from '../constants';
 import SandboxModeDisplay from '../components/modes/SandboxModeDisplay';
 import { Timer } from '../utils/Timer';
 import '../components/strategies/SandboxGameEndModal.css';
 
-export class SandboxGameStateImpl implements SandboxGameState {
+export class SandboxGameStateImpl implements SandboxGameState, IGameMode {
   elapsedTime: number = 0;
   isCompleted: boolean = false;
   totalAttempts: number = 0;
@@ -91,10 +96,24 @@ export class SandboxGameStateImpl implements SandboxGameState {
     }
     feedback += ` | Streak: ${newCurrentStreak}`;
 
+    // Check if any targets are met
+    let gameCompleted = false;
+    if (this.targetNotes && newCorrectAttempts >= this.targetNotes) {
+      gameCompleted = true;
+      this.completeSession();
+    } else if (this.targetAccuracy && currentAccuracy >= this.targetAccuracy) {
+      gameCompleted = true;
+      this.completeSession();
+    } else if (this.targetStreak && newCurrentStreak >= this.targetStreak) {
+      gameCompleted = true;
+      this.completeSession();
+    }
+
     return {
-      gameCompleted: false,
+      gameCompleted,
       feedback,
-      shouldAdvance: true
+      shouldAdvance: true,
+      stats: gameCompleted ? this.finalStats : undefined
     };
   };
 
@@ -391,5 +410,25 @@ export class SandboxGameStateImpl implements SandboxGameState {
 
   shouldShowHistory = (sessions: GameSession[]): boolean => {
     return sessions.length > 0;
+  };
+
+  // ========================================
+  // IGameMode Implementation
+  // ========================================
+
+  generateNote = (filter: NoteFilter): NoteWithOctave => {
+    return AudioEngine.getRandomNoteFromFilter(filter);
+  };
+
+  validateGuess = (guess: NoteWithOctave, actual: NoteWithOctave): boolean => {
+    return guess.note === actual.note;
+  };
+
+  isGameComplete = (): boolean => {
+    return this.isCompleted;
+  };
+
+  getMode = (): string => {
+    return GAME_MODES.SANDBOX;
   };
 }

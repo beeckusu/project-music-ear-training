@@ -11,6 +11,7 @@ import { GameOrchestrator } from '../game/GameOrchestrator';
 import { GameAction } from '../machines/types';
 import PianoKeyboard from './PianoKeyboard';
 import GameEndModal from './GameEndModal';
+import { LOGS_STATE_ENABLED, LOGS_EVENTS_ENABLED, LOGS_USER_ACTIONS_ENABLED } from '../config/logging';
 import './NoteIdentification.css';
 
 interface NoteIdentificationProps {
@@ -42,30 +43,104 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
   const [, forceUpdate] = useState({});
 
   // Derive all state from orchestrator state machine
-  const isPlaying = orchestratorRef.current?.isPlayingNote() || false;
   const isInTimeout = orchestratorRef.current?.isInIntermission() || false;
   const isGameCompleted = orchestratorRef.current?.isCompleted() || false;
   const isWaitingInput = orchestratorRef.current?.isWaitingInput() || false;
 
-  // Initialize orchestrator and game state when settings are ready
+  // Initialize orchestrator once on mount
   useEffect(() => {
-    if (settings && selectedMode) {
-      try {
-        // Initialize orchestrator if not already created
-        if (!orchestratorRef.current) {
-          orchestratorRef.current = new GameOrchestrator();
-          orchestratorRef.current.start();
+    if (!orchestratorRef.current) {
+      orchestratorRef.current = new GameOrchestrator();
+      orchestratorRef.current.start();
 
-          // Subscribe to state machine changes to trigger re-renders
-          orchestratorRef.current.subscribe(() => {
-            forceUpdate({});
-          });
+      // Subscribe to state machine changes to trigger re-renders
+      orchestratorRef.current.subscribe((snapshot) => {
+        if (LOGS_STATE_ENABLED) {
+          console.log('[NoteIdentification] State machine update:', snapshot.value);
+        }
+        forceUpdate({});
+      });
+
+      // Subscribe to orchestrator events
+      orchestratorRef.current.on('roundStart', ({ note, feedback }) => {
+        if (LOGS_EVENTS_ENABLED) {
+          console.log('[NoteIdentification] Event received: roundStart', { note, feedback });
+        }
+        setCurrentNote(note);
+        setUserGuess(null);
+        setCorrectNoteHighlight(null);
+        setFeedback(feedback);
+      });
+
+      orchestratorRef.current.on('guessAttempt', (attempt) => {
+        if (LOGS_EVENTS_ENABLED) {
+          console.log('[NoteIdentification] Event received: guessAttempt', attempt);
+        }
+        onGuessAttempt?.(attempt);
+      });
+
+      orchestratorRef.current.on('guessResult', (result) => {
+        if (LOGS_EVENTS_ENABLED) {
+          console.log('[NoteIdentification] Event received: guessResult', result);
+        }
+        setFeedback(result.feedback);
+
+        if (!result.isCorrect && currentNote) {
+          setCorrectNoteHighlight(currentNote);
+        }
+      });
+
+      orchestratorRef.current.on('sessionComplete', ({ session, stats }) => {
+        if (LOGS_EVENTS_ENABLED) {
+          console.log('[NoteIdentification] Event received: sessionComplete', { session, stats });
+        }
+        addSession(session);
+        setGameStats(stats);
+        setIsEndModalOpen(true);
+        onGameComplete?.(stats);
+        onScoreReset?.();
+      });
+
+      orchestratorRef.current.on('feedbackUpdate', (message) => {
+        if (LOGS_EVENTS_ENABLED) {
+          console.log('[NoteIdentification] Event received: feedbackUpdate', message);
+        }
+        setFeedback(message);
+      });
+
+      // Configure orchestrator callbacks for game flow (legacy, will be replaced)
+      orchestratorRef.current.setOnAutoAdvanceCallback(() => {
+        // Don't start new round if game is completed
+        if (orchestratorRef.current?.isCompleted()) {
+          return;
         }
 
+        // Start new round - use the ref which always has the latest function
+        startNewRoundRef.current?.();
+      });
+    }
+
+    // Cleanup orchestrator on unmount only
+    return () => {
+      if (orchestratorRef.current) {
+        orchestratorRef.current.stop();
+        orchestratorRef.current = null;
+      }
+    };
+  }, []); // Empty deps - only run on mount/unmount
+
+  // Configure orchestrator when settings change (without stopping it)
+  useEffect(() => {
+    if (settings && selectedMode && orchestratorRef.current) {
+      try {
         // Configure orchestrator with note duration from settings
         orchestratorRef.current.setNoteDuration(noteDuration);
 
         const newGameState = createGameState(selectedMode, settings.modes);
+
+        // Configure orchestrator with game mode and note filter
+        orchestratorRef.current.setGameMode(newGameState);
+        orchestratorRef.current.setNoteFilter(settings.noteFilter);
 
         // Set completion callback for sandbox mode
         if (selectedMode === GAME_MODES.SANDBOX && (newGameState as any).setCompletionCallback) {
@@ -79,61 +154,21 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
         console.error('Failed to create game state:', error);
       }
     }
-
-    // Cleanup orchestrator on unmount
-    return () => {
-      if (orchestratorRef.current) {
-        orchestratorRef.current.stop();
-        orchestratorRef.current = null;
-      }
-    };
   }, [selectedMode, settings, noteDuration]);
 
   // Forward declare startNewRound for timer callback
   const startNewRoundRef = useRef<() => Promise<void>>(async () => {});
 
-  // Refs for values needed in handleTimeUp but shouldn't be dependencies
-  const gameStateRef = useRef(gameState);
-  const selectedModeRef = useRef(selectedMode);
-  const addSessionRef = useRef(addSession);
-  const onGameCompleteRef = useRef(onGameComplete);
-  const onScoreResetRef = useRef(onScoreReset);
-  const currentNoteRef = useRef<NoteWithOctave | null>(currentNote);
+  // Forward declare handleGameCompletion for sandbox mode callback
   const handleGameCompletionRef = useRef<() => void>(() => {});
-
-  // Keep refs updated
-  useEffect(() => {
-    gameStateRef.current = gameState;
-    selectedModeRef.current = selectedMode;
-    addSessionRef.current = addSession;
-    onGameCompleteRef.current = onGameComplete;
-    onScoreResetRef.current = onScoreReset;
-    currentNoteRef.current = currentNote;
-    handleGameCompletionRef.current = handleGameCompletion;
-  });
 
   // Handle timer timeout
   const handleTimeUp = useCallback(() => {
-    // Don't handle timeouts if game is completed
-    if (!gameStateRef.current || isGameCompleted) return;
+    // Don't handle timeouts if game is completed or orchestrator not ready
+    if (isGameCompleted || !orchestratorRef.current) return;
 
-    if (!currentNoteRef.current) return;
-
-    const attempt: GuessAttempt = {
-      id: `${Date.now()}-${Math.random()}`,
-      timestamp: new Date(),
-      actualNote: currentNoteRef.current,
-      guessedNote: null, // No guess made
-      isCorrect: false
-    };
-
-    onGuessAttempt?.(attempt);
-
-    // Send timeout event to state machine
-    orchestratorRef.current?.send({ type: GameAction.TIMEOUT });
-
-    // Handle timeout as incorrect guess for game state
-    const result: GameActionResult = gameStateRef.current.handleIncorrectGuess();
+    // Delegate timeout handling to orchestrator (handles all game logic)
+    orchestratorRef.current.handleTimeout(autoAdvanceSpeed);
 
     // Force React to re-render with the updated game state
     setGameState(prevState => {
@@ -143,76 +178,84 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
       }
       return prevState;
     });
-
-    // Set timeout feedback, but include game result feedback
-    setFeedback(`Time's up! The correct answer was ${currentNoteRef.current.note}. ${result.feedback}`);
-
-    // Set correct note highlighting to show the answer in red
-    setCorrectNoteHighlight(currentNoteRef.current);
-
-    // Handle game completion from timeout
-    if (result.gameCompleted && result.stats) {
-      // Transition state machine to COMPLETED
-      orchestratorRef.current?.complete();
-
-      const session: GameSession = {
-        mode: selectedModeRef.current,
-        timestamp: new Date(),
-        completionTime: result.stats.completionTime,
-        accuracy: result.stats.accuracy,
-        totalAttempts: result.stats.totalAttempts,
-        settings: gameStateRef.current.getSessionSettings(),
-        results: gameStateRef.current.getSessionResults(result.stats)
-      };
-
-      addSessionRef.current(session);
-      setGameStats(result.stats);
-      onGameCompleteRef.current?.(result.stats);
-      onScoreResetRef.current?.();
-      setIsEndModalOpen(true);
-      return; // Don't start new round
-    }
-
-    startTimeout();
-
-    // Start new round after timeout
-    const advanceTime = Math.min(autoAdvanceSpeed, 2);
-    setTimeout(() => {
-      // Don't continue if game is completed
-      if (isGameCompleted) return;
-
-      // Advance to next round in state machine
-      orchestratorRef.current?.send({ type: GameAction.ADVANCE_ROUND });
-
-      if (startNewRoundRef.current) {
-        startNewRoundRef.current();
-      }
-    }, advanceTime * 1000);
-
-  }, [onGuessAttempt, autoAdvanceSpeed, isGameCompleted]);
+  }, [autoAdvanceSpeed, isGameCompleted]);
 
   // Timer state will now be managed by individual mode displays
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
 
 
+  // Track the intermission state at the moment of pausing
+  const wasInIntermissionWhenPausedRef = useRef(false);
+  const prevIsPausedRef = useRef(isPaused);
+
   // Handle pause state changes
   useEffect(() => {
     if (!gameState || !orchestratorRef.current) return;
 
-    if (isPaused) {
-      // Send pause event to state machine
-      orchestratorRef.current.pause();
-      gameState.pauseTimer();
+    // Only react when isPaused actually changes
+    if (prevIsPausedRef.current === isPaused) {
+      return;
+    }
+
+    const previousPauseState = prevIsPausedRef.current;
+    prevIsPausedRef.current = isPaused;
+
+    if (isPaused && !previousPauseState) {
+      // User just pressed pause
+      if (LOGS_USER_ACTIONS_ENABLED) {
+        console.log('[NoteIdentification] User pressed pause');
+      }
+      const inIntermission = orchestratorRef.current.isInIntermission();
+      if (LOGS_USER_ACTIONS_ENABLED) {
+        console.log('[NoteIdentification] In intermission during pause:', inIntermission);
+      }
+      wasInIntermissionWhenPausedRef.current = inIntermission;
+
+      if (inIntermission) {
+        // During intermission, clear timers but don't change state machine state
+        // (state machine stays in PLAYING.TIMEOUT_INTERMISSION)
+        console.log('[NoteIdentification] Pausing during intermission - clearing timers only');
+        orchestratorRef.current.clearAllTimers();
+      } else {
+        // Normal pause: clear timers AND transition state machine to PAUSED
+        console.log('[NoteIdentification] Normal pause - transitioning to PAUSED state');
+        orchestratorRef.current.pause();
+        gameState.pauseTimer();
+      }
       setFeedback('Game paused');
-    } else {
-      // When unpausing, send resume event to state machine
-      if (currentNote && !isInTimeout) {
+    } else if (!isPaused && previousPauseState) {
+      // User just pressed unpause
+      console.log('[NoteIdentification] User pressed unpause');
+      const wasPaused = orchestratorRef.current.isPaused();
+      const inIntermission = orchestratorRef.current.isInIntermission();
+      console.log('[NoteIdentification] Was paused:', wasPaused, 'In intermission:', inIntermission, 'Was in intermission when paused:', wasInIntermissionWhenPausedRef.current);
+
+      // Only resume state machine if it was actually paused
+      if (wasPaused) {
+        console.log('[NoteIdentification] Resuming from PAUSED state');
         orchestratorRef.current.resume();
+      }
+
+      // If we paused during intermission, reschedule auto-advance with short delay
+      if (wasInIntermissionWhenPausedRef.current && inIntermission) {
+        // Schedule auto-advance with minimal delay (100ms) to let unpause complete
+        console.log('[NoteIdentification] Resuming after intermission pause - scheduling auto-advance');
+        orchestratorRef.current.scheduleAdvanceAfterTimeout(() => {
+          orchestratorRef.current.send({ type: GameAction.ADVANCE_ROUND });
+          startNewRound();
+        }, 100);
+      }
+      // Otherwise, resume the round timer if we weren't in intermission when we paused
+      else if (currentNote && !wasInIntermissionWhenPausedRef.current) {
+        console.log('[NoteIdentification] Resuming round timer');
         setFeedback(gameState.getFeedbackMessage(true));
         gameState.resumeTimer();
+      } else {
+        console.log('[NoteIdentification] Waiting for next round');
+        setFeedback('Waiting for next round...');
       }
     }
-  }, [isPaused, gameState, currentNote, isInTimeout]);
+  }, [isPaused, gameState]);
 
   // Handle direct game completion (for timer-based modes)
   const handleGameCompletion = useCallback(() => {
@@ -261,7 +304,8 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
     if (!currentNote || !orchestratorRef.current) return;
 
     await orchestratorRef.current.replayNote();
-    setTimeout(() => {
+    // Use orchestrator timer to prevent race conditions
+    orchestratorRef.current.scheduleAudioResume(() => {
         // Don't continue if game is completed
         if (isGameCompleted) return;
 
@@ -271,7 +315,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
 
   const handleNoteGuess = (guessedNote: NoteWithOctave) => {
     // If game is completed, allow piano playing but no game logic
-    if (!gameState || isGameCompleted) {
+    if (!gameState || isGameCompleted || !orchestratorRef.current) {
       return;
     }
 
@@ -285,32 +329,17 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
       return;
     }
 
-    setUserGuess(guessedNote);
-    const isCorrect = guessedNote.note === currentNote.note;
-
-    const attempt: GuessAttempt = {
-      id: `${Date.now()}-${Math.random()}`,
-      timestamp: new Date(),
-      actualNote: currentNote,
-      guessedNote: guessedNote,
-      isCorrect: isCorrect
-    };
-
-    onGuessAttempt?.(attempt);
-
-    // Handle guess result using generic game state
-    const result: GameActionResult = isCorrect
-      ? gameState.handleCorrectGuess()
-      : gameState.handleIncorrectGuess();
-
-    // Send guess to state machine only if correct (which triggers intermission)
-    // Incorrect guesses stay in WAITING_INPUT state to allow continued attempts
-    if (isCorrect && orchestratorRef.current) {
-      orchestratorRef.current.send({ type: GameAction.MAKE_GUESS, guessedNote: guessedNote.note });
-      orchestratorRef.current.send({ type: GameAction.CORRECT_GUESS });
+    if (LOGS_USER_ACTIONS_ENABLED) {
+      console.log('[NoteIdentification] User submitted guess:', guessedNote.note, 'Correct note:', currentNote.note);
     }
 
-    // Force React to re-render with the updated game state by creating a new object
+    // Set visual feedback for user's selection
+    setUserGuess(guessedNote);
+
+    // Submit guess to orchestrator (handles all game logic and emits events)
+    orchestratorRef.current.submitGuess(guessedNote);
+
+    // Force React to re-render with the updated game state
     setGameState(prevState => {
       if (prevState) {
         // Create a new instance to trigger React re-render
@@ -319,58 +348,6 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
       }
       return prevState;
     });
-
-    // Set feedback
-    setFeedback(result.feedback);
-
-    if (isCorrect) {
-      startTimeout();
-    }
-
-    // Handle game completion - use result.gameCompleted instead of gameState.isCompleted for immediate completion
-    if (result.gameCompleted && result.stats) {
-      // Transition state machine to COMPLETED
-      if (orchestratorRef.current) {
-        orchestratorRef.current.complete();
-      }
-
-      const session: GameSession = {
-        mode: selectedMode,
-        timestamp: new Date(),
-        completionTime: result.stats.completionTime,
-        accuracy: result.stats.accuracy,
-        totalAttempts: result.stats.totalAttempts,
-        settings: gameState.getSessionSettings(),
-        results: gameState.getSessionResults(result.stats)
-      };
-
-      addSession(session);
-      setGameStats(result.stats);
-      onGameComplete?.(result.stats);
-      onScoreReset?.();
-      setIsEndModalOpen(true);
-      return; // Don't start new round
-    }
-
-    // Auto-advance if needed
-    if (result.shouldAdvance) {
-      const remainingTime = responseTimeLimit ? timeRemaining : autoAdvanceSpeed;
-      const advanceTime = responseTimeLimit ? Math.min(autoAdvanceSpeed, remainingTime) : autoAdvanceSpeed;
-
-      setTimeout(() => {
-        // Don't continue if game is completed
-        if (isGameCompleted) return;
-
-        // Advance to next round in state machine
-        if (orchestratorRef.current) {
-          orchestratorRef.current.send({ type: GameAction.ADVANCE_ROUND });
-        }
-
-        // Reset timer before starting new round
-        gameState.resetTimer();
-        startNewRound();
-      }, advanceTime * 1000);
-    }
   };
 
   const handleStartPractice = useCallback(() => {
@@ -386,29 +363,12 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
   }, [hasCompletedModeSetup, startFirstTimeSetup]);
 
   const startNewRound = useCallback(async () => {
-    if (!gameState || isGameCompleted || !orchestratorRef.current) return;
-
-    // If in IDLE state, start the game first
-    if (orchestratorRef.current.isIdle()) {
-      orchestratorRef.current.startGame();
+    if (!gameState || isGameCompleted || !orchestratorRef.current) {
+      console.log('[NoteIdentification] startNewRound blocked:', { gameState: !!gameState, isGameCompleted, hasOrchestrator: !!orchestratorRef.current });
+      return;
     }
 
-    // Clear correct note highlighting when starting new round
-    setCorrectNoteHighlight(null);
-
-    const newNote = AudioEngine.getRandomNoteFromFilter(settings.noteFilter);
-
-    // Let game state handle start round logic
-    gameState.onStartNewRound();
-
-    // Force state update for React re-render
-    setGameState(prevState => prevState ? { ...prevState } : prevState);
-
-    // Use orchestrator to play the note
-    await orchestratorRef.current.playCurrentNote(newNote);
-
-    setCurrentNote(newNote);
-    setUserGuess(null);
+    console.log('[NoteIdentification] Starting new round');
 
     // Initialize timer for the new round with update callback to trigger React re-renders
     const handleTimeUpdate = (timeRemaining: number) => {
@@ -417,32 +377,61 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
 
     gameState.initializeTimer(responseTimeLimit, !!isPaused, handleTimeUp, handleTimeUpdate);
 
-    // Set feedback after note starts playing (only if not in timeout/intermission)
-    setTimeout(() => {
-      // Don't continue if game is completed
-      if (isGameCompleted) return;
+    // Let orchestrator handle everything (note generation, playback, state machine)
+    await orchestratorRef.current.startNewRound();
 
-      if (!isInTimeout) {
-        setFeedback(gameState.getFeedbackMessage(true));
-      }
-    }, 500);
-  }, [settings.noteFilter, gameState, isGameCompleted, responseTimeLimit, isInTimeout, isPaused, handleTimeUp]);
+    // Force state update for React re-render
+    setGameState(prevState => prevState ? { ...prevState } : prevState);
+  }, [gameState, isGameCompleted, responseTimeLimit, isPaused, handleTimeUp]);
 
-  // Set the ref for the timer callback BEFORE any timer operations
+  // Handle "Next Note" button - counts as immediate fail and stops timer
+  const handleNextNote = useCallback(() => {
+    if (!gameState || isGameCompleted || !orchestratorRef.current || !currentNote) return;
+
+    if (LOGS_USER_ACTIONS_ENABLED) {
+      console.log('[NoteIdentification] User clicked Next Note - counting as skip/fail');
+    }
+
+    // Stop the current round timer (game state manages this)
+    gameState.resetTimer();
+
+    // Count this as a timeout/skip (no guess made)
+    // Orchestrator will handle all state transitions and emit events
+    orchestratorRef.current.handleTimeout(0); // 0 = immediate advance
+  }, [gameState, isGameCompleted, currentNote]);
+
+  // Set the refs for callbacks BEFORE any timer operations
   useEffect(() => {
     startNewRoundRef.current = startNewRound;
   }, [startNewRound]);
 
-  // Reset game to initial state
-  const resetToInitialState = useCallback(() => {
-    // Reset state machine to IDLE
-    if (orchestratorRef.current) {
-      orchestratorRef.current.reset();
+  useEffect(() => {
+    handleGameCompletionRef.current = handleGameCompletion;
+  }, [handleGameCompletion]);
+
+  // Handle external reset trigger
+  useEffect(() => {
+    if (resetTrigger && resetTrigger > 0) {
+      console.log('[NoteIdentification] External reset trigger');
+      // Just reset the orchestrator - UI will react to events
+      orchestratorRef.current?.resetGame();
+
+      // Clear UI state that isn't tied to orchestrator events
+      setCurrentNote(null);
+      setUserGuess(null);
+      setCorrectNoteHighlight(null);
+      setIsEndModalOpen(false);
+      setGameStats(null);
+    }
+  }, [resetTrigger]);
+
+  // Handle completion actions
+  const handlePlayAgain = useCallback(() => {
+    if (LOGS_USER_ACTIONS_ENABLED) {
+      console.log('[NoteIdentification] Play Again clicked');
     }
 
-    setCurrentNote(null);
-    setUserGuess(null);
-    setCorrectNoteHighlight(null);
+    // Create fresh game state for the new session
     const newGameState = createGameState(selectedMode, settings.modes);
 
     // Set completion callback for sandbox mode
@@ -452,30 +441,30 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
       });
     }
 
+    // Update orchestrator with fresh game mode
+    orchestratorRef.current?.refreshGameMode(newGameState);
+    orchestratorRef.current?.setNoteFilter(settings.noteFilter);
+
+    // Update local game state
     setGameState(newGameState);
-    setFeedback(newGameState.getFeedbackMessage(false));
+
+    // Reset orchestrator state machine - this will emit events that update UI
+    orchestratorRef.current?.resetGame();
+
+    // Clear UI state that isn't tied to orchestrator events
+    setCurrentNote(null);
+    setUserGuess(null);
+    setCorrectNoteHighlight(null);
     setIsEndModalOpen(false);
     setGameStats(null);
-  }, [selectedMode, settings.modes]);
 
-  // Handle external reset trigger
-  useEffect(() => {
-    if (resetTrigger && resetTrigger > 0) {
-      resetToInitialState();
-    }
-  }, [resetTrigger, resetToInitialState]);
-
-  // Handle completion actions
-  const handlePlayAgain = useCallback(() => {
-    resetToInitialState();
-    // Wait a moment then start new round
-    setTimeout(() => {
-      // This is after reset, so isGameCompleted should be false, but check anyway
-      if (!isGameCompleted && startNewRoundRef.current) {
+    // Wait a moment then start new round - use orchestrator timer to prevent race conditions
+    orchestratorRef.current?.schedulePlayAgainDelay(() => {
+      if (startNewRoundRef.current) {
         startNewRoundRef.current();
       }
     }, 100);
-  }, [isGameCompleted, resetToInitialState]);
+  }, [selectedMode, settings.modes, settings.noteFilter]);
 
   const handleChangeSettings = useCallback(() => {
     setIsEndModalOpen(false);
@@ -533,14 +522,14 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({ onGuessAttempt,
             <>
               <button
                 onClick={currentNote ? playCurrentNote : handleStartPractice}
-                disabled={isPlaying || isPaused}
+                disabled={isPaused}
                 className="primary-button"
               >
-                {isPaused ? 'Paused' : isPlaying ? 'Playing...' : currentNote ? 'Play Note Again' : 'Start Practice'}
+                {isPaused ? 'Paused' : currentNote ? 'Play Note Again' : 'Start Practice'}
               </button>
 
               {currentNote && !isPaused && (
-                <button onClick={startNewRound} className="secondary-button">
+                <button onClick={handleNextNote} className="secondary-button">
                   Next Note
                 </button>
               )}

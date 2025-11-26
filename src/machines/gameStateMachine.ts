@@ -66,7 +66,7 @@ export const gameStateMachine = createMachine({
      * Contains round substates that handle individual note cycles
      */
     [SessionState.PLAYING]: {
-      initial: RoundState.PLAYING_NOTE,
+      initial: RoundState.WAITING_INPUT,
       on: {
         [GameAction.PAUSE]: {
           target: SessionState.PAUSED,
@@ -78,21 +78,8 @@ export const gameStateMachine = createMachine({
       },
       states: {
         /**
-         * PLAYING_NOTE: Audio is playing the current note
-         */
-        [RoundState.PLAYING_NOTE]: {
-          on: {
-            [GameAction.NOTE_PLAYED]: {
-              target: RoundState.WAITING_INPUT,
-              actions: assign({
-                feedbackMessage: '',
-              }),
-            },
-          },
-        },
-
-        /**
          * WAITING_INPUT: Waiting for user's key guess
+         * Note plays as a side effect when entering this state
          */
         [RoundState.WAITING_INPUT]: {
           on: {
@@ -109,9 +96,6 @@ export const gameStateMachine = createMachine({
                 currentStreak: 0,
                 feedbackMessage: 'Time\'s up!',
               }),
-            },
-            [GameAction.REPLAY_NOTE]: {
-              target: RoundState.PLAYING_NOTE,
             },
           },
         },
@@ -133,11 +117,11 @@ export const gameStateMachine = createMachine({
               }),
             },
             [GameAction.INCORRECT_GUESS]: {
-              target: RoundState.TIMEOUT_INTERMISSION,
+              target: RoundState.WAITING_INPUT,
               actions: assign({
                 totalAttempts: ({ context }) => context.totalAttempts + 1,
                 currentStreak: 0,
-                feedbackMessage: 'Incorrect!',
+                feedbackMessage: 'Incorrect! Try again or click Next Note',
               }),
             },
           },
@@ -149,7 +133,7 @@ export const gameStateMachine = createMachine({
         [RoundState.TIMEOUT_INTERMISSION]: {
           on: {
             [GameAction.ADVANCE_ROUND]: {
-              target: RoundState.PLAYING_NOTE,
+              target: RoundState.WAITING_INPUT,
               actions: assign({
                 currentNote: null,
                 userGuess: null,
