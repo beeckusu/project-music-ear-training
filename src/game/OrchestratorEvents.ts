@@ -80,4 +80,31 @@ export interface OrchestratorEvents {
    * @param roundState - Current round state (if in PLAYING session)
    */
   stateChange: { sessionState: SessionState; roundState?: RoundState };
+
+  /**
+   * Fired when the orchestrator needs the component to start a new round
+   * Used for auto-advance after correct guesses or timeouts
+   */
+  advanceToNextRound: void;
+
+  /**
+   * Fired when the game is reset
+   * Component should clear UI state
+   */
+  gameReset: void;
+
+  /**
+   * Fired when the game is paused
+   */
+  gamePaused: void;
+
+  /**
+   * Fired when the game is resumed
+   */
+  gameResumed: void;
+
+  /**
+   * Fired when user needs to complete first-time setup
+   */
+  requestFirstTimeSetup: void;
 }

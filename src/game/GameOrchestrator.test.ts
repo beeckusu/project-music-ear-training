@@ -84,41 +84,31 @@ describe('GameOrchestrator', () => {
       orchestrator.startGame();
     });
 
-    it('should start in PLAYING_NOTE round state', () => {
-      expect(orchestrator.isPlayingNote()).toBe(true);
-      expect(orchestrator.isWaitingInput()).toBe(false);
+    it('should start in WAITING_INPUT round state', () => {
+      expect(orchestrator.isWaitingInput()).toBe(true);
       expect(orchestrator.isProcessingGuess()).toBe(false);
       expect(orchestrator.isInIntermission()).toBe(false);
     });
 
-    it('should transition to WAITING_INPUT after NOTE_PLAYED', () => {
-      orchestrator.send({ type: GameAction.NOTE_PLAYED });
-      expect(orchestrator.isPlayingNote()).toBe(false);
-      expect(orchestrator.isWaitingInput()).toBe(true);
-    });
-
     it('should transition to PROCESSING_GUESS after MAKE_GUESS', () => {
-      orchestrator.send({ type: GameAction.NOTE_PLAYED });
       orchestrator.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
       expect(orchestrator.isWaitingInput()).toBe(false);
       expect(orchestrator.isProcessingGuess()).toBe(true);
     });
 
     it('should transition to TIMEOUT_INTERMISSION after CORRECT_GUESS', () => {
-      orchestrator.send({ type: GameAction.NOTE_PLAYED });
       orchestrator.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
       orchestrator.send({ type: GameAction.CORRECT_GUESS });
       expect(orchestrator.isProcessingGuess()).toBe(false);
       expect(orchestrator.isInIntermission()).toBe(true);
     });
 
-    it('should transition back to PLAYING_NOTE after ADVANCE_ROUND', () => {
-      orchestrator.send({ type: GameAction.NOTE_PLAYED });
+    it('should transition back to WAITING_INPUT after ADVANCE_ROUND', () => {
       orchestrator.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
       orchestrator.send({ type: GameAction.CORRECT_GUESS });
       orchestrator.send({ type: GameAction.ADVANCE_ROUND });
       expect(orchestrator.isInIntermission()).toBe(false);
-      expect(orchestrator.isPlayingNote()).toBe(true);
+      expect(orchestrator.isWaitingInput()).toBe(true);
     });
   });
 
@@ -145,7 +135,6 @@ describe('GameOrchestrator', () => {
 
     it('should update stats after correct guess', () => {
       orchestrator.startGame();
-      orchestrator.send({ type: GameAction.NOTE_PLAYED });
       orchestrator.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
       orchestrator.send({ type: GameAction.CORRECT_GUESS });
 

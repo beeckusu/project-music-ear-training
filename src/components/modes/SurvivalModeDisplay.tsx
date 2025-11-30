@@ -13,14 +13,16 @@ const SurvivalModeDisplay: React.FC<SurvivalModeDisplayProps> = ({
   gameState,
   responseTimeLimit,
   currentNote,
+  isPaused,
+  timeRemaining,
   onTimerUpdate
 }) => {
   const healthPercentage = Math.round((gameState.health / gameState.maxHealth) * 100);
   const targetDurationSeconds = gameState.survivalSettings.sessionDuration * 60;
 
-  // Get timer state from gameState
-  const gameStateWithDisplay = gameState as unknown as GameStateWithDisplay;
-  const { timeRemaining, isActive: isTimerActive } = gameStateWithDisplay.getTimerState();
+  // Derive round timer active state from props
+  // Round timer is active when there's a current note, game not completed, and not paused
+  const isTimerActive = currentNote && !gameState.isCompleted && !isPaused;
 
   // Calculate survival time remaining
   const survivalTimeRemaining = Math.max(0, targetDurationSeconds - gameState.elapsedTime);
@@ -41,7 +43,9 @@ const SurvivalModeDisplay: React.FC<SurvivalModeDisplayProps> = ({
 
   // Update parent with note timer state
   useEffect(() => {
-    onTimerUpdate?.(timeRemaining, isTimerActive);
+    if (timeRemaining !== undefined) {
+      onTimerUpdate?.(timeRemaining, isTimerActive);
+    }
   }, [timeRemaining, isTimerActive, onTimerUpdate]);
 
 
@@ -103,7 +107,7 @@ const SurvivalModeDisplay: React.FC<SurvivalModeDisplayProps> = ({
         <div className="timer-section">
           <TimerCircular
             timeLimit={responseTimeLimit}
-            timeRemaining={timeRemaining}
+            timeRemaining={timeRemaining ?? 0}
             isActive={isTimerActive}
           />
         </div>

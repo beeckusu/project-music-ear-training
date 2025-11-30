@@ -57,15 +57,16 @@ export class Timer {
         this.currentTime = elapsed;
       } else {
         this.currentTime = Math.max(0, this.currentTime - (this.interval / 1000));
-
-        if (this.currentTime === 0) {
-          this.stop();
-          this.callbacks.onTimeUp?.();
-          return;
-        }
       }
 
       this.callbacks.onTimeUpdate?.(this.currentTime);
+
+      // Check if countdown reached 0 AFTER updating UI
+      if (this.direction === TIMER_DIRECTION.DOWN && this.currentTime === 0) {
+        this.stop();
+        this.callbacks.onTimeUp?.();
+        return;
+      }
     }, this.interval);
   }
 

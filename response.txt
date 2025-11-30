@@ -1,0 +1,6 @@
+handleStartPractice
+    -This can be inlined to emit the start event, but then I want NoteIdentification to be subscribed to the start event with the UI logic
+
+the settings useEffect feels like it should be lifted into the Orchestrator, but maybe this might be too complex for now.
+
+What are we doing with the pause state useEffect at L214? It looks like 225-236 is written as event subs now above. Is there any use for this here?

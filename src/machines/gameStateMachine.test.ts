@@ -33,12 +33,12 @@ describe('Game State Machine', () => {
   describe('Session State Transitions', () => {
     it.each`
       description                                    | setup                                                          | event                        | expectedState
-      ${'IDLE to PLAYING on START_GAME'}            | ${[]}                                                          | ${GameAction.START_GAME}     | ${'playing.playing_note'}
+      ${'IDLE to PLAYING on START_GAME'}            | ${[]}                                                          | ${GameAction.START_GAME}     | ${'playing.waiting_input'}
       ${'PLAYING to PAUSED on PAUSE'}               | ${[GameAction.START_GAME]}                                     | ${GameAction.PAUSE}          | ${'paused'}
       ${'PAUSED to PLAYING on RESUME'}              | ${[GameAction.START_GAME, GameAction.PAUSE]}                   | ${GameAction.RESUME}         | ${'playing'}
       ${'PLAYING to COMPLETED on COMPLETE'}         | ${[GameAction.START_GAME]}                                     | ${GameAction.COMPLETE}       | ${'completed'}
       ${'COMPLETED to IDLE on RESET'}               | ${[GameAction.START_GAME, GameAction.COMPLETE]}                | ${GameAction.RESET}          | ${'idle'}
-      ${'COMPLETED to PLAYING on PLAY_AGAIN'}       | ${[GameAction.START_GAME, GameAction.COMPLETE]}                | ${GameAction.PLAY_AGAIN}     | ${'playing.playing_note'}
+      ${'COMPLETED to PLAYING on PLAY_AGAIN'}       | ${[GameAction.START_GAME, GameAction.COMPLETE]}                | ${GameAction.PLAY_AGAIN}     | ${'playing.waiting_input'}
     `('should transition from $description', ({ setup, event, expectedState }: { setup: any[]; event: any; expectedState: string }) => {
       // Setup: send all setup events
       setup.forEach((e: any) => actor.send({ type: e }));
@@ -58,13 +58,11 @@ describe('Game State Machine', () => {
 
     it.each`
       description                                                  | setup                                                                                      | event                        | expectedState
-      ${'PLAYING_NOTE to WAITING_INPUT on NOTE_PLAYED'}           | ${[]}                                                                                      | ${GameAction.NOTE_PLAYED}    | ${'playing.waiting_input'}
-      ${'WAITING_INPUT to PROCESSING_GUESS on MAKE_GUESS'}        | ${[GameAction.NOTE_PLAYED]}                                                                | ${{ type: GameAction.MAKE_GUESS, guessedNote: 'C' }}  | ${'playing.processing_guess'}
-      ${'PROCESSING_GUESS to TIMEOUT_INTERMISSION on CORRECT'}    | ${[GameAction.NOTE_PLAYED, { type: GameAction.MAKE_GUESS, guessedNote: 'C' }]}            | ${GameAction.CORRECT_GUESS}  | ${'playing.timeout_intermission'}
-      ${'PROCESSING_GUESS to TIMEOUT_INTERMISSION on INCORRECT'}  | ${[GameAction.NOTE_PLAYED, { type: GameAction.MAKE_GUESS, guessedNote: 'C' }]}            | ${GameAction.INCORRECT_GUESS} | ${'playing.timeout_intermission'}
-      ${'WAITING_INPUT to TIMEOUT_INTERMISSION on TIMEOUT'}       | ${[GameAction.NOTE_PLAYED]}                                                                | ${GameAction.TIMEOUT}        | ${'playing.timeout_intermission'}
-      ${'TIMEOUT_INTERMISSION to PLAYING_NOTE on ADVANCE_ROUND'}  | ${[GameAction.NOTE_PLAYED, GameAction.TIMEOUT]}                                            | ${GameAction.ADVANCE_ROUND}  | ${'playing.playing_note'}
-      ${'WAITING_INPUT to PLAYING_NOTE on REPLAY_NOTE'}           | ${[GameAction.NOTE_PLAYED]}                                                                | ${GameAction.REPLAY_NOTE}    | ${'playing.playing_note'}
+      ${'WAITING_INPUT to PROCESSING_GUESS on MAKE_GUESS'}        | ${[]}                                                                                      | ${{ type: GameAction.MAKE_GUESS, guessedNote: 'C' }}  | ${'playing.processing_guess'}
+      ${'PROCESSING_GUESS to TIMEOUT_INTERMISSION on CORRECT'}    | ${[{ type: GameAction.MAKE_GUESS, guessedNote: 'C' }]}                                    | ${GameAction.CORRECT_GUESS}  | ${'playing.timeout_intermission'}
+      ${'PROCESSING_GUESS to WAITING_INPUT on INCORRECT'}         | ${[{ type: GameAction.MAKE_GUESS, guessedNote: 'C' }]}                                    | ${GameAction.INCORRECT_GUESS} | ${'playing.waiting_input'}
+      ${'WAITING_INPUT to TIMEOUT_INTERMISSION on TIMEOUT'}       | ${[]}                                                                                      | ${GameAction.TIMEOUT}        | ${'playing.timeout_intermission'}
+      ${'TIMEOUT_INTERMISSION to WAITING_INPUT on ADVANCE_ROUND'} | ${[GameAction.TIMEOUT]}                                                                    | ${GameAction.ADVANCE_ROUND}  | ${'playing.waiting_input'}
     `('should transition: $description', ({ setup, event, expectedState }: { setup: any[]; event: any; expectedState: string }) => {
       // Setup: send all setup events
       setup.forEach((e: any) => {
@@ -93,13 +91,11 @@ describe('Game State Machine', () => {
     });
 
     it('should store user guess in context on MAKE_GUESS', () => {
-      actor.send({ type: GameAction.NOTE_PLAYED });
       actor.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
       expect(actor.getSnapshot().context.userGuess).toBe('C');
     });
 
     it('should increment stats on CORRECT_GUESS', () => {
-      actor.send({ type: GameAction.NOTE_PLAYED });
       actor.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
 
       // Assert before
@@ -119,7 +115,6 @@ describe('Game State Machine', () => {
     });
 
     it('should increment total attempts but not correct count on INCORRECT_GUESS', () => {
-      actor.send({ type: GameAction.NOTE_PLAYED });
       actor.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
 
       // Assert before
@@ -133,11 +128,10 @@ describe('Game State Machine', () => {
       expect(context.correctCount).toBe(0);
       expect(context.totalAttempts).toBe(1);
       expect(context.currentStreak).toBe(0);
-      expect(context.feedbackMessage).toBe('Incorrect!');
+      expect(context.feedbackMessage).toBe('Incorrect! Try again or click Next Note');
     });
 
     it('should increment longestStreak on CORRECT_GUESS', () => {
-      actor.send({ type: GameAction.NOTE_PLAYED });
       actor.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
       actor.send({ type: GameAction.CORRECT_GUESS });
 
@@ -146,7 +140,6 @@ describe('Game State Machine', () => {
     });
 
     it('should reset current streak on TIMEOUT', () => {
-      actor.send({ type: GameAction.NOTE_PLAYED });
       actor.send({ type: GameAction.TIMEOUT });
 
       const context = actor.getSnapshot().context;
@@ -157,14 +150,12 @@ describe('Game State Machine', () => {
 
     it('should update longestStreak when current streak exceeds it', () => {
       // First correct answer
-      actor.send({ type: GameAction.NOTE_PLAYED });
       actor.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
       actor.send({ type: GameAction.CORRECT_GUESS });
       expect(actor.getSnapshot().context.longestStreak).toBe(1);
 
       // Second correct answer
       actor.send({ type: GameAction.ADVANCE_ROUND });
-      actor.send({ type: GameAction.NOTE_PLAYED });
       actor.send({ type: GameAction.MAKE_GUESS, guessedNote: 'D' });
       actor.send({ type: GameAction.CORRECT_GUESS });
 
@@ -174,7 +165,6 @@ describe('Game State Machine', () => {
     });
 
     it('should clear round data on ADVANCE_ROUND', () => {
-      actor.send({ type: GameAction.NOTE_PLAYED });
       actor.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
       actor.send({ type: GameAction.CORRECT_GUESS });
 
@@ -193,7 +183,6 @@ describe('Game State Machine', () => {
 
     it('should reset context on START_GAME but preserve longestStreak across sessions', () => {
       // Build up a streak
-      actor.send({ type: GameAction.NOTE_PLAYED });
       actor.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
       actor.send({ type: GameAction.CORRECT_GUESS });
 
@@ -215,9 +204,8 @@ describe('Game State Machine', () => {
   describe('Pause/Resume Behavior', () => {
     it('should preserve round state when pausing and resuming', () => {
       actor.send({ type: GameAction.START_GAME });
-      actor.send({ type: GameAction.NOTE_PLAYED });
 
-      // Now in WAITING_INPUT
+      // Already in WAITING_INPUT after START_GAME
       expect(actor.getSnapshot().matches('playing.waiting_input')).toBe(true);
 
       actor.send({ type: GameAction.PAUSE });
@@ -231,7 +219,6 @@ describe('Game State Machine', () => {
 
     it('should preserve context when pausing and resuming', () => {
       actor.send({ type: GameAction.START_GAME });
-      actor.send({ type: GameAction.NOTE_PLAYED });
       actor.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
       actor.send({ type: GameAction.CORRECT_GUESS });
 
@@ -250,7 +237,6 @@ describe('Game State Machine', () => {
   describe('Play Again vs Reset', () => {
     it('should reset all stats on PLAY_AGAIN', () => {
       actor.send({ type: GameAction.START_GAME });
-      actor.send({ type: GameAction.NOTE_PLAYED });
       actor.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
       actor.send({ type: GameAction.CORRECT_GUESS });
       actor.send({ type: GameAction.COMPLETE });
@@ -269,7 +255,7 @@ describe('Game State Machine', () => {
       expect(context.totalAttempts).toBe(0);
       expect(context.currentStreak).toBe(0);
       expect(context.longestStreak).toBe(0);
-      expect(actor.getSnapshot().matches('playing.playing_note')).toBe(true);
+      expect(actor.getSnapshot().matches('playing.waiting_input')).toBe(true);
     });
   });
 });
