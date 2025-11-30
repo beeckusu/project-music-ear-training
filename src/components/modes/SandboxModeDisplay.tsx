@@ -13,22 +13,27 @@ const SandboxModeDisplay: React.FC<SandboxModeDisplayProps> = ({
   gameState,
   responseTimeLimit,
   currentNote,
+  isPaused,
+  timeRemaining,
+  sessionTimeRemaining,
   onTimerUpdate
 }) => {
-  // Get timer state from gameState
-  const gameStateWithDisplay = gameState as unknown as GameStateWithDisplay;
-  const { timeRemaining, isActive: isTimerActive } = gameStateWithDisplay.getTimerState();
+  // Derive round timer active state from props
+  // Round timer is active when there's a current note, game not completed, and not paused
+  const isTimerActive = currentNote && !gameState.isCompleted && !isPaused;
 
-  // Get session timer state - need to cast to access getSessionTimerState
-  const sandboxGameState = gameState as any;
-  const sessionTimerState = sandboxGameState.getSessionTimerState ? sandboxGameState.getSessionTimerState() : { timeRemaining: 0, isActive: false };
+  // Derive session timer active state from game state
+  // Session timer is active when game has started and not completed
+  const sessionTimerIsActive = gameState.startTime !== undefined && !gameState.isCompleted && !isPaused;
 
   // Calculate current stats
   const currentAccuracy = gameState.totalAttempts > 0 ? (gameState.correctAttempts / gameState.totalAttempts) * 100 : 0;
 
   // Update parent with timer state
   useEffect(() => {
-    onTimerUpdate?.(timeRemaining, isTimerActive);
+    if (timeRemaining !== undefined) {
+      onTimerUpdate?.(timeRemaining, isTimerActive);
+    }
   }, [timeRemaining, isTimerActive, onTimerUpdate]);
   return (
     <>
@@ -38,8 +43,8 @@ const SandboxModeDisplay: React.FC<SandboxModeDisplayProps> = ({
           {/* Session Timer */}
           <div className="session-timer">
             <TimerDigital
-              elapsedTime={sessionTimerState.timeRemaining}
-              isActive={sessionTimerState.isActive && !gameState.isCompleted}
+              elapsedTime={sessionTimeRemaining ?? 0}
+              isActive={sessionTimerIsActive}
             />
             <div className="session-progress">
               {gameState.isCompleted && (
@@ -82,7 +87,7 @@ const SandboxModeDisplay: React.FC<SandboxModeDisplayProps> = ({
         <div className="timer-section">
           <TimerCircular
             timeLimit={responseTimeLimit}
-            timeRemaining={timeRemaining}
+            timeRemaining={timeRemaining ?? 0}
             isActive={isTimerActive}
           />
         </div>

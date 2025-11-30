@@ -15,15 +15,19 @@ const RushModeDisplay: React.FC<RushModeDisplayProps> = ({
   rushSettings,
   responseTimeLimit,
   currentNote,
+  isPaused,
+  timeRemaining,
   onTimerUpdate
 }) => {
-  // Get timer state from gameState
-  const gameStateWithDisplay = gameState as unknown as GameStateWithDisplay;
-  const { timeRemaining, isActive: isTimerActive } = gameStateWithDisplay.getTimerState();
+  // Derive round timer active state from props
+  // Round timer is active when there's a current note, game not completed, and not paused
+  const isTimerActive = currentNote && !gameState.isCompleted && !isPaused;
 
-  // Update parent with note timer state
+  // Update parent with note timer state (optional callback)
   React.useEffect(() => {
-    onTimerUpdate?.(timeRemaining, isTimerActive);
+    if (timeRemaining !== undefined) {
+      onTimerUpdate?.(timeRemaining, isTimerActive);
+    }
   }, [timeRemaining, isTimerActive, onTimerUpdate]);
 
   return (
@@ -50,7 +54,7 @@ const RushModeDisplay: React.FC<RushModeDisplayProps> = ({
         <div className="timer-section">
           <TimerCircular
             timeLimit={responseTimeLimit}
-            timeRemaining={timeRemaining}
+            timeRemaining={timeRemaining ?? 0}
             isActive={isTimerActive}
           />
         </div>

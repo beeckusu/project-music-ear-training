@@ -25,6 +25,8 @@ export interface CommonDisplayProps {
   responseTimeLimit: number | null;
   currentNote: boolean;
   isPaused: boolean;
+  timeRemaining?: number; // Current time remaining on note timer
+  sessionTimeRemaining?: number; // Current time remaining on session timer (for modes that have one)
   // Callbacks for timer events
   onTimeUp?: () => void;
   onTimerUpdate?: (timeRemaining: number, isActive: boolean) => void;

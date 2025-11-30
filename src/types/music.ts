@@ -65,8 +65,8 @@ export interface TimingSettings {
 
 export const DEFAULT_NOTE_FILTER: NoteFilter = {
   octaveRange: { min: 4, max: 4 },
-  keyType: 'all',
-  allowedNotes: undefined
+  keyType: 'white',
+  allowedNotes: ['C'] // Only C for easier debugging
 };
 
 export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {

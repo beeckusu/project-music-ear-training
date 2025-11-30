@@ -22,6 +22,9 @@ describe('Rush Mode Integration Tests', () => {
   /**
    * Helper function to make a correct guess and handle completion
    * This mimics what the real orchestrator does when handling guesses
+   *
+   * NOTE: This pattern is also available in ../test/gameTestUtils.ts as:
+   * makeCorrectGuess(orch, note) for reuse across test files
    */
   const makeCorrectGuess = (note: string = 'C4') => {
     orch.send({ type: GameAction.MAKE_GUESS, guessedNote: note });
@@ -40,6 +43,9 @@ describe('Rush Mode Integration Tests', () => {
 
   /**
    * Helper function to make an incorrect guess
+   *
+   * NOTE: This pattern is also available in ../test/gameTestUtils.ts as:
+   * makeIncorrectGuess(orch, note) for reuse across test files
    */
   const makeIncorrectGuess = (note: string = 'C4') => {
     orch.send({ type: GameAction.MAKE_GUESS, guessedNote: note });

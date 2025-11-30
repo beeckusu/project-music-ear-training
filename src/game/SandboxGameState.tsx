@@ -96,18 +96,9 @@ export class SandboxGameStateImpl implements SandboxGameState, IGameMode {
     }
     feedback += ` | Streak: ${newCurrentStreak}`;
 
-    // Check if any targets are met
-    let gameCompleted = false;
-    if (this.targetNotes && newCorrectAttempts >= this.targetNotes) {
-      gameCompleted = true;
-      this.completeSession();
-    } else if (this.targetAccuracy && currentAccuracy >= this.targetAccuracy) {
-      gameCompleted = true;
-      this.completeSession();
-    } else if (this.targetStreak && newCurrentStreak >= this.targetStreak) {
-      gameCompleted = true;
-      this.completeSession();
-    }
+    // Sandbox mode continues until session timer expires
+    // Targets are goals to achieve, not completion conditions
+    const gameCompleted = false;
 
     return {
       gameCompleted,
@@ -151,6 +142,29 @@ export class SandboxGameStateImpl implements SandboxGameState, IGameMode {
 
   setCompletionCallback = (callback: () => void): void => {
     this.completionCallback = callback;
+  };
+
+  setSessionTimerCallback = (callback: (time: number) => void): void => {
+    const sessionDurationSeconds = this.sandboxSettings.sessionDuration * 60;
+
+    // Update the session timer's onTimeUpdate callback
+    // Must preserve BOTH the internal elapsedTime update AND the UI callback
+    this.sessionTimer.updateCallbacks({
+      onTimeUpdate: (time) => {
+        this.elapsedTime = sessionDurationSeconds - time;
+        callback(time); // Pass remaining time to UI
+      },
+      onTimeUp: () => {
+        // When session time runs out, complete the game
+        if (!this.isCompleted) {
+          this.completeSession();
+          // Trigger the completion callback
+          if (this.completionCallback) {
+            this.completionCallback();
+          }
+        }
+      }
+    });
   };
 
   private completeSession = (): void => {

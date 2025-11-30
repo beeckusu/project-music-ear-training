@@ -9,28 +9,101 @@ import type { OrchestratorEvents } from './OrchestratorEvents';
 import type { IGameMode } from './IGameMode';
 import type { NoteFilter } from '../types/filters';
 import type { GuessAttempt } from '../types/game';
-import { LOGS_STATE_ENABLED, LOGS_EVENTS_ENABLED, LOGS_TIMERS_ENABLED } from '../config/logging';
+import { LOGS_STATE_ENABLED, LOGS_EVENTS_ENABLED, LOGS_TIMERS_ENABLED, LOGS_USER_ACTIONS_ENABLED } from '../config/logging';
+import { createGameState } from './GameStateFactory';
 
 /**
  * GameOrchestrator
  *
  * Coordinates game flow by bridging the UI component, state machine, and game logic.
  *
- * Responsibilities:
- * - Manages XState actor lifecycle
- * - Subscribes to state machine events
- * - Dispatches actions to state machine
- * - Coordinates audio playback
- * - Manages ALL timing logic (eliminates setTimeout race conditions)
- * - Updates game state classes (Rush/Survival/Sandbox)
- * - Emits events for UI components to react to
+ * ## Core Responsibilities
  *
- * Architecture:
+ * ### State Machine Management
+ * - Creates and manages XState actor lifecycle (start/stop/subscribe)
+ * - Dispatches actions to state machine (START_GAME, PAUSE, RESUME, etc.)
+ * - Provides state queries (isPlaying, isPaused, isWaitingInput, etc.)
+ * - Subscribes to state changes and emits events for UI
+ *
+ * ### Timer Management (Eliminates setTimeout Race Conditions)
+ * - Centralized timer management via scheduleTimer() method
+ * - Auto-cleanup of timers on state transitions (pause, reset, complete)
+ * - Named timer keys prevent conflicts ('advance-after-correct', 'audio-resume', etc.)
+ * - All timing logic lives here, NOT in components
+ *
+ * ### Game Flow Coordination
+ * - Generates notes using game mode + note filter
+ * - Validates guesses and updates game state
+ * - Handles timeouts (treats as incorrect guess)
+ * - Manages auto-advance logic after correct guesses
+ * - Handles game completion and session creation
+ *
+ * ### Audio Playback
+ * - Coordinates with AudioEngine for note playback
+ * - Handles note replay requests
+ * - Manages note duration settings
+ *
+ * ### Event Emission
+ * Emits events for UI components to react to:
+ * - roundStart: New round started with note
+ * - guessAttempt: User made a guess
+ * - guessResult: Guess was processed (correct/incorrect)
+ * - sessionComplete: Game finished with stats
+ * - feedbackUpdate: Feedback message changed
+ * - stateChange: State machine state changed
+ *
+ * ## Architecture
+ * ```
  * Component (UI) → Orchestrator (Logic) → State Machine (State)
  *                       ↓
- *               Game State Classes
+ *               Game State Classes (Rush/Survival/Sandbox)
  *                       ↓
  *               Audio Engine
+ * ```
+ *
+ * ## Usage Pattern
+ * ```typescript
+ * // 1. Create and start orchestrator
+ * const orchestrator = new GameOrchestrator();
+ * orchestrator.start();
+ *
+ * // 2. Subscribe to events
+ * orchestrator.on('roundStart', ({ note, feedback }) => {
+ *   setCurrentNote(note);
+ *   setFeedback(feedback);
+ * });
+ *
+ * // 3. Configure game mode and settings
+ * orchestrator.setGameMode(gameState);
+ * orchestrator.setNoteFilter(noteFilter);
+ * orchestrator.setNoteDuration(noteDuration);
+ *
+ * // 4. Start a round
+ * await orchestrator.startNewRound();
+ *
+ * // 5. Handle user actions
+ * orchestrator.submitGuess(guessedNote);
+ * orchestrator.pause();
+ * orchestrator.resume();
+ * ```
+ *
+ * ## Key Design Principles
+ *
+ * ### Single Source of Truth
+ * - State machine context holds all game state
+ * - Components derive state from orchestrator queries
+ * - No duplicate state between component and orchestrator
+ *
+ * ### No Stale Closures
+ * - All timers managed centrally with clearAllTimers()
+ * - Event emission pattern prevents closure issues
+ * - No refs needed for callbacks in components
+ *
+ * ### Clean Separation
+ * - Component = UI rendering + event handlers
+ * - Orchestrator = Game logic + coordination
+ * - State Machine = State transitions + validation
+ * - Game Classes = Mode-specific rules
  */
 export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
   private actor: Actor<typeof gameStateMachine>;
@@ -41,16 +114,21 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
   // Game mode and settings
   private gameMode: IGameMode | null = null;
   private noteFilter: NoteFilter | null = null;
+  private selectedMode: string | null = null;
+  private modeSettings: any = null;
+
+  // Pause state tracking
+  private wasInIntermissionWhenPaused: boolean = false;
+
+  // Round configuration (set once, used for all rounds)
+  private responseTimeLimit: number | null = null;
+  private autoAdvanceSpeed: number = 2;
+  private onTimerUpdate: ((time: number) => void) | null = null;
+  private onSessionTimerUpdate: ((time: number) => void) | null = null;
 
   // Timer management - eliminates setTimeout race conditions
   private activeTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
   private timerCallbacks: Map<string, () => void> = new Map();
-
-  // Game flow callbacks - allows component to react to orchestrator decisions
-  private onTimeoutCallback?: (correctNote: NoteWithOctave) => void;
-  private onAutoAdvanceCallback?: () => void;
-  private onFeedbackUpdateCallback?: (message: string) => void;
-  private onRoundStartCallback?: (note: NoteWithOctave) => void;
 
   constructor() {
     super();
@@ -98,10 +176,34 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
   // ========================================
   // Timer Management
   // ========================================
+  //
+  // All game timers are managed here to prevent race conditions.
+  // Key benefits:
+  // - Automatic cleanup on state transitions (pause, reset, complete)
+  // - Named keys prevent conflicts and enable selective clearing
+  // - Centralized logging for debugging timing issues
+  //
+  // Timer Keys:
+  // - 'advance-after-timeout': Auto-advance after timeout intermission
+  // - 'advance-after-correct': Auto-advance after correct guess
+  // - 'feedback-update': Delayed feedback message updates
+  // - 'audio-resume': Resume game timer after audio replay
+  // - 'play-again-delay': Short delay before starting new game
 
   /**
    * Schedule a timer with automatic cleanup
    * Replaces direct setTimeout usage to prevent race conditions
+   *
+   * @param key - Unique identifier for this timer (enables selective clearing)
+   * @param callback - Function to call when timer fires
+   * @param delay - Delay in milliseconds
+   *
+   * @example
+   * // Schedule auto-advance after correct guess
+   * this.scheduleTimer('advance-after-correct', () => {
+   *   this.send({ type: GameAction.ADVANCE_ROUND });
+   *   this.emit('advanceToNextRound', undefined);
+   * }, 1000);
    */
   private scheduleTimer(key: string, callback: () => void, delay: number): void {
     // Clear any existing timer with this key
@@ -387,17 +489,9 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
     // Reset current note
     this.currentNote = null;
 
-    // Emit reset event for UI to react
+    // Emit events for UI to react
+    this.emit('gameReset', undefined);
     this.emit('feedbackUpdate', 'Click "Start Practice" to begin your ear training session');
-  }
-
-  /**
-   * Play again (from COMPLETED to PLAYING)
-   */
-  playAgain(): void {
-    // Clear all timers before playing again
-    this.clearAllTimers();
-    this.send({ type: GameAction.PLAY_AGAIN });
   }
 
   // ========================================
@@ -494,44 +588,31 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
   }
 
   // ========================================
-  // Game Flow Callback Configuration
-  // ========================================
-
-  /**
-   * Configure callback for when round times out
-   */
-  setOnTimeoutCallback(callback: (correctNote: NoteWithOctave) => void): void {
-    this.onTimeoutCallback = callback;
-  }
-
-  /**
-   * Configure callback for auto-advance after correct guess
-   */
-  setOnAutoAdvanceCallback(callback: () => void): void {
-    this.onAutoAdvanceCallback = callback;
-  }
-
-  /**
-   * Configure callback for feedback updates
-   */
-  setOnFeedbackUpdateCallback(callback: (message: string) => void): void {
-    this.onFeedbackUpdateCallback = callback;
-  }
-
-  /**
-   * Configure callback for when new round starts
-   */
-  setOnRoundStartCallback(callback: (note: NoteWithOctave) => void): void {
-    this.onRoundStartCallback = callback;
-  }
-
-  // ========================================
   // Round Flow Management
   // ========================================
+  //
+  // These methods coordinate the flow of a round:
+  // 1. startNewRound(): Generate note, play audio, emit events
+  // 2. submitGuess(): Validate, update stats, emit events, handle auto-advance
+  // 3. handleTimeout(): Treat as incorrect guess, schedule auto-advance
+  //
+  // All methods emit events for the UI to react to.
+  // All methods update the state machine appropriately.
+  // All methods use centralized timer management.
 
   /**
    * Handle timeout event
    * Treats timeout as an incorrect guess with no user input
+   *
+   * Flow:
+   * 1. Create attempt record with null guess
+   * 2. Send TIMEOUT event to state machine
+   * 3. Handle as incorrect guess through game mode
+   * 4. Emit guessResult event with timeout-specific feedback
+   * 5. If game complete, emit sessionComplete and transition to COMPLETED
+   * 6. Otherwise, schedule auto-advance to next round
+   *
+   * @param autoAdvanceSpeed - Delay in seconds before advancing to next round (max 2s)
    */
   handleTimeout(autoAdvanceSpeed: number): void {
     if (!this.gameMode || !this.currentNote) return;
@@ -581,8 +662,8 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
       // Advance to next round in state machine
       this.send({ type: GameAction.ADVANCE_ROUND });
 
-      // Notify component to start new round
-      this.onAutoAdvanceCallback?.();
+      // Emit event to tell component to start new round
+      this.emit('advanceToNextRound', undefined);
     }, advanceTime * 1000);
   }
 
@@ -602,10 +683,10 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
       this.send({ type: GameAction.ADVANCE_ROUND });
 
       if (LOGS_TIMERS_ENABLED) {
-        console.log('[Orchestrator] Calling onAutoAdvanceCallback');
+        console.log('[Orchestrator] Emitting advanceToNextRound event');
       }
-      // Notify component to start new round
-      this.onAutoAdvanceCallback?.();
+      // Emit event to tell component to start new round
+      this.emit('advanceToNextRound', undefined);
     }, advanceTimeMs);
   }
 
@@ -620,6 +701,18 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
    */
   setGameMode(mode: IGameMode): void {
     this.gameMode = mode;
+
+    // Set completion callback for modes that need it (e.g., Sandbox mode timer expiration)
+    if (mode.setCompletionCallback) {
+      mode.setCompletionCallback(() => {
+        this.handleExternalCompletion();
+      });
+    }
+
+    // Set session timer callback for modes that have session timers (e.g., Sandbox)
+    if ('setSessionTimerCallback' in mode && this.onSessionTimerUpdate) {
+      (mode as any).setSessionTimerCallback(this.onSessionTimerUpdate);
+    }
   }
 
   /**
@@ -629,6 +722,56 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
    */
   refreshGameMode(mode: IGameMode): void {
     this.gameMode = mode;
+
+    // Set completion callback for modes that need it
+    if (mode.setCompletionCallback) {
+      mode.setCompletionCallback(() => {
+        this.handleExternalCompletion();
+      });
+    }
+
+    // Set session timer callback for modes that have session timers (e.g., Sandbox)
+    if ('setSessionTimerCallback' in mode && this.onSessionTimerUpdate) {
+      (mode as any).setSessionTimerCallback(this.onSessionTimerUpdate);
+    }
+  }
+
+  /**
+   * Handle external completion (e.g., timer expiration in Sandbox mode)
+   * This is called by the game mode when it completes externally
+   */
+  private handleExternalCompletion(): void {
+    if (this.isCompleted()) {
+      return; // Already completed
+    }
+
+    // Get final stats from game mode
+    const gameMode = this.gameMode as any;
+    let stats;
+
+    if (gameMode.getFinalStats && gameMode.getFinalStats()) {
+      stats = gameMode.getFinalStats();
+    } else {
+      // Fallback stats calculation
+      const correctAttempts = gameMode.correctAttempts || 0;
+      stats = {
+        completionTime: gameMode.elapsedTime || 0,
+        accuracy: gameMode.totalAttempts > 0 ? (correctAttempts / gameMode.totalAttempts) * 100 : 0,
+        averageTimePerNote: correctAttempts > 0 ? (gameMode.elapsedTime || 0) / correctAttempts : 0,
+        longestStreak: gameMode.longestStreak || 0,
+        totalAttempts: gameMode.totalAttempts || 0,
+        correctAttempts: correctAttempts
+      };
+    }
+
+    // Transition state machine to COMPLETED
+    this.complete();
+
+    // Emit sessionComplete event
+    this.emit('sessionComplete', {
+      session: this.createGameSession(stats),
+      stats: stats,
+    });
   }
 
   /**
@@ -664,6 +807,20 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
   /**
    * Start a new round
    * Generates a note, updates game state, plays audio, and emits events
+   *
+   * Flow:
+   * 1. Generate new note using game mode + note filter
+   * 2. Update game state (onStartNewRound)
+   * 3. Emit roundStart event with note and feedback
+   * 4. Transition to PLAYING.WAITING_INPUT if in IDLE
+   * 5. Play the note audio
+   *
+   * The component should:
+   * - Listen to roundStart event to update UI (setCurrentNote, setFeedback)
+   * - Initialize round timer with handleTimeUp callback
+   * - Enable piano keyboard for input
+   *
+   * @returns Promise that resolves when audio playback starts
    */
   async startNewRound(): Promise<void> {
     if (!this.gameMode) {
@@ -702,9 +859,29 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
   /**
    * Submit a guess for the current note
    * Validates the guess, updates game state, and emits events
+   *
+   * Flow:
+   * 1. Validate the guess against current note
+   * 2. Create attempt record
+   * 3. Emit guessAttempt event
+   * 4. Send MAKE_GUESS event to state machine
+   * 5. Handle guess result through game mode
+   * 6. Send CORRECT_GUESS or INCORRECT_GUESS to state machine
+   * 7. Emit guessResult event with feedback
+   * 8. If correct and should advance: schedule auto-advance
+   * 9. If game complete: transition to COMPLETED and emit sessionComplete
+   *
+   * The component should:
+   * - Listen to guessResult event to update feedback and highlights
+   * - Not manage any game state or logic
+   *
    * @param guessedNote - The note the user guessed
    */
   submitGuess(guessedNote: NoteWithOctave): void {
+    if (LOGS_USER_ACTIONS_ENABLED) {
+      console.log('[Orchestrator] User submitted guess:', guessedNote.note);
+    }
+
     if (!this.gameMode) {
       console.warn('[Orchestrator] Cannot submit guess: game mode not set');
       return;
@@ -790,6 +967,225 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
       settings: this.gameMode.getSessionSettings(),
       results: this.gameMode.getSessionResults(stats),
     };
+  }
+
+  // ========================================
+  // Public Action Methods (Called by Component)
+  // ========================================
+
+  /**
+   * User action: Skip current note (count as incorrect/timeout)
+   */
+  skipNote(): void {
+    // Guards: Can only skip if game is active and has a current note
+    if (this.isCompleted() || !this.getCurrentNote() || !this.gameMode) {
+      return;
+    }
+
+    // Game logic: Reset timer and count as timeout/skip
+    this.gameMode.resetTimer();
+    this.handleTimeout(0);
+  }
+
+  /**
+   * User action: Replay the current note
+   */
+  async replayNoteAction(): Promise<void> {
+    // Guards: Can only replay if there's a current note
+    if (!this.getCurrentNote()) {
+      return;
+    }
+
+    // Game logic: Replay the note
+    await this.replayNote();
+
+    // Schedule timer resume after audio plays
+    this.scheduleAudioResume(() => {
+      if (!this.isCompleted()) {
+        this.gameMode?.resumeTimer();
+      }
+    }, 500);
+  }
+
+  /**
+   * User action: Play again after game completion
+   */
+  playAgain(): void {
+    if (LOGS_USER_ACTIONS_ENABLED) {
+      console.log('[Orchestrator] User clicked Play Again');
+    }
+
+    // Clear all timers first
+    this.clearAllTimers();
+
+    // Game logic: Create fresh game state and reconfigure
+    if (this.selectedMode && this.modeSettings) {
+      const newGameState = createGameState(this.selectedMode, this.modeSettings);
+      this.refreshGameMode(newGameState);
+      if (this.noteFilter) {
+        this.setNoteFilter(this.noteFilter);
+      }
+    }
+
+    // Reset current note
+    this.currentNote = null;
+
+    // Send PLAY_AGAIN action to state machine (COMPLETED → PLAYING)
+    this.send({ type: GameAction.PLAY_AGAIN });
+
+    // Emit events for UI to react
+    this.emit('gameReset', undefined);
+    this.emit('feedbackUpdate', 'Click "Start Practice" to begin your ear training session');
+
+    // Schedule new round after short delay
+    this.schedulePlayAgainDelay(() => {
+      this.emit('advanceToNextRound', undefined);
+    }, 100);
+  }
+
+  /**
+   * User action: Reset the game
+   */
+  userReset(): void {
+    this.resetGame();
+  }
+
+  /**
+   * Apply new settings from settings context
+   */
+  applySettings(
+    selectedMode: string,
+    modeSettings: any,
+    noteFilter: any,
+    noteDuration: any,
+    responseTimeLimit: number | null,
+    autoAdvanceSpeed: number,
+    onTimerUpdate: (time: number) => void,
+    onSessionTimerUpdate?: (time: number) => void
+  ): void {
+    // Store settings for future use (Play Again, etc.)
+    this.selectedMode = selectedMode;
+    this.modeSettings = modeSettings;
+    this.responseTimeLimit = responseTimeLimit;
+    this.autoAdvanceSpeed = autoAdvanceSpeed;
+    this.onTimerUpdate = onTimerUpdate;
+    this.onSessionTimerUpdate = onSessionTimerUpdate || null;
+
+    // Apply new settings
+    try {
+      this.setNoteDuration(noteDuration);
+
+      const newGameState = createGameState(selectedMode, modeSettings);
+      this.setGameMode(newGameState);
+      this.setNoteFilter(noteFilter);
+    } catch (error) {
+      console.error('Failed to apply settings:', error);
+    }
+  }
+
+  /**
+   * User action: Pause the game
+   */
+  pauseGame(): void {
+    if (LOGS_USER_ACTIONS_ENABLED) {
+      console.log('[Orchestrator] User pressed pause');
+    }
+
+    const inIntermission = this.isInIntermission();
+
+    // Store whether we're in intermission for resume logic
+    this.wasInIntermissionWhenPaused = inIntermission;
+
+    if (inIntermission) {
+      // During intermission, clear timers only
+      this.clearAllTimers();
+    } else {
+      // Normal pause: clear timers AND transition state machine
+      this.pause();
+      this.gameMode?.pauseTimer();
+    }
+
+    // Emit pause event for UI
+    this.emit('gamePaused', undefined);
+  }
+
+  /**
+   * User action: Resume the game
+   */
+  resumeGame(): void {
+    if (LOGS_USER_ACTIONS_ENABLED) {
+      console.log('[Orchestrator] User pressed unpause');
+    }
+
+    const wasPaused = this.isPaused();
+    const inIntermission = this.isInIntermission();
+    const wasInIntermission = this.wasInIntermissionWhenPaused;
+
+    // Only resume state machine if it was actually paused
+    if (wasPaused) {
+      this.resume();
+    }
+
+    // If resuming during intermission, reschedule auto-advance
+    if (wasInIntermission && inIntermission) {
+      this.scheduleAdvanceAfterTimeout(() => {
+        this.send({ type: GameAction.ADVANCE_ROUND });
+        this.emit('advanceToNextRound', undefined);
+      }, 100);
+    }
+    // Otherwise, resume the round timer
+    else {
+      this.gameMode?.resumeTimer();
+    }
+
+    // Reset the flag
+    this.wasInIntermissionWhenPaused = false;
+
+    // Emit resume event for UI
+    this.emit('gameResumed', undefined);
+  }
+
+  /**
+   * User action: Start practice
+   * Checks if first-time setup is needed, otherwise starts a round
+   * @param hasCompletedSetup - Whether the user has completed first-time setup
+   * @param isPaused - Whether the game is currently paused
+   */
+  startPractice(hasCompletedSetup: boolean, isPaused: boolean = false): void {
+    if (!hasCompletedSetup) {
+      // Emit event for component to handle UI flow (first-time setup)
+      this.emit('requestFirstTimeSetup', undefined);
+    } else {
+      // Start a new round
+      this.beginNewRound(isPaused);
+    }
+  }
+
+  /**
+   * User action: Begin a new round
+   * Initializes timer and starts a new round. This is the entry point for starting rounds.
+   * Uses settings configured via applySettings().
+   * @param isPaused - Whether the game is currently paused (only for user-initiated rounds)
+   */
+  beginNewRound(isPaused: boolean = false): void {
+    // Guards
+    if (this.isCompleted() || !this.gameMode || !this.onTimerUpdate) {
+      return;
+    }
+
+    // Create timeout handler that orchestrator owns
+    const handleTimeUp = () => {
+      if (this.isCompleted()) return;
+
+      // Orchestrator handles all timeout logic
+      this.handleTimeout(this.autoAdvanceSpeed);
+    };
+
+    // Initialize timer for the new round
+    this.gameMode.initializeTimer(this.responseTimeLimit, isPaused, handleTimeUp, this.onTimerUpdate);
+
+    // Start the round
+    this.startNewRound();
   }
 
 }

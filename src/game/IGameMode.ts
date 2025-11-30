@@ -41,6 +41,13 @@ export interface IGameMode extends GameStateWithDisplay {
    * @returns Mode identifier string (e.g., 'rush', 'survival', 'sandbox')
    */
   getMode(): string;
+
+  /**
+   * Optional: Set a completion callback for modes that need external completion triggers
+   * (e.g., Sandbox mode completing via timer expiration)
+   * @param callback - Function to call when game completes
+   */
+  setCompletionCallback?(callback: () => void): void;
 }
 
 /**

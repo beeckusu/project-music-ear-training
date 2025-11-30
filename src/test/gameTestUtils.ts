@@ -178,7 +178,23 @@ export function setupTestEnvironment(
   const eventSpies = createEventSpies();
   subscribeToEvents(orchestrator, eventSpies);
 
+  // CRITICAL: Subscribe to state machine to activate stateChange event emissions
+  // This mimics what the UI does in NoteIdentification.tsx
+  orchestrator.subscribe(() => {
+    // Empty callback - we only need this to trigger stateChange events
+  });
+
   return { orchestrator, eventSpies };
+}
+
+/**
+ * Gets the current note from the most recent roundStart event.
+ * This is the correct way to get the note in tests - DO NOT use orchestrator.getCurrentNote()
+ * which reads from stale state machine context.
+ */
+export function getNoteFromRoundStart(spies: ReturnType<typeof createEventSpies>) {
+  const roundStartData = getLastEventPayload<any>(spies.roundStart);
+  return roundStartData?.note || null;
 }
 
 /**

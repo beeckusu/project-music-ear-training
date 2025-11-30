@@ -42,6 +42,7 @@ const SandboxModeSettings: React.FC = () => {
   };
 
   const durationOptions = [
+    { value: 5 / 60, label: '5 seconds' },
     { value: 1, label: '1 minute' },
     { value: 3, label: '3 minutes' },
     { value: 5, label: '5 minutes' },
@@ -59,7 +60,7 @@ const SandboxModeSettings: React.FC = () => {
         <label>Session Duration</label>
         <select
           value={sandboxSettings.sessionDuration}
-          onChange={(e) => handleDurationChange(parseInt(e.target.value, 10))}
+          onChange={(e) => handleDurationChange(parseFloat(e.target.value))}
         >
           {durationOptions.map(option => (
             <option key={option.value} value={option.value}>
