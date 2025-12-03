@@ -377,6 +377,79 @@ describe('Sandbox Mode Integration Tests', () => {
         correctCount: 1
       });
     });
+
+    it('timer configuration is passed correctly for countdown mode', async () => {
+      // GIVEN: Sandbox mode with 5 second duration
+      orch = new GameOrchestrator();
+      orch.start();
+
+      // Use applySettings to properly configure timer (like production code does)
+      orch.applySettings(
+        'sandbox',
+        { sandbox: { sessionDuration: 5 / 60 } }, // 5 seconds in minutes
+        {},
+        0.5,
+        null,
+        0,
+        () => {}, // onTimerUpdate
+        () => {}  // onSessionTimerUpdate
+      );
+
+      // WHEN: Start game
+      orch.startGame();
+
+      // Wait for timer to update (timers update every 100ms)
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      // THEN: Timer should be counting down from 5 seconds
+      const initialTime = orch.getStats().elapsedTime;
+      expect(initialTime).toBeGreaterThan(0);
+      expect(initialTime).toBeLessThanOrEqual(5);
+
+      // Wait 500ms
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // THEN: Timer should have decreased
+      const timeAfter500ms = orch.getStats().elapsedTime;
+      expect(timeAfter500ms).toBeLessThan(initialTime);
+    });
+
+    it('game completes automatically when timer reaches 0', async () => {
+      // GIVEN: Sandbox mode with very short duration (0.5 seconds)
+      orch = new GameOrchestrator();
+      orch.start();
+
+      // Listen for sessionComplete event
+      let sessionCompleteEmitted = false;
+      orch.on('sessionComplete', () => {
+        sessionCompleteEmitted = true;
+      });
+
+      // Use applySettings to properly configure timer
+      orch.applySettings(
+        'sandbox',
+        { sandbox: { sessionDuration: 0.5 / 60 } }, // 0.5 seconds in minutes
+        {},
+        0.5,
+        null,
+        0,
+        () => {},
+        () => {}
+      );
+
+      // WHEN: Start game and wait for timer to expire
+      orch.startGame();
+      expect(orch.getSnapshot().matches('playing')).toBe(true);
+
+      // Wait for timer to reach 0 (add extra buffer for timer updates)
+      await new Promise(resolve => setTimeout(resolve, 800)); // Wait 800ms
+
+      // THEN: State machine should be in COMPLETED state
+      expect(orch.getSnapshot().matches('completed')).toBe(true);
+
+      // AND: sessionComplete event should have been emitted
+      expect(sessionCompleteEmitted).toBe(true);
+    });
   });
 
   describe('Pause/Resume', () => {

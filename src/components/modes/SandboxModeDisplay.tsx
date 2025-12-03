@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import type { SandboxGameState } from '../../types/game';
-import type { CommonDisplayProps, GameStateWithDisplay } from '../../game/GameStateFactory';
+import type { CommonDisplayProps } from '../../game/GameStateFactory';
 import TimerCircular from '../TimerCircular';
 import TimerDigital from '../TimerDigital';
 import './SandboxModeDisplay.css';

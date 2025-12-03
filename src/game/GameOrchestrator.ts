@@ -4,7 +4,7 @@ import type { GameMachineContext, GameEvent } from '../machines/types';
 import { SessionState, RoundState, GameAction } from '../machines/types';
 import { audioEngine } from '../utils/audioEngine';
 import type { NoteWithOctave, NoteDuration } from '../types/music';
-import { EventEmitter, type Unsubscribe } from '../utils/EventEmitter';
+import { EventEmitter } from '../utils/EventEmitter';
 import type { OrchestratorEvents } from './OrchestratorEvents';
 import type { IGameMode } from './IGameMode';
 import type { NoteFilter } from '../types/filters';
@@ -133,8 +133,19 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
   constructor() {
     super();
 
-    // Create the state machine actor
-    this.actor = createActor(gameStateMachine);
+    // Create the state machine actor with default timers
+    this.actor = createActor(gameStateMachine, {
+      input: {
+        timerConfig: {
+          initialTime: 0,
+          direction: 'up',
+        },
+        roundTimerConfig: {
+          initialTime: 3, // Default 3 seconds for round timer
+          direction: 'down',
+        },
+      },
+    });
   }
 
   /**
@@ -153,6 +164,25 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
    */
   start(): void {
     this.actor.start();
+
+    // Subscribe to context updates to sync elapsedTime to game mode and call timer callbacks
+    const subscription = this.actor.subscribe((snapshot) => {
+      if (this.gameMode && snapshot.context.elapsedTime !== undefined) {
+        this.gameMode.elapsedTime = snapshot.context.elapsedTime;
+
+        // Call session timer callback if configured (for Sandbox mode countdown timer)
+        if (this.onSessionTimerUpdate) {
+          this.onSessionTimerUpdate(snapshot.context.elapsedTime);
+        }
+      }
+
+      // Handle automatic session completion (e.g., Sandbox timer expiration)
+      if (snapshot.matches(SessionState.COMPLETED) && this.gameMode && !this.gameMode.isCompleted) {
+        console.log('[GameOrchestrator] Detected COMPLETED state - calling handleExternalCompletion');
+        this.handleExternalCompletion();
+      }
+    });
+    this.subscriptions.push(() => subscription.unsubscribe());
   }
 
   /**
@@ -329,35 +359,55 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
    * Check if game is in IDLE session state
    */
   isIdle(): boolean {
-    return this.actor.getSnapshot().matches(SessionState.IDLE);
+    const snapshot = this.actor.getSnapshot();
+    if (!snapshot || typeof snapshot.matches !== 'function') {
+      return true; // Default to idle if not started
+    }
+    return snapshot.matches(SessionState.IDLE);
   }
 
   /**
    * Check if game is in PLAYING session state
    */
   isPlaying(): boolean {
-    return this.actor.getSnapshot().matches(SessionState.PLAYING);
+    const snapshot = this.actor.getSnapshot();
+    if (!snapshot || typeof snapshot.matches !== 'function') {
+      return false;
+    }
+    return snapshot.matches(SessionState.PLAYING);
   }
 
   /**
    * Check if game is in PAUSED session state
    */
   isPaused(): boolean {
-    return this.actor.getSnapshot().matches(SessionState.PAUSED);
+    const snapshot = this.actor.getSnapshot();
+    if (!snapshot || typeof snapshot.matches !== 'function') {
+      return false;
+    }
+    return snapshot.matches(SessionState.PAUSED);
   }
 
   /**
    * Check if game is in COMPLETED session state
    */
   isCompleted(): boolean {
-    return this.actor.getSnapshot().matches(SessionState.COMPLETED);
+    const snapshot = this.actor.getSnapshot();
+    if (!snapshot || typeof snapshot.matches !== 'function') {
+      return false;
+    }
+    return snapshot.matches(SessionState.COMPLETED);
   }
 
   /**
    * Check if waiting for user input (WAITING_INPUT round state)
    */
   isWaitingInput(): boolean {
-    return this.actor.getSnapshot().matches({
+    const snapshot = this.actor.getSnapshot();
+    if (!snapshot || typeof snapshot.matches !== 'function') {
+      return false;
+    }
+    return snapshot.matches({
       [SessionState.PLAYING]: RoundState.WAITING_INPUT
     });
   }
@@ -366,7 +416,11 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
    * Check if processing a guess (PROCESSING_GUESS round state)
    */
   isProcessingGuess(): boolean {
-    return this.actor.getSnapshot().matches({
+    const snapshot = this.actor.getSnapshot();
+    if (!snapshot || typeof snapshot.matches !== 'function') {
+      return false;
+    }
+    return snapshot.matches({
       [SessionState.PLAYING]: RoundState.PROCESSING_GUESS
     });
   }
@@ -375,7 +429,11 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
    * Check if in intermission between rounds (TIMEOUT_INTERMISSION round state)
    */
   isInIntermission(): boolean {
-    return this.actor.getSnapshot().matches({
+    const snapshot = this.actor.getSnapshot();
+    if (!snapshot || typeof snapshot.matches !== 'function') {
+      return false;
+    }
+    return snapshot.matches({
       [SessionState.PLAYING]: RoundState.TIMEOUT_INTERMISSION
     });
   }
@@ -708,11 +766,6 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
         this.handleExternalCompletion();
       });
     }
-
-    // Set session timer callback for modes that have session timers (e.g., Sandbox)
-    if ('setSessionTimerCallback' in mode && this.onSessionTimerUpdate) {
-      (mode as any).setSessionTimerCallback(this.onSessionTimerUpdate);
-    }
   }
 
   /**
@@ -729,11 +782,6 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
         this.handleExternalCompletion();
       });
     }
-
-    // Set session timer callback for modes that have session timers (e.g., Sandbox)
-    if ('setSessionTimerCallback' in mode && this.onSessionTimerUpdate) {
-      (mode as any).setSessionTimerCallback(this.onSessionTimerUpdate);
-    }
   }
 
   /**
@@ -741,12 +789,20 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
    * This is called by the game mode when it completes externally
    */
   private handleExternalCompletion(): void {
-    if (this.isCompleted()) {
+    console.log('[GameOrchestrator] handleExternalCompletion called - gameMode.isCompleted:', this.gameMode?.isCompleted);
+    if (this.gameMode?.isCompleted) {
+      console.log('[GameOrchestrator] Game mode already completed, returning');
       return; // Already completed
+    }
+
+    // Mark game mode as completed FIRST to prevent infinite loop
+    if (this.gameMode) {
+      (this.gameMode as any).isCompleted = true;
     }
 
     // Get final stats from game mode
     const gameMode = this.gameMode as any;
+    console.log('[GameOrchestrator] Getting final stats from game mode');
     let stats;
 
     if (gameMode.getFinalStats && gameMode.getFinalStats()) {
@@ -764,8 +820,11 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
       };
     }
 
-    // Transition state machine to COMPLETED
-    this.complete();
+    // Don't call complete() if we're already in COMPLETED state (arrived via TIMEOUT)
+    // This prevents triggering the subscription again
+    if (!this.isCompleted()) {
+      this.complete();
+    }
 
     // Emit sessionComplete event
     this.emit('sessionComplete', {
@@ -982,8 +1041,7 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
       return;
     }
 
-    // Game logic: Reset timer and count as timeout/skip
-    this.gameMode.resetTimer();
+    // Game logic: Count as timeout/skip
     this.handleTimeout(0);
   }
 
@@ -998,13 +1056,6 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
 
     // Game logic: Replay the note
     await this.replayNote();
-
-    // Schedule timer resume after audio plays
-    this.scheduleAudioResume(() => {
-      if (!this.isCompleted()) {
-        this.gameMode?.resumeTimer();
-      }
-    }, 500);
   }
 
   /**
@@ -1071,6 +1122,67 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
     this.onTimerUpdate = onTimerUpdate;
     this.onSessionTimerUpdate = onSessionTimerUpdate || null;
 
+    // Determine timer configuration based on game mode
+    // Sandbox mode counts down from sessionDuration, others count up from 0
+    const isSandboxMode = selectedMode === 'sandbox';
+    // Convert sessionDuration from minutes to seconds
+    const sessionDuration = isSandboxMode ? (modeSettings.sandbox?.sessionDuration ?? 1) * 60 : 0;
+
+    const timerConfig = {
+      initialTime: isSandboxMode ? sessionDuration : 0,
+      direction: isSandboxMode ? 'down' as const : 'up' as const,
+    };
+
+    const roundTimerConfig = {
+      initialTime: responseTimeLimit ?? 3,
+      direction: 'down' as const,
+    };
+
+    // Recreate actor with new timer configuration
+    const wasStarted = this.actor.getSnapshot().status === 'active';
+    const currentSnapshot = this.actor.getSnapshot();
+
+    // Stop and clean up old actor
+    if (wasStarted) {
+      this.actor.stop();
+    }
+
+    // Clean up old subscriptions (they're tied to the old actor)
+    this.subscriptions.forEach(unsubscribe => unsubscribe());
+    this.subscriptions = [];
+
+    // Create new actor with correct timer configuration
+    this.actor = createActor(gameStateMachine, {
+      input: {
+        timerConfig,
+        roundTimerConfig,
+      },
+    });
+
+    // Restart actor and re-establish subscriptions if it was running
+    if (wasStarted) {
+      this.actor.start();
+
+      // Re-subscribe to context updates
+      const subscription = this.actor.subscribe((snapshot) => {
+        if (this.gameMode && snapshot.context.elapsedTime !== undefined) {
+          this.gameMode.elapsedTime = snapshot.context.elapsedTime;
+
+          // Call session timer callback if configured (for Sandbox mode countdown timer)
+          if (this.onSessionTimerUpdate) {
+            this.onSessionTimerUpdate(snapshot.context.elapsedTime);
+          }
+        }
+
+        // Handle automatic session completion (e.g., Sandbox timer expiration)
+        if (snapshot.matches(SessionState.COMPLETED) && this.gameMode && !this.gameMode.isCompleted) {
+          console.log('[GameOrchestrator] Detected COMPLETED state (applySettings) - calling handleExternalCompletion');
+          this.handleExternalCompletion();
+        }
+      });
+      this.subscriptions.push(() => subscription.unsubscribe());
+    }
+
     // Apply new settings
     try {
       this.setNoteDuration(noteDuration);
@@ -1100,9 +1212,8 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
       // During intermission, clear timers only
       this.clearAllTimers();
     } else {
-      // Normal pause: clear timers AND transition state machine
+      // Normal pause: transition state machine
       this.pause();
-      this.gameMode?.pauseTimer();
     }
 
     // Emit pause event for UI
@@ -1132,10 +1243,6 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
         this.send({ type: GameAction.ADVANCE_ROUND });
         this.emit('advanceToNextRound', undefined);
       }, 100);
-    }
-    // Otherwise, resume the round timer
-    else {
-      this.gameMode?.resumeTimer();
     }
 
     // Reset the flag
@@ -1173,16 +1280,7 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
       return;
     }
 
-    // Create timeout handler that orchestrator owns
-    const handleTimeUp = () => {
-      if (this.isCompleted()) return;
-
-      // Orchestrator handles all timeout logic
-      this.handleTimeout(this.autoAdvanceSpeed);
-    };
-
-    // Initialize timer for the new round
-    this.gameMode.initializeTimer(this.responseTimeLimit, isPaused, handleTimeUp, this.onTimerUpdate);
+    // Timer is now managed by state machine, no need to initialize it here
 
     // Start the round
     this.startNewRound();

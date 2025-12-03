@@ -18,7 +18,6 @@ import { useSettings } from '../hooks/useSettings';
 import { useGameHistory } from '../hooks/useGameHistory';
 import { SETTINGS_TABS } from '../constants';
 import { GameOrchestrator } from '../game/GameOrchestrator';
-import { GameAction } from '../machines/types';
 import PianoKeyboard from './PianoKeyboard';
 import GameEndModal from './GameEndModal';
 import { LOGS_STATE_ENABLED, LOGS_EVENTS_ENABLED, LOGS_USER_ACTIONS_ENABLED } from '../config/logging';
@@ -61,7 +60,6 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
   const [, forceUpdate] = useState({});
 
   // Derive state from orchestrator
-  const isInTimeout = orchestratorRef.current?.isInIntermission() || false;
   const isGameCompleted = orchestratorRef.current?.isCompleted() || false;
   const isWaitingInput = orchestratorRef.current?.isWaitingInput() || false;
 

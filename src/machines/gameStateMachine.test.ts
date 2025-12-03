@@ -258,4 +258,55 @@ describe('Game State Machine', () => {
       expect(actor.getSnapshot().matches('playing.waiting_input')).toBe(true);
     });
   });
+
+  describe('Timer Behavior', () => {
+    it('should transition to COMPLETED when TIMEOUT event is received', () => {
+      // GIVEN: Game is in PLAYING state
+      actor.send({ type: GameAction.START_GAME });
+      expect(actor.getSnapshot().matches('playing.waiting_input')).toBe(true);
+
+      // WHEN: TIMEOUT event is received (from gameTimer service)
+      actor.send({ type: 'TIMEOUT' });
+
+      // THEN: State machine transitions to COMPLETED
+      expect(actor.getSnapshot().matches('completed')).toBe(true);
+    });
+
+    it('should transition to COMPLETED from any round state on TIMEOUT', () => {
+      // GIVEN: Game is in PROCESSING_GUESS state
+      actor.send({ type: GameAction.START_GAME });
+      actor.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
+      expect(actor.getSnapshot().matches('playing.processing_guess')).toBe(true);
+
+      // WHEN: TIMEOUT event is received
+      actor.send({ type: 'TIMEOUT' });
+
+      // THEN: State machine transitions to COMPLETED
+      expect(actor.getSnapshot().matches('completed')).toBe(true);
+    });
+
+    it('should use countdown timer configuration for Sandbox mode', () => {
+      // GIVEN: Actor created with countdown timer config
+      const sandboxActor = createActor(gameStateMachine, {
+        input: {
+          timerConfig: {
+            initialTime: 5,
+            direction: 'down'
+          },
+          roundTimerConfig: {
+            initialTime: 3,
+            direction: 'down'
+          }
+        }
+      });
+      sandboxActor.start();
+
+      // THEN: Timer config is stored in context
+      const context = sandboxActor.getSnapshot().context;
+      expect(context.timerConfig.initialTime).toBe(5);
+      expect(context.timerConfig.direction).toBe('down');
+
+      sandboxActor.stop();
+    });
+  });
 });

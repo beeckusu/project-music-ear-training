@@ -125,7 +125,7 @@ export const DEFAULT_MODE_SETTINGS: ModeSettings = {
     healthDamage: 25 // 25 health per wrong note
   },
   sandbox: {
-    sessionDuration: 1, // 1 minute
+    sessionDuration: 5 / 60, // 5 seconds (converted to minutes)
     targetAccuracy: 80,
     targetStreak: 10,
     targetNotes: 20

@@ -1,6 +1,7 @@
-import { createMachine, assign } from 'xstate';
-import type { GameMachineContext, GameEvent } from './types';
+import { createMachine, assign, sendTo } from 'xstate';
+import type { GameMachineContext, GameEvent, GameMachineInput } from './types';
 import { SessionState, RoundState, GameAction } from './types';
+import { timerService, roundTimerService } from './services/timerService';
 
 /**
  * Initial context for the game state machine
@@ -14,8 +15,17 @@ const initialContext: GameMachineContext = {
   longestStreak: 0,
   elapsedTime: 0,
   sessionDuration: 0,
+  roundTimeRemaining: 0,
   attemptHistory: [],
   feedbackMessage: '',
+  timerConfig: {
+    initialTime: 0,
+    direction: 'up',
+  },
+  roundTimerConfig: {
+    initialTime: 3,
+    direction: 'down',
+  },
 };
 
 /**
@@ -31,10 +41,54 @@ const initialContext: GameMachineContext = {
 export const gameStateMachine = createMachine({
   id: 'game',
   initial: SessionState.IDLE,
-  context: initialContext,
+  context: ({ input }) => ({
+    ...initialContext,
+    timerConfig: input?.timerConfig ?? initialContext.timerConfig,
+    roundTimerConfig: input?.roundTimerConfig ?? initialContext.roundTimerConfig,
+  }),
   types: {} as {
     context: GameMachineContext;
     events: GameEvent;
+    input: GameMachineInput;
+  },
+  invoke: [
+    {
+      id: 'gameTimer',
+      src: timerService,
+      input: ({ context }) => ({
+        initialTime: context.timerConfig.initialTime,
+        direction: context.timerConfig.direction,
+        interval: 100,
+      }),
+    },
+    {
+      id: 'roundTimer',
+      src: roundTimerService,
+      input: ({ context }) => ({
+        initialTime: context.roundTimerConfig.initialTime,
+        direction: context.roundTimerConfig.direction,
+        interval: 100,
+      }),
+    },
+  ],
+  on: {
+    TIMER_UPDATE: {
+      actions: assign({
+        elapsedTime: ({ event }) => event.elapsed,
+      }),
+    },
+    ROUND_TIMER_UPDATE: {
+      actions: assign({
+        roundTimeRemaining: ({ event }) => event.elapsed,
+      }),
+    },
+    // Handle session timeout from gameTimer (for Sandbox mode countdown)
+    TIMEOUT: {
+      target: `.${SessionState.COMPLETED}`,
+      actions: () => {
+        console.log('[gameStateMachine] TIMEOUT event received - transitioning to COMPLETED');
+      },
+    },
   },
   states: {
     /**
@@ -44,19 +98,24 @@ export const gameStateMachine = createMachine({
       on: {
         [GameAction.START_GAME]: {
           target: SessionState.PLAYING,
-          actions: assign({
-            // Reset all context when starting a new game
-            currentNote: null,
-            userGuess: null,
-            correctCount: 0,
-            totalAttempts: 0,
-            currentStreak: 0,
-            elapsedTime: 0,
-            sessionDuration: 0,
-            attemptHistory: [],
-            feedbackMessage: '',
-            // longestStreak is preserved across games
-          }),
+          actions: [
+            sendTo('gameTimer', { type: 'RESET' }),
+            sendTo('roundTimer', { type: 'RESET' }),
+            assign({
+              // Reset all context when starting a new game
+              currentNote: null,
+              userGuess: null,
+              correctCount: 0,
+              totalAttempts: 0,
+              currentStreak: 0,
+              elapsedTime: 0,
+              sessionDuration: 0,
+              roundTimeRemaining: 0,
+              attemptHistory: [],
+              feedbackMessage: '',
+              // longestStreak is preserved across games
+            }),
+          ],
         },
       },
     },
@@ -66,6 +125,11 @@ export const gameStateMachine = createMachine({
      * Contains round substates that handle individual note cycles
      */
     [SessionState.PLAYING]: {
+      entry: sendTo('gameTimer', { type: 'RESUME' }),
+      exit: [
+        sendTo('gameTimer', { type: 'PAUSE' }),
+        sendTo('roundTimer', { type: 'PAUSE' }),
+      ],
       initial: RoundState.WAITING_INPUT,
       on: {
         [GameAction.PAUSE]: {
@@ -82,6 +146,10 @@ export const gameStateMachine = createMachine({
          * Note plays as a side effect when entering this state
          */
         [RoundState.WAITING_INPUT]: {
+          entry: [
+            sendTo('roundTimer', { type: 'RESET' }),
+            sendTo('roundTimer', { type: 'RESUME' }),
+          ],
           on: {
             [GameAction.MAKE_GUESS]: {
               target: RoundState.PROCESSING_GUESS,
@@ -90,6 +158,15 @@ export const gameStateMachine = createMachine({
               }),
             },
             [GameAction.TIMEOUT]: {
+              target: RoundState.TIMEOUT_INTERMISSION,
+              actions: assign({
+                totalAttempts: ({ context }) => context.totalAttempts + 1,
+                currentStreak: 0,
+                feedbackMessage: 'Time\'s up!',
+              }),
+            },
+            // Handle round timer timeout (from roundTimer service)
+            ROUND_TIMEOUT: {
               target: RoundState.TIMEOUT_INTERMISSION,
               actions: assign({
                 totalAttempts: ({ context }) => context.totalAttempts + 1,
@@ -131,6 +208,7 @@ export const gameStateMachine = createMachine({
          * TIMEOUT_INTERMISSION: Brief pause between rounds
          */
         [RoundState.TIMEOUT_INTERMISSION]: {
+          entry: sendTo('roundTimer', { type: 'PAUSE' }),
           on: {
             [GameAction.ADVANCE_ROUND]: {
               target: RoundState.WAITING_INPUT,
@@ -173,25 +251,31 @@ export const gameStateMachine = createMachine({
      * COMPLETED: Game finished
      */
     [SessionState.COMPLETED]: {
+      entry: sendTo('gameTimer', { type: 'STOP' }),
       on: {
         [GameAction.RESET]: {
           target: SessionState.IDLE,
         },
         [GameAction.PLAY_AGAIN]: {
           target: SessionState.PLAYING,
-          actions: assign({
-            // Reset all context for a fresh game
-            currentNote: null,
-            userGuess: null,
-            correctCount: 0,
-            totalAttempts: 0,
-            currentStreak: 0,
-            longestStreak: 0,
-            elapsedTime: 0,
-            sessionDuration: 0,
-            attemptHistory: [],
-            feedbackMessage: '',
-          }),
+          actions: [
+            sendTo('gameTimer', { type: 'RESET' }),
+            sendTo('roundTimer', { type: 'RESET' }),
+            assign({
+              // Reset all context for a fresh game
+              currentNote: null,
+              userGuess: null,
+              correctCount: 0,
+              totalAttempts: 0,
+              currentStreak: 0,
+              longestStreak: 0,
+              elapsedTime: 0,
+              sessionDuration: 0,
+              roundTimeRemaining: 0,
+              attemptHistory: [],
+              feedbackMessage: '',
+            }),
+          ],
         },
       },
     },
