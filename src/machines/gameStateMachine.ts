@@ -146,10 +146,7 @@ export const gameStateMachine = createMachine({
          * Note plays as a side effect when entering this state
          */
         [RoundState.WAITING_INPUT]: {
-          entry: [
-            sendTo('roundTimer', { type: 'RESET' }),
-            sendTo('roundTimer', { type: 'RESUME' }),
-          ],
+          entry: sendTo('roundTimer', { type: 'RESUME' }),
           on: {
             [GameAction.MAKE_GUESS]: {
               target: RoundState.PROCESSING_GUESS,
@@ -212,11 +209,14 @@ export const gameStateMachine = createMachine({
           on: {
             [GameAction.ADVANCE_ROUND]: {
               target: RoundState.WAITING_INPUT,
-              actions: assign({
-                currentNote: null,
-                userGuess: null,
-                feedbackMessage: '',
-              }),
+              actions: [
+                sendTo('roundTimer', { type: 'RESET' }),
+                assign({
+                  currentNote: null,
+                  userGuess: null,
+                  feedbackMessage: '',
+                }),
+              ],
             },
           },
         },

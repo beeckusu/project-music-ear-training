@@ -165,6 +165,9 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
   start(): void {
     this.actor.start();
 
+    // Track previous state to detect transitions
+    let previousState: string | null = null;
+
     // Subscribe to context updates to sync elapsedTime to game mode and call timer callbacks
     const subscription = this.actor.subscribe((snapshot) => {
       if (this.gameMode && snapshot.context.elapsedTime !== undefined) {
@@ -175,6 +178,23 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
           this.onSessionTimerUpdate(snapshot.context.elapsedTime);
         }
       }
+
+      // Call round timer callback with roundTimeRemaining
+      if (this.onTimerUpdate && snapshot.context.roundTimeRemaining !== undefined) {
+        this.onTimerUpdate(snapshot.context.roundTimeRemaining);
+      }
+
+      // Handle round timeout (when round timer reaches 0)
+      // Detect transition from WAITING_INPUT to TIMEOUT_INTERMISSION with no user guess
+      const currentState = JSON.stringify(snapshot.value);
+      const isInIntermission = snapshot.matches({ [SessionState.PLAYING]: RoundState.TIMEOUT_INTERMISSION });
+      const wasInWaitingInput = previousState?.includes(RoundState.WAITING_INPUT);
+
+      if (isInIntermission && wasInWaitingInput && !snapshot.context.userGuess && this.currentNote) {
+        this.handleTimeout(this.autoAdvanceSpeed);
+      }
+
+      previousState = currentState;
 
       // Handle automatic session completion (e.g., Sandbox timer expiration)
       if (snapshot.matches(SessionState.COMPLETED) && this.gameMode && !this.gameMode.isCompleted) {
@@ -687,8 +707,11 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
     // Emit guess attempt event
     this.emit('guessAttempt', attempt);
 
-    // Send timeout event to state machine
-    this.send({ type: GameAction.TIMEOUT });
+    // Send timeout event to state machine ONLY if not already in intermission
+    // (Round timer timeout already transitions to TIMEOUT_INTERMISSION)
+    if (!this.isInIntermission()) {
+      this.send({ type: GameAction.TIMEOUT });
+    }
 
     // Handle as incorrect guess through game state
     const result = this.gameMode.handleIncorrectGuess();
@@ -1163,6 +1186,9 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
     if (wasStarted) {
       this.actor.start();
 
+      // Track previous state to detect transitions
+      let previousState: string | null = null;
+
       // Re-subscribe to context updates
       const subscription = this.actor.subscribe((snapshot) => {
         if (this.gameMode && snapshot.context.elapsedTime !== undefined) {
@@ -1173,6 +1199,23 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
             this.onSessionTimerUpdate(snapshot.context.elapsedTime);
           }
         }
+
+        // Call round timer callback with roundTimeRemaining
+        if (this.onTimerUpdate && snapshot.context.roundTimeRemaining !== undefined) {
+          this.onTimerUpdate(snapshot.context.roundTimeRemaining);
+        }
+
+        // Handle round timeout (when round timer reaches 0)
+        // Detect transition from WAITING_INPUT to TIMEOUT_INTERMISSION with no user guess
+        const currentState = JSON.stringify(snapshot.value);
+        const isInIntermission = snapshot.matches({ [SessionState.PLAYING]: RoundState.TIMEOUT_INTERMISSION });
+        const wasInWaitingInput = previousState?.includes(RoundState.WAITING_INPUT);
+
+        if (isInIntermission && wasInWaitingInput && !snapshot.context.userGuess && this.currentNote) {
+          this.handleTimeout(this.autoAdvanceSpeed);
+        }
+
+        previousState = currentState;
 
         // Handle automatic session completion (e.g., Sandbox timer expiration)
         if (snapshot.matches(SessionState.COMPLETED) && this.gameMode && !this.gameMode.isCompleted) {
