@@ -36,7 +36,7 @@ interface ModeSelectorProps {
 }
 
 const ModeSelector: React.FC<ModeSelectorProps> = ({ onRestartGame }) => {
-  const { settings, updateModeSettings, isFirstTimeSetup, completeModeSetup } = useSettings();
+  const { settings, updateModeSettings, isFirstTimeSetup, hasCompletedModeSetup, completeModeSetup } = useSettings();
   const selectedMode = settings.modes.selectedMode;
 
   const handleModeSelect = (mode: ModeType) => {
@@ -45,6 +45,11 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ onRestartGame }) => {
 
   const handleRestartGame = () => {
     handleModeSelect(selectedMode);
+    // If this is the first time selecting a mode (not in first-time setup flow),
+    // mark mode setup as complete so the game can start
+    if (!hasCompletedModeSetup) {
+      completeModeSetup();
+    }
     onRestartGame?.();
   }
 
