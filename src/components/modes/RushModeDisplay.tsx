@@ -1,6 +1,6 @@
 import React from 'react';
 import type { RushGameState, RushModeSettings } from '../../types/game';
-import type { CommonDisplayProps, GameStateWithDisplay } from '../../game/GameStateFactory';
+import type { CommonDisplayProps } from '../../game/GameStateFactory';
 import TimerDigital from '../TimerDigital';
 import TimerCircular from '../TimerCircular';
 import './RushModeDisplay.css';

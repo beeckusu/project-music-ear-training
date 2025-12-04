@@ -74,6 +74,22 @@ export const GameAction = {
 export type GameAction = typeof GameAction[keyof typeof GameAction];
 
 /**
+ * Game Machine Input
+ *
+ * Configuration provided when creating the state machine actor.
+ */
+export interface GameMachineInput {
+  timerConfig: {
+    initialTime: number;
+    direction: 'up' | 'down';
+  } | null;
+  roundTimerConfig: {
+    initialTime: number;
+    direction: 'up' | 'down';
+  } | null;
+}
+
+/**
  * Game Machine Context
  *
  * The data stored in the state machine.
@@ -96,12 +112,23 @@ export interface GameMachineContext {
   // Timing (elapsed time only, timers live outside as services)
   elapsedTime: number;
   sessionDuration: number;
+  roundTimeRemaining: number;
 
   // Guess history
   attemptHistory: GuessAttempt[];
 
   // Feedback state
   feedbackMessage: string;
+
+  // Timer configuration (passed to invoked timer services)
+  timerConfig: {
+    initialTime: number;
+    direction: 'up' | 'down';
+  };
+  roundTimerConfig: {
+    initialTime: number;
+    direction: 'up' | 'down';
+  };
 }
 
 /**
@@ -127,4 +154,7 @@ export type GameEvent =
   | { type: typeof GameAction.OPEN_SETTINGS }
   | { type: typeof GameAction.CLOSE_SETTINGS }
   | { type: typeof GameAction.CHANGE_MODE; mode: string }
-  | { type: typeof GameAction.CHECK_TARGETS };
+  | { type: typeof GameAction.CHECK_TARGETS }
+  | { type: 'TIMER_UPDATE'; elapsed: number }
+  | { type: 'ROUND_TIMER_UPDATE'; elapsed: number }
+  | { type: 'ROUND_TIMEOUT' };

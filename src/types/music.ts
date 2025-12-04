@@ -70,7 +70,7 @@ export const DEFAULT_NOTE_FILTER: NoteFilter = {
 };
 
 export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
-  volume: 75,
+  volume: 0,
   instrument: InstrumentType.SYNTH
 };
 

@@ -15,7 +15,6 @@ import type { NoteFilter } from '../types/filters';
 import { AudioEngine } from '../utils/audioEngine';
 import { GAME_MODES } from '../constants';
 import SurvivalModeDisplay from '../components/modes/SurvivalModeDisplay';
-import { Timer } from '../utils/Timer';
 import '../components/strategies/SurvivalGameEndModal.css';
 
 export class SurvivalGameStateImpl implements SurvivalGameState, IGameMode {
@@ -35,32 +34,12 @@ export class SurvivalGameStateImpl implements SurvivalGameState, IGameMode {
   private healthDrainInterval?: ReturnType<typeof setInterval>;
   private isVictory: boolean = false;
 
-  // Timer management
-  private survivalTimer: Timer;
-  private noteTimer: Timer | null = null;
-
   constructor(survivalSettings: SurvivalModeSettings) {
     this.survivalSettings = survivalSettings;
     this.health = this.maxHealth;
     this.healthDrainRate = survivalSettings.healthDrainRate;
     this.healthRecovery = survivalSettings.healthRecovery;
     this.healthDamage = survivalSettings.healthDamage;
-
-    // Initialize survival timer (count-down from session duration)
-    const sessionDuration = survivalSettings.sessionDuration * 60; // minutes to seconds
-    this.survivalTimer = new Timer({ initialTime: sessionDuration, direction: 'down' }, {
-      onTimeUpdate: (time) => {
-        this.elapsedTime = sessionDuration - time;
-      },
-      onTimeUp: () => {
-        // When survival time runs out, complete the game
-        if (!this.isCompleted) {
-          this.isCompleted = true;
-          this.isVictory = true;
-          this.stopHealthDrain();
-        }
-      }
-    });
   }
 
   modeDisplay = (props: CommonDisplayProps) => (
@@ -85,9 +64,6 @@ export class SurvivalGameStateImpl implements SurvivalGameState, IGameMode {
     // Recover health
     this.health = Math.min(this.maxHealth, this.health + this.healthRecovery);
 
-    // Pause note timer on correct guess (will be resumed/reset by game logic)
-    this.noteTimer?.pause();
-
     // Check if survived full duration
     const targetDurationMs = this.survivalSettings.sessionDuration * 60 * 1000;
     const hasWon = this.elapsedTime >= targetDurationMs / 1000;
@@ -96,9 +72,6 @@ export class SurvivalGameStateImpl implements SurvivalGameState, IGameMode {
       this.isCompleted = true;
       this.isVictory = true;
       this.stopHealthDrain();
-
-      // Stop the survival timer when game completes
-      this.survivalTimer.stop();
 
       const finalStats: GameStats = {
         completionTime: this.elapsedTime,
@@ -139,9 +112,6 @@ export class SurvivalGameStateImpl implements SurvivalGameState, IGameMode {
       this.isVictory = false;
       this.stopHealthDrain();
 
-      // Stop the survival timer when game completes
-      this.survivalTimer.stop();
-
       const finalStats: GameStats = {
         completionTime: this.elapsedTime,
         accuracy: this.totalAttempts > 0 ? (this.correctCount / this.totalAttempts) * 100 : 0,
@@ -179,11 +149,10 @@ export class SurvivalGameStateImpl implements SurvivalGameState, IGameMode {
   };
 
   onStartNewRound = (): void => {
-    // Start health drain timer and survival timer on first round
+    // Start health drain timer on first round
     if (!this.startTime && !this.isCompleted) {
       this.startTime = new Date();
       this.startHealthDrain();
-      this.survivalTimer.start();
     }
   };
 
@@ -209,9 +178,6 @@ export class SurvivalGameStateImpl implements SurvivalGameState, IGameMode {
         this.isCompleted = true;
         this.isVictory = false;
         this.stopHealthDrain();
-
-        // Stop the survival timer when game completes
-        this.survivalTimer.stop();
       }
     }, 1000);
   };
@@ -250,36 +216,6 @@ export class SurvivalGameStateImpl implements SurvivalGameState, IGameMode {
       finalHealth: this.health,
       survived: this.isVictory
     };
-  };
-
-  // Timer management methods
-  initializeTimer = (responseTimeLimit: number | null, isPaused: boolean, onTimeUp: () => void, onTimeUpdate?: (timeRemaining: number) => void): void => {
-    if (responseTimeLimit) {
-      this.noteTimer = new Timer(
-        { initialTime: responseTimeLimit, direction: 'down' },
-        { onTimeUp, onTimeUpdate }
-      );
-
-      if (!isPaused) {
-        this.noteTimer.start();
-      }
-    }
-  };
-
-  getTimerState = (): { timeRemaining: number; isActive: boolean } => {
-    return this.noteTimer?.getState() || { timeRemaining: 0, isActive: false };
-  };
-
-  pauseTimer = (): void => {
-    this.noteTimer?.pause();
-  };
-
-  resumeTimer = (): void => {
-    this.noteTimer?.resume();
-  };
-
-  resetTimer = (): void => {
-    this.noteTimer?.reset();
   };
 
   // End Screen Strategy Methods

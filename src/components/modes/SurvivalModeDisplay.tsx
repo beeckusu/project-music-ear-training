@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import type { SurvivalGameState } from '../../types/game';
-import type { CommonDisplayProps, GameStateWithDisplay } from '../../game/GameStateFactory';
+import type { CommonDisplayProps } from '../../game/GameStateFactory';
 import TimerCircular from '../TimerCircular';
 import TimerDigital from '../TimerDigital';
 import './SurvivalModeDisplay.css';

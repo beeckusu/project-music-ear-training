@@ -15,7 +15,6 @@ import type { NoteFilter } from '../types/filters';
 import { AudioEngine } from '../utils/audioEngine';
 import { GAME_MODES } from '../constants';
 import RushModeDisplay from '../components/modes/RushModeDisplay';
-import { Timer } from '../utils/Timer';
 import '../components/strategies/RushGameEndModal.css';
 
 export class RushGameStateImpl implements RushGameState, IGameMode {
@@ -29,19 +28,8 @@ export class RushGameStateImpl implements RushGameState, IGameMode {
   completionTime?: number;
   rushSettings: RushModeSettings;
 
-  // Timer management
-  private rushTimer: Timer;
-  private noteTimer: Timer | null = null;
-
   constructor(rushSettings: RushModeSettings) {
     this.rushSettings = rushSettings;
-
-    // Initialize rush timer (count-up)
-    this.rushTimer = new Timer({ initialTime: 0, direction: 'up' }, {
-      onTimeUpdate: (time) => {
-        this.elapsedTime = time;
-      }
-    });
   }
 
   modeDisplay = (props: CommonDisplayProps) => (
@@ -64,15 +52,9 @@ export class RushGameStateImpl implements RushGameState, IGameMode {
     this.longestStreak = newLongestStreak;
     this.totalAttempts = newTotalAttempts;
 
-    // Pause note timer on correct guess (will be resumed/reset by game logic)
-    this.noteTimer?.pause();
-
     if (newCorrectCount >= this.rushSettings.targetNotes) {
       this.isCompleted = true;
       this.completionTime = this.elapsedTime;
-
-      // Stop the rush timer when game completes
-      this.rushTimer.stop();
 
       const finalStats: GameStats = {
         completionTime: this.elapsedTime,
@@ -123,10 +105,9 @@ export class RushGameStateImpl implements RushGameState, IGameMode {
   };
 
   onStartNewRound = (): void => {
-    // For Rush mode, start the count-up timer on first round
+    // For Rush mode, track start time
     if (!this.startTime && !this.isCompleted) {
       this.startTime = new Date();
-      this.rushTimer.start();
     }
   };
 
@@ -153,50 +134,20 @@ export class RushGameStateImpl implements RushGameState, IGameMode {
     };
   };
 
-  // Timer management methods
-  initializeTimer = (responseTimeLimit: number | null, isPaused: boolean, onTimeUp: () => void, onTimeUpdate?: (timeRemaining: number) => void): void => {
-    if (responseTimeLimit) {
-      this.noteTimer = new Timer(
-        { initialTime: responseTimeLimit, direction: 'down' },
-        { onTimeUp, onTimeUpdate }
-      );
-
-      if (!isPaused) {
-        this.noteTimer.start();
-      }
-    }
-  };
-
-  getTimerState = (): { timeRemaining: number; isActive: boolean } => {
-    return this.noteTimer?.getState() || { timeRemaining: 0, isActive: false };
-  };
-
-  pauseTimer = (): void => {
-    this.noteTimer?.pause();
-  };
-
-  resumeTimer = (): void => {
-    this.noteTimer?.resume();
-  };
-
-  resetTimer = (): void => {
-    this.noteTimer?.reset();
-  };
-
   // End Screen Strategy Methods
-  getCelebrationEmoji = (_sessionResults: Record<string, any>): string => {
+  getCelebrationEmoji = (sessionResults: Record<string, any>): string => {
     return '🎉';
   };
 
-  getHeaderTitle = (_sessionResults: Record<string, any>): string => {
+  getHeaderTitle = (sessionResults: Record<string, any>): string => {
     return 'Congratulations!';
   };
 
-  getModeCompletionText = (_sessionResults: Record<string, any>): string => {
+  getModeCompletionText = (sessionResults: Record<string, any>): string => {
     return 'Rush Mode Complete';
   };
 
-  getPerformanceRating = (gameStats: GameStats, _sessionResults: Record<string, any>): string => {
+  getPerformanceRating = (gameStats: GameStats, sessionResults: Record<string, any>): string => {
     const avgTimePerNote = gameStats.averageTimePerNote;
 
     if (avgTimePerNote <= 1.0) return 'Lightning Fast ⚡';
@@ -206,11 +157,11 @@ export class RushGameStateImpl implements RushGameState, IGameMode {
     return 'Methodical 🎭';
   };
 
-  getHeaderThemeClass = (_sessionResults: Record<string, any>): string => {
+  getHeaderThemeClass = (sessionResults: Record<string, any>): string => {
     return 'rush-complete';
   };
 
-  getStatsItems = (gameStats: GameStats, _sessionResults: Record<string, any>): StatItem[] => {
+  getStatsItems = (gameStats: GameStats, sessionResults: Record<string, any>): StatItem[] => {
     const formatTime = (seconds: number): string => {
       const minutes = Math.floor(seconds / 60);
       const secs = Math.floor(seconds % 60);

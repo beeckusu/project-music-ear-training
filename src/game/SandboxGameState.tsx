@@ -15,7 +15,6 @@ import type { NoteFilter } from '../types/filters';
 import { AudioEngine } from '../utils/audioEngine';
 import { GAME_MODES } from '../constants';
 import SandboxModeDisplay from '../components/modes/SandboxModeDisplay';
-import { Timer } from '../utils/Timer';
 import '../components/strategies/SandboxGameEndModal.css';
 
 export class SandboxGameStateImpl implements SandboxGameState, IGameMode {
@@ -35,34 +34,12 @@ export class SandboxGameStateImpl implements SandboxGameState, IGameMode {
   private finalStats?: GameStats;
   private completionCallback?: () => void;
 
-  // Timer management
-  private sessionTimer: Timer;
-  private noteTimer: Timer | null = null;
-
   constructor(sandboxSettings: SandboxModeSettings) {
     this.sandboxSettings = sandboxSettings;
     this.sessionDuration = sandboxSettings.sessionDuration;
     this.targetAccuracy = sandboxSettings.targetAccuracy;
     this.targetStreak = sandboxSettings.targetStreak;
     this.targetNotes = sandboxSettings.targetNotes;
-
-    // Initialize session timer (count-down from session duration)
-    const sessionDurationSeconds = sandboxSettings.sessionDuration * 60; // minutes to seconds
-    this.sessionTimer = new Timer({ initialTime: sessionDurationSeconds, direction: 'down' }, {
-      onTimeUpdate: (time) => {
-        this.elapsedTime = sessionDurationSeconds - time;
-      },
-      onTimeUp: () => {
-        // When session time runs out, complete the game
-        if (!this.isCompleted) {
-          this.completeSession();
-          // Trigger the completion callback
-          if (this.completionCallback) {
-            this.completionCallback();
-          }
-        }
-      }
-    });
   }
 
   modeDisplay = (props: CommonDisplayProps) => (
@@ -83,9 +60,6 @@ export class SandboxGameStateImpl implements SandboxGameState, IGameMode {
     this.longestStreak = newLongestStreak;
     this.totalAttempts = newTotalAttempts;
     this.correctAttempts = newCorrectAttempts;
-
-    // Pause note timer on correct guess (will be resumed/reset by game logic)
-    this.noteTimer?.pause();
 
     const currentAccuracy = (newCorrectAttempts / newTotalAttempts) * 100;
 
@@ -133,10 +107,9 @@ export class SandboxGameStateImpl implements SandboxGameState, IGameMode {
   };
 
   onStartNewRound = (): void => {
-    // Start session timer on first round
+    // Track start time
     if (!this.startTime && !this.sessionCompleted) {
       this.startTime = new Date();
-      this.sessionTimer.start();
     }
   };
 
@@ -144,33 +117,9 @@ export class SandboxGameStateImpl implements SandboxGameState, IGameMode {
     this.completionCallback = callback;
   };
 
-  setSessionTimerCallback = (callback: (time: number) => void): void => {
-    const sessionDurationSeconds = this.sandboxSettings.sessionDuration * 60;
-
-    // Update the session timer's onTimeUpdate callback
-    // Must preserve BOTH the internal elapsedTime update AND the UI callback
-    this.sessionTimer.updateCallbacks({
-      onTimeUpdate: (time) => {
-        this.elapsedTime = sessionDurationSeconds - time;
-        callback(time); // Pass remaining time to UI
-      },
-      onTimeUp: () => {
-        // When session time runs out, complete the game
-        if (!this.isCompleted) {
-          this.completeSession();
-          // Trigger the completion callback
-          if (this.completionCallback) {
-            this.completionCallback();
-          }
-        }
-      }
-    });
-  };
-
   private completeSession = (): void => {
     this.isCompleted = true;
     this.sessionCompleted = true;
-    this.sessionTimer.stop();
 
     // Generate final stats and check if targets were met
     const finalStats: GameStats = {
@@ -244,54 +193,18 @@ export class SandboxGameStateImpl implements SandboxGameState, IGameMode {
     };
   };
 
-  // Timer management methods
-  initializeTimer = (responseTimeLimit: number | null, isPaused: boolean, onTimeUp: () => void, onTimeUpdate?: (timeRemaining: number) => void): void => {
-    if (responseTimeLimit) {
-      this.noteTimer = new Timer(
-        { initialTime: responseTimeLimit, direction: 'down' },
-        { onTimeUp, onTimeUpdate }
-      );
-
-      if (!isPaused) {
-        this.noteTimer.start();
-      }
-    }
-  };
-
-  getTimerState = (): { timeRemaining: number; isActive: boolean } => {
-    return this.noteTimer?.getState() || { timeRemaining: 0, isActive: false };
-  };
-
-  getSessionTimerState = (): { timeRemaining: number; isActive: boolean } => {
-    return this.sessionTimer.getState();
-  };
-
-  pauseTimer = (): void => {
-    this.noteTimer?.pause();
-    this.sessionTimer?.pause();
-  };
-
-  resumeTimer = (): void => {
-    this.noteTimer?.resume();
-    this.sessionTimer?.resume();
-  };
-
-  resetTimer = (): void => {
-    this.noteTimer?.reset();
-  };
-
   // End Screen Strategy Methods
-  getCelebrationEmoji = (_sessionResults: Record<string, any>): string => {
+  getCelebrationEmoji = (sessionResults: Record<string, any>): string => {
     const targetsMet = this.wereTargetsMet();
     return targetsMet ? '🎯' : '🎼';
   };
 
-  getHeaderTitle = (_sessionResults: Record<string, any>): string => {
+  getHeaderTitle = (sessionResults: Record<string, any>): string => {
     const targetsMet = this.wereTargetsMet();
     return targetsMet ? 'Targets Achieved!' : 'Practice Complete!';
   };
 
-  getModeCompletionText = (_sessionResults: Record<string, any>): string => {
+  getModeCompletionText = (sessionResults: Record<string, any>): string => {
     const targetsMet = this.wereTargetsMet();
     if (targetsMet) {
       return 'All practice targets successfully achieved!';
@@ -300,7 +213,7 @@ export class SandboxGameStateImpl implements SandboxGameState, IGameMode {
     }
   };
 
-  getPerformanceRating = (gameStats: GameStats, _sessionResults: Record<string, any>): string => {
+  getPerformanceRating = (gameStats: GameStats, sessionResults: Record<string, any>): string => {
     const sessionMinutes = Math.floor(gameStats.completionTime / 60);
     const targetsMet = this.wereTargetsMet();
 
@@ -315,12 +228,12 @@ export class SandboxGameStateImpl implements SandboxGameState, IGameMode {
     return `Keep Practicing! 💪 (${sessionMinutes}m)`;
   };
 
-  getHeaderThemeClass = (_sessionResults: Record<string, any>): string => {
+  getHeaderThemeClass = (sessionResults: Record<string, any>): string => {
     const targetsMet = this.wereTargetsMet();
     return targetsMet ? 'sandbox-success' : 'sandbox-complete';
   };
 
-  getStatsItems = (gameStats: GameStats, _sessionResults: Record<string, any>): StatItem[] => {
+  getStatsItems = (gameStats: GameStats, sessionResults: Record<string, any>): StatItem[] => {
     const formatTime = (seconds: number): string => {
       const minutes = Math.floor(seconds / 60);
       const secs = Math.floor(seconds % 60);

@@ -1,6 +1,6 @@
 import type { NoteWithOctave } from '../types/music';
 import type { NoteFilter } from '../types/filters';
-import type { GameStateWithDisplay, GameActionResult } from './GameStateFactory';
+import type { GameStateWithDisplay } from './GameStateFactory';
 
 /**
  * IGameMode Interface
