@@ -193,31 +193,6 @@ export class SandboxGameStateImpl implements SandboxGameState, IGameMode {
     };
   };
 
-  // Timer management methods (stubbed - managed by state machine)
-  initializeTimer = (): void => {
-    // No-op: Timer managed by state machine
-  };
-
-  getTimerState = (): { timeRemaining: number; isActive: boolean } => {
-    return { timeRemaining: 0, isActive: false };
-  };
-
-  getSessionTimerState = (): { timeRemaining: number; isActive: boolean } => {
-    return { timeRemaining: 0, isActive: false };
-  };
-
-  pauseTimer = (): void => {
-    // No-op: Timer managed by state machine
-  };
-
-  resumeTimer = (): void => {
-    // No-op: Timer managed by state machine
-  };
-
-  resetTimer = (): void => {
-    // No-op: Timer managed by state machine
-  };
-
   // End Screen Strategy Methods
   getCelebrationEmoji = (sessionResults: Record<string, any>): string => {
     const targetsMet = this.wereTargetsMet();
