@@ -41,11 +41,19 @@ const initialContext: GameMachineContext = {
 export const gameStateMachine = createMachine({
   id: 'game',
   initial: SessionState.IDLE,
-  context: ({ input }) => ({
-    ...initialContext,
-    timerConfig: input?.timerConfig ?? initialContext.timerConfig,
-    roundTimerConfig: input?.roundTimerConfig ?? initialContext.roundTimerConfig,
-  }),
+  context: ({ input }) => {
+    const timerConfig = input?.timerConfig ?? initialContext.timerConfig;
+    const roundTimerConfig = input?.roundTimerConfig ?? initialContext.roundTimerConfig;
+    return {
+      ...initialContext,
+      timerConfig,
+      roundTimerConfig,
+      // Initialize roundTimeRemaining from roundTimerConfig
+      roundTimeRemaining: roundTimerConfig.initialTime,
+      // Initialize elapsedTime - for countdown timers, start at initialTime
+      elapsedTime: timerConfig.direction === 'down' ? timerConfig.initialTime : 0,
+    };
+  },
   types: {} as {
     context: GameMachineContext;
     events: GameEvent;
@@ -108,9 +116,11 @@ export const gameStateMachine = createMachine({
               correctCount: 0,
               totalAttempts: 0,
               currentStreak: 0,
-              elapsedTime: 0,
+              // Reset elapsedTime to initial timer config value
+              elapsedTime: ({ context }) => context.timerConfig.direction === 'down' ? context.timerConfig.initialTime : 0,
               sessionDuration: 0,
-              roundTimeRemaining: 0,
+              // Reset roundTimeRemaining to initial round timer config value
+              roundTimeRemaining: ({ context }) => context.roundTimerConfig.initialTime,
               attemptHistory: [],
               feedbackMessage: '',
               // longestStreak is preserved across games
@@ -160,6 +170,7 @@ export const gameStateMachine = createMachine({
                 totalAttempts: ({ context }) => context.totalAttempts + 1,
                 currentStreak: 0,
                 feedbackMessage: 'Time\'s up!',
+                userGuess: null, // Clear user guess on timeout
               }),
             },
             // Handle round timer timeout (from roundTimer service)
@@ -169,6 +180,7 @@ export const gameStateMachine = createMachine({
                 totalAttempts: ({ context }) => context.totalAttempts + 1,
                 currentStreak: 0,
                 feedbackMessage: 'Time\'s up!',
+                userGuess: null, // Clear user guess on timeout
               }),
             },
           },
@@ -269,9 +281,11 @@ export const gameStateMachine = createMachine({
               totalAttempts: 0,
               currentStreak: 0,
               longestStreak: 0,
-              elapsedTime: 0,
+              // Reset elapsedTime to initial timer config value
+              elapsedTime: ({ context }) => context.timerConfig.direction === 'down' ? context.timerConfig.initialTime : 0,
               sessionDuration: 0,
-              roundTimeRemaining: 0,
+              // Reset roundTimeRemaining to initial round timer config value
+              roundTimeRemaining: ({ context }) => context.roundTimerConfig.initialTime,
               attemptHistory: [],
               feedbackMessage: '',
             }),

@@ -167,21 +167,26 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
 
     // Track previous state to detect transitions
     let previousState: string | null = null;
+    let previousRoundTimeRemaining: number | undefined = undefined;
+    let previousElapsedTime: number | undefined = undefined;
 
     // Subscribe to context updates to sync elapsedTime to game mode and call timer callbacks
     const subscription = this.actor.subscribe((snapshot) => {
       if (this.gameMode && snapshot.context.elapsedTime !== undefined) {
         this.gameMode.elapsedTime = snapshot.context.elapsedTime;
 
-        // Call session timer callback if configured (for Sandbox mode countdown timer)
-        if (this.onSessionTimerUpdate) {
+        // Call session timer callback only if elapsedTime changed
+        if (this.onSessionTimerUpdate && snapshot.context.elapsedTime !== previousElapsedTime) {
           this.onSessionTimerUpdate(snapshot.context.elapsedTime);
+          previousElapsedTime = snapshot.context.elapsedTime;
         }
       }
 
-      // Call round timer callback with roundTimeRemaining
-      if (this.onTimerUpdate && snapshot.context.roundTimeRemaining !== undefined) {
+      // Call round timer callback only if roundTimeRemaining changed
+      if (this.onTimerUpdate && snapshot.context.roundTimeRemaining !== undefined &&
+          snapshot.context.roundTimeRemaining !== previousRoundTimeRemaining) {
         this.onTimerUpdate(snapshot.context.roundTimeRemaining);
+        previousRoundTimeRemaining = snapshot.context.roundTimeRemaining;
       }
 
       // Handle round timeout (when round timer reaches 0)
@@ -1188,21 +1193,26 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
 
       // Track previous state to detect transitions
       let previousState: string | null = null;
+      let previousRoundTimeRemaining: number | undefined = undefined;
+      let previousElapsedTime: number | undefined = undefined;
 
       // Re-subscribe to context updates
       const subscription = this.actor.subscribe((snapshot) => {
         if (this.gameMode && snapshot.context.elapsedTime !== undefined) {
           this.gameMode.elapsedTime = snapshot.context.elapsedTime;
 
-          // Call session timer callback if configured (for Sandbox mode countdown timer)
-          if (this.onSessionTimerUpdate) {
+          // Call session timer callback only if elapsedTime changed
+          if (this.onSessionTimerUpdate && snapshot.context.elapsedTime !== previousElapsedTime) {
             this.onSessionTimerUpdate(snapshot.context.elapsedTime);
+            previousElapsedTime = snapshot.context.elapsedTime;
           }
         }
 
-        // Call round timer callback with roundTimeRemaining
-        if (this.onTimerUpdate && snapshot.context.roundTimeRemaining !== undefined) {
+        // Call round timer callback only if roundTimeRemaining changed
+        if (this.onTimerUpdate && snapshot.context.roundTimeRemaining !== undefined &&
+            snapshot.context.roundTimeRemaining !== previousRoundTimeRemaining) {
           this.onTimerUpdate(snapshot.context.roundTimeRemaining);
+          previousRoundTimeRemaining = snapshot.context.roundTimeRemaining;
         }
 
         // Handle round timeout (when round timer reaches 0)

@@ -78,6 +78,9 @@ export const timerService = fromCallback<TimerServiceEvent, TimerServiceInput>(
         }
       }
 
+      // Send initial update immediately so context is initialized
+      sendBack({ type: 'TIMER_UPDATE', elapsed: currentTime });
+
       intervalId = setInterval(() => {
         if (direction === TIMER_DIRECTION.UP) {
           const elapsed = (Date.now() - startTime! - totalPausedDuration) / 1000;
@@ -230,6 +233,9 @@ export const roundTimerService = fromCallback<RoundTimerServiceEvent, TimerServi
           }
         }
       }
+
+      // Send initial update immediately so context is initialized
+      sendBack({ type: 'ROUND_TIMER_UPDATE', elapsed: currentTime });
 
       intervalId = setInterval(() => {
         if (direction === TIMER_DIRECTION.UP) {

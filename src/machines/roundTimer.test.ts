@@ -383,5 +383,49 @@ describe('Round Timer Integration Tests', () => {
         [SessionState.PLAYING]: RoundState.TIMEOUT_INTERMISSION
       })).toBe(true);
     });
+
+    it('should clear userGuess on timeout after incorrect guess', () => {
+      // Start game
+      actor.send({ type: GameAction.START_GAME });
+
+      // Verify we're in WAITING_INPUT with no userGuess
+      expect(actor.getSnapshot().matches({
+        [SessionState.PLAYING]: RoundState.WAITING_INPUT
+      })).toBe(true);
+      expect(actor.getSnapshot().context.userGuess).toBeNull();
+
+      // User makes an incorrect guess
+      actor.send({ type: GameAction.MAKE_GUESS, guessedNote: 'C' });
+
+      // Verify userGuess is set
+      expect(actor.getSnapshot().context.userGuess).toBe('C');
+
+      // Process as incorrect
+      actor.send({ type: GameAction.INCORRECT_GUESS });
+
+      // Should return to WAITING_INPUT with userGuess still set
+      expect(actor.getSnapshot().matches({
+        [SessionState.PLAYING]: RoundState.WAITING_INPUT
+      })).toBe(true);
+      expect(actor.getSnapshot().context.userGuess).toBe('C');
+
+      // Let timer run to timeout
+      vi.advanceTimersByTime(3100);
+
+      // Should transition to TIMEOUT_INTERMISSION
+      expect(actor.getSnapshot().matches({
+        [SessionState.PLAYING]: RoundState.TIMEOUT_INTERMISSION
+      })).toBe(true);
+
+      // CRITICAL: userGuess should be cleared on timeout
+      // This ensures GameOrchestrator can detect the timeout and call handleTimeout()
+      expect(actor.getSnapshot().context.userGuess).toBeNull();
+
+      // Verify totalAttempts was incremented for the timeout
+      expect(actor.getSnapshot().context.totalAttempts).toBe(2); // 1 for incorrect guess, 1 for timeout
+
+      // Verify streak was reset
+      expect(actor.getSnapshot().context.currentStreak).toBe(0);
+    });
   });
 });
