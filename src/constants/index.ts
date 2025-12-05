@@ -27,6 +27,14 @@ export const GAME_MODES = {
 
 export type GameMode = typeof GAME_MODES[keyof typeof GAME_MODES];
 
+// Training Mode Constants
+export const TRAINING_MODES = {
+  EAR_TRAINING: 'ear-training',
+  NOTE_TRAINING: 'note-training'
+} as const;
+
+export type TrainingType = typeof TRAINING_MODES[keyof typeof TRAINING_MODES];
+
 // CSS Class Name Constants
 export const CSS_CLASSES = {
   PIANO: {
