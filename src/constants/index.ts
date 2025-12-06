@@ -27,6 +27,14 @@ export const EAR_TRAINING_SUB_MODES = {
 
 export type EarTrainingSubMode = typeof EAR_TRAINING_SUB_MODES[keyof typeof EAR_TRAINING_SUB_MODES];
 
+// Note Training Sub-Mode Constants
+export const NOTE_TRAINING_SUB_MODES = {
+  SHOW_CHORD_GUESS_NOTES: 'show-chord-guess-notes',
+  SHOW_NOTES_GUESS_CHORD: 'show-notes-guess-chord'
+} as const;
+
+export type NoteTrainingSubMode = typeof NOTE_TRAINING_SUB_MODES[keyof typeof NOTE_TRAINING_SUB_MODES];
+
 // Training Mode Constants
 export const TRAINING_MODES = {
   EAR_TRAINING: 'ear-training',
