@@ -7,7 +7,7 @@ import type {
   SandboxModeSettings,
   GameStats
 } from '../types/game';
-import { GAME_MODES } from '../constants';
+import { EAR_TRAINING_SUB_MODES } from '../constants';
 import { RushGameStateImpl } from './RushGameState';
 import { SurvivalGameStateImpl } from './SurvivalGameState';
 import { SandboxGameStateImpl } from './SandboxGameState';
@@ -66,11 +66,11 @@ export function createGameState(
   }
 ): GameStateWithDisplay {
   switch (mode) {
-    case GAME_MODES.RUSH:
+    case EAR_TRAINING_SUB_MODES.RUSH:
       return new RushGameStateImpl(modeSettings.rush);
-    case GAME_MODES.SURVIVAL:
+    case EAR_TRAINING_SUB_MODES.SURVIVAL:
       return new SurvivalGameStateImpl(modeSettings.survival);
-    case GAME_MODES.SANDBOX:
+    case EAR_TRAINING_SUB_MODES.SANDBOX:
     default:
       return new SandboxGameStateImpl(modeSettings.sandbox);
   }

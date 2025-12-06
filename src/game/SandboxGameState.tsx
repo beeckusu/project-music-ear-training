@@ -13,7 +13,7 @@ import type { IGameMode } from './IGameMode';
 import type { NoteWithOctave } from '../types/music';
 import type { NoteFilter } from '../types/filters';
 import { AudioEngine } from '../utils/audioEngine';
-import { GAME_MODES } from '../constants';
+import { EAR_TRAINING_SUB_MODES } from '../constants';
 import SandboxModeDisplay from '../components/modes/SandboxModeDisplay';
 import '../components/strategies/SandboxGameEndModal.css';
 
@@ -356,6 +356,6 @@ export class SandboxGameStateImpl implements SandboxGameState, IGameMode {
   };
 
   getMode = (): string => {
-    return GAME_MODES.SANDBOX;
+    return EAR_TRAINING_SUB_MODES.SANDBOX;
   };
 }

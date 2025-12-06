@@ -13,7 +13,7 @@ import type { IGameMode } from './IGameMode';
 import type { NoteWithOctave } from '../types/music';
 import type { NoteFilter } from '../types/filters';
 import { AudioEngine } from '../utils/audioEngine';
-import { GAME_MODES } from '../constants';
+import { EAR_TRAINING_SUB_MODES } from '../constants';
 import RushModeDisplay from '../components/modes/RushModeDisplay';
 import '../components/strategies/RushGameEndModal.css';
 
@@ -256,6 +256,6 @@ export class RushGameStateImpl implements RushGameState, IGameMode {
   };
 
   getMode = (): string => {
-    return GAME_MODES.RUSH;
+    return EAR_TRAINING_SUB_MODES.RUSH;
   };
 }

@@ -2,7 +2,7 @@ import { describe, it, afterEach, expect, vi } from 'vitest';
 import { GameOrchestrator } from './GameOrchestrator';
 import { GameAction } from '../machines/types';
 import { createGameState } from './GameStateFactory';
-import { GAME_MODES } from '../constants';
+import { EAR_TRAINING_SUB_MODES } from '../constants';
 
 /**
  * Sandbox Mode Integration Tests
@@ -69,7 +69,7 @@ describe('Sandbox Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SANDBOX, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SANDBOX, {
         sandbox: {
           sessionDuration: 5,
           targetNotes: 3
@@ -102,7 +102,7 @@ describe('Sandbox Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SANDBOX, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SANDBOX, {
         sandbox: {
           sessionDuration: 5,
           targetNotes: 3
@@ -144,7 +144,7 @@ describe('Sandbox Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SANDBOX, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SANDBOX, {
         sandbox: {
           sessionDuration: 5,
           targetAccuracy: 80
@@ -182,7 +182,7 @@ describe('Sandbox Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SANDBOX, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SANDBOX, {
         sandbox: {
           sessionDuration: 5,
           targetAccuracy: 80
@@ -210,7 +210,7 @@ describe('Sandbox Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SANDBOX, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SANDBOX, {
         sandbox: {
           sessionDuration: 5,
           targetStreak: 5
@@ -248,7 +248,7 @@ describe('Sandbox Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SANDBOX, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SANDBOX, {
         sandbox: {
           sessionDuration: 5,
           targetStreak: 3
@@ -292,7 +292,7 @@ describe('Sandbox Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SANDBOX, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SANDBOX, {
         sandbox: {
           sessionDuration: 5,
           targetNotes: 10,
@@ -325,7 +325,7 @@ describe('Sandbox Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SANDBOX, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SANDBOX, {
         sandbox: {
           sessionDuration: 5,
           targetNotes: undefined,
@@ -358,7 +358,7 @@ describe('Sandbox Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SANDBOX, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SANDBOX, {
         sandbox: {
           sessionDuration: 5,
           targetNotes: 1
@@ -458,7 +458,7 @@ describe('Sandbox Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SANDBOX, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SANDBOX, {
         sandbox: {
           sessionDuration: 5,
           targetNotes: 5
@@ -493,7 +493,7 @@ describe('Sandbox Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SANDBOX, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SANDBOX, {
         sandbox: {
           sessionDuration: 5,
           targetNotes: 5
@@ -536,7 +536,7 @@ describe('Sandbox Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SANDBOX, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SANDBOX, {
         sandbox: {
           sessionDuration: 5,
           targetNotes: 3

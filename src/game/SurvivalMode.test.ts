@@ -2,7 +2,7 @@ import { describe, it, afterEach, expect, vi } from 'vitest';
 import { GameOrchestrator } from './GameOrchestrator';
 import { GameAction } from '../machines/types';
 import { createGameState } from './GameStateFactory';
-import { GAME_MODES } from '../constants';
+import { EAR_TRAINING_SUB_MODES } from '../constants';
 
 /**
  * Survival Mode Integration Tests
@@ -72,7 +72,7 @@ describe('Survival Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SURVIVAL, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SURVIVAL, {
         survival: {
           sessionDuration: 5,
           healthDrainRate: 1,
@@ -95,7 +95,7 @@ describe('Survival Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SURVIVAL, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SURVIVAL, {
         survival: {
           sessionDuration: 5,
           healthDrainRate: 0, // Disable drain for this test
@@ -123,7 +123,7 @@ describe('Survival Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SURVIVAL, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SURVIVAL, {
         survival: {
           sessionDuration: 5,
           healthDrainRate: 0,
@@ -151,7 +151,7 @@ describe('Survival Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SURVIVAL, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SURVIVAL, {
         survival: {
           sessionDuration: 5,
           healthDrainRate: 0,
@@ -180,7 +180,7 @@ describe('Survival Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SURVIVAL, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SURVIVAL, {
         survival: {
           sessionDuration: 5,
           healthDrainRate: 0,
@@ -207,7 +207,7 @@ describe('Survival Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SURVIVAL, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SURVIVAL, {
         survival: {
           sessionDuration: 5,
           healthDrainRate: 0,
@@ -247,7 +247,7 @@ describe('Survival Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SURVIVAL, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SURVIVAL, {
         survival: {
           sessionDuration: 5,
           healthDrainRate: 0,
@@ -284,7 +284,7 @@ describe('Survival Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SURVIVAL, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SURVIVAL, {
         survival: {
           sessionDuration: 5,
           healthDrainRate: 0,
@@ -325,7 +325,7 @@ describe('Survival Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SURVIVAL, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SURVIVAL, {
         survival: {
           sessionDuration: 5,
           healthDrainRate: 0,
@@ -359,7 +359,7 @@ describe('Survival Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SURVIVAL, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SURVIVAL, {
         survival: {
           sessionDuration: 5,
           healthDrainRate: 0,
@@ -395,7 +395,7 @@ describe('Survival Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SURVIVAL, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SURVIVAL, {
         survival: {
           sessionDuration: 5,
           healthDrainRate: 0,
@@ -433,7 +433,7 @@ describe('Survival Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SURVIVAL, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SURVIVAL, {
         survival: {
           sessionDuration: 5,
           healthDrainRate: 0,
@@ -474,7 +474,7 @@ describe('Survival Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SURVIVAL, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SURVIVAL, {
         survival: {
           sessionDuration: 5,
           healthDrainRate: 0,
@@ -522,7 +522,7 @@ describe('Survival Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SURVIVAL, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SURVIVAL, {
         survival: {
           sessionDuration: 5,
           healthDrainRate: 0,
@@ -548,7 +548,7 @@ describe('Survival Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SURVIVAL, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SURVIVAL, {
         survival: {
           sessionDuration: 5,
           healthDrainRate: 0,
@@ -579,7 +579,7 @@ describe('Survival Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.SURVIVAL, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.SURVIVAL, {
         survival: {
           sessionDuration: 5,
           healthDrainRate: 0,

@@ -18,14 +18,14 @@ export const TIMER_DIRECTION = {
 
 export type TimerDirection = typeof TIMER_DIRECTION[keyof typeof TIMER_DIRECTION];
 
-// Game Mode Constants
-export const GAME_MODES = {
+// Ear Training Sub-Mode Constants
+export const EAR_TRAINING_SUB_MODES = {
   RUSH: 'rush',
   SURVIVAL: 'survival',
   SANDBOX: 'sandbox'
 } as const;
 
-export type GameMode = typeof GAME_MODES[keyof typeof GAME_MODES];
+export type EarTrainingSubMode = typeof EAR_TRAINING_SUB_MODES[keyof typeof EAR_TRAINING_SUB_MODES];
 
 // Training Mode Constants
 export const TRAINING_MODES = {
