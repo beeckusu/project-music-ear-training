@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSettings } from '../../hooks/useSettings';
 import type { ModeType } from '../../types/game';
-import { GAME_MODES } from '../../constants';
+import { EAR_TRAINING_SUB_MODES } from '../../constants';
 import RushModeSettings from './RushModeSettings';
 import SurvivalModeSettings from './SurvivalModeSettings';
 import SandboxModeSettings from './SandboxModeSettings';
@@ -104,9 +104,9 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ onRestartGame }) => {
       {selectedMode && (
         <div className="mode-settings-section">
           <div className="mode-specific-settings">
-            {selectedMode === GAME_MODES.RUSH && <RushModeSettings />}
-            {selectedMode === GAME_MODES.SURVIVAL && <SurvivalModeSettings />}
-            {selectedMode === GAME_MODES.SANDBOX && <SandboxModeSettings />}
+            {selectedMode === EAR_TRAINING_SUB_MODES.RUSH && <RushModeSettings />}
+            {selectedMode === EAR_TRAINING_SUB_MODES.SURVIVAL && <SurvivalModeSettings />}
+            {selectedMode === EAR_TRAINING_SUB_MODES.SANDBOX && <SandboxModeSettings />}
           </div>
         </div>
       )}

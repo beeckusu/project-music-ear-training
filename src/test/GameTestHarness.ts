@@ -1,10 +1,10 @@
 import { GameOrchestrator } from '../game/GameOrchestrator';
 import { GameAction } from '../machines/types';
 import type { NoteWithOctave } from '../types/music';
-import type { GameMode, ModeSettings } from '../types/game';
+import type { EarTrainingSubMode, ModeSettings } from '../types/game';
 import type { Settings } from '../types/settings';
 import { createGameState } from '../game/GameStateFactory';
-import { GAME_MODES } from '../constants';
+import { EAR_TRAINING_SUB_MODES } from '../constants';
 
 /**
  * Test harness for fluent BDD-style integration testing of game interactions.
@@ -12,7 +12,7 @@ import { GAME_MODES } from '../constants';
  * Example usage:
  * ```typescript
  * const test = new GameTestHarness()
- *   .withMode(GAME_MODES.SANDBOX)
+ *   .withMode(EAR_TRAINING_SUB_MODES.SANDBOX)
  *   .withSettings({ timing: { responseTimeLimit: 5000 } })
  *   .startGame()
  *   .waitForState('playing.waiting_input')
@@ -24,7 +24,7 @@ import { GAME_MODES } from '../constants';
 export class GameTestHarness {
   private orchestrator: GameOrchestrator;
   private currentNote: NoteWithOctave | null = null;
-  private mode: GameMode = GAME_MODES.SANDBOX;
+  private mode: EarTrainingSubMode = EAR_TRAINING_SUB_MODES.SANDBOX;
   private settings: Partial<Settings> = {};
   private timeElapsed: number = 0;
 
@@ -45,7 +45,7 @@ export class GameTestHarness {
   /**
    * Configure the game mode (Sandbox, Rush, Survival)
    */
-  withMode(mode: GameMode): this {
+  withMode(mode: EarTrainingSubMode): this {
     this.mode = mode;
     return this;
   }

@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 import { GameOrchestrator } from '../game/GameOrchestrator';
 import { GameAction } from '../machines/types';
 import { createGameState } from '../game/GameStateFactory';
-import { GAME_MODES } from '../constants';
+import { EAR_TRAINING_SUB_MODES } from '../constants';
 import type { NoteWithOctave } from '../types/music';
 import type { OrchestratorEvents } from '../game/OrchestratorEvents';
 
@@ -74,7 +74,7 @@ export function createEventSpies() {
  * Sets up a GameOrchestrator with specified mode and settings
  */
 export function setupOrchestrator(
-  mode = GAME_MODES.SANDBOX,
+  mode = EAR_TRAINING_SUB_MODES.SANDBOX,
   settings = DEFAULT_SANDBOX_SETTINGS
 ) {
   const orch = new GameOrchestrator();
@@ -171,7 +171,7 @@ export function resumeGame(orch: GameOrchestrator) {
  * Complete setup: creates orchestrator, subscribes spies, and returns both
  */
 export function setupTestEnvironment(
-  mode = GAME_MODES.SANDBOX,
+  mode = EAR_TRAINING_SUB_MODES.SANDBOX,
   settings = DEFAULT_SANDBOX_SETTINGS
 ) {
   const orchestrator = setupOrchestrator(mode, settings);

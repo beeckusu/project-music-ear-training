@@ -13,7 +13,7 @@ import type { IGameMode } from './IGameMode';
 import type { NoteWithOctave } from '../types/music';
 import type { NoteFilter } from '../types/filters';
 import { AudioEngine } from '../utils/audioEngine';
-import { GAME_MODES } from '../constants';
+import { EAR_TRAINING_SUB_MODES } from '../constants';
 import SurvivalModeDisplay from '../components/modes/SurvivalModeDisplay';
 import '../components/strategies/SurvivalGameEndModal.css';
 
@@ -349,6 +349,6 @@ export class SurvivalGameStateImpl implements SurvivalGameState, IGameMode {
   };
 
   getMode = (): string => {
-    return GAME_MODES.SURVIVAL;
+    return EAR_TRAINING_SUB_MODES.SURVIVAL;
   };
 }

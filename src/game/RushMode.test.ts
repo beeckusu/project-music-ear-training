@@ -2,7 +2,7 @@ import { describe, it, afterEach, expect, vi } from 'vitest';
 import { GameOrchestrator } from './GameOrchestrator';
 import { GameAction } from '../machines/types';
 import { createGameState } from './GameStateFactory';
-import { GAME_MODES } from '../constants';
+import { EAR_TRAINING_SUB_MODES } from '../constants';
 
 /**
  * Rush Mode Integration Tests
@@ -63,7 +63,7 @@ describe('Rush Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.RUSH, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.RUSH, {
         rush: { targetNotes: 3 }
       });
       orch.setGameMode(gameState);
@@ -112,7 +112,7 @@ describe('Rush Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.RUSH, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.RUSH, {
         rush: { targetNotes: 3 }
       });
       orch.setGameMode(gameState);
@@ -152,7 +152,7 @@ describe('Rush Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.RUSH, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.RUSH, {
         rush: { targetNotes: 3 }
       });
       orch.setGameMode(gameState);
@@ -194,7 +194,7 @@ describe('Rush Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.RUSH, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.RUSH, {
         rush: { targetNotes: 3 }
       });
       orch.setGameMode(gameState);
@@ -240,7 +240,7 @@ describe('Rush Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.RUSH, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.RUSH, {
         rush: { targetNotes: 3 }
       });
       orch.setGameMode(gameState);
@@ -289,7 +289,7 @@ describe('Rush Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.RUSH, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.RUSH, {
         rush: { targetNotes: 3 },
         responseTimeLimit: 0.1
       });
@@ -331,7 +331,7 @@ describe('Rush Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.RUSH, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.RUSH, {
         rush: { targetNotes: 3 },
         responseTimeLimit: 0.1
       });
@@ -376,7 +376,7 @@ describe('Rush Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.RUSH, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.RUSH, {
         rush: { targetNotes: 3 }
       });
       orch.setGameMode(gameState);
@@ -413,7 +413,7 @@ describe('Rush Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.RUSH, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.RUSH, {
         rush: { targetNotes: 3 }
       });
       orch.setGameMode(gameState);
@@ -452,7 +452,7 @@ describe('Rush Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.RUSH, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.RUSH, {
         rush: { targetNotes: 3 }
       });
       orch.setGameMode(gameState);
@@ -490,7 +490,7 @@ describe('Rush Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.RUSH, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.RUSH, {
         rush: { targetNotes: 3 }
       });
       orch.setGameMode(gameState);
@@ -548,7 +548,7 @@ describe('Rush Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.RUSH, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.RUSH, {
         rush: { targetNotes: 3 }
       });
       orch.setGameMode(gameState);
@@ -574,7 +574,7 @@ describe('Rush Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.RUSH, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.RUSH, {
         rush: { targetNotes: 5 }
       });
       orch.setGameMode(gameState);
@@ -600,7 +600,7 @@ describe('Rush Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.RUSH, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.RUSH, {
         rush: { targetNotes: 10 }
       });
       orch.setGameMode(gameState);
@@ -647,7 +647,7 @@ describe('Rush Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.RUSH, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.RUSH, {
         rush: { targetNotes: 3 }
       });
       orch.setGameMode(gameState);
@@ -688,7 +688,7 @@ describe('Rush Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.RUSH, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.RUSH, {
         rush: { targetNotes: 3 }
       });
       orch.setGameMode(gameState);
@@ -731,7 +731,7 @@ describe('Rush Mode Integration Tests', () => {
       orch = new GameOrchestrator();
       orch.start();
 
-      const gameState = createGameState(GAME_MODES.RUSH, {
+      const gameState = createGameState(EAR_TRAINING_SUB_MODES.RUSH, {
         rush: { targetNotes: 3 }
       });
       orch.setGameMode(gameState);
