@@ -80,3 +80,6 @@ export const ARIA_LABELS = {
   RESUME: 'Resume',
   OPEN_SETTINGS: 'Open Settings'
 } as const;
+
+// Chord Filter Presets
+export * from './chordPresets';

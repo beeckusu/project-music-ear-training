@@ -11,6 +11,48 @@ export type Difficulty = 'beginner' | 'intermediate' | 'advanced';
 
 export type PracticeMode = 'note-identification' | 'note-repetition' | 'chord-recognition';
 
+// Chord type definitions
+export const ChordType = {
+  // Triads
+  MAJOR: 'major',
+  MINOR: 'minor',
+  DIMINISHED: 'diminished',
+  AUGMENTED: 'augmented',
+
+  // 7th Chords
+  MAJOR_7: 'major7',
+  DOMINANT_7: 'dominant7',
+  MINOR_7: 'minor7',
+  HALF_DIMINISHED_7: 'halfDiminished7',
+  DIMINISHED_7: 'diminished7',
+
+  // Extended Chords - 9ths
+  MAJOR_9: 'major9',
+  DOMINANT_9: 'dominant9',
+  MINOR_9: 'minor9',
+
+  // Extended Chords - 11ths
+  MAJOR_11: 'major11',
+  DOMINANT_11: 'dominant11',
+  MINOR_11: 'minor11',
+
+  // Extended Chords - 13ths
+  MAJOR_13: 'major13',
+  DOMINANT_13: 'dominant13',
+  MINOR_13: 'minor13',
+
+  // Suspended Chords
+  SUS2: 'sus2',
+  SUS4: 'sus4',
+
+  // Added Tone Chords
+  ADD9: 'add9',
+  MAJOR_ADD9: 'majorAdd9',
+  MINOR_ADD9: 'minorAdd9',
+} as const;
+
+export type ChordType = typeof ChordType[keyof typeof ChordType];
+
 export interface PracticeSettings {
   mode: PracticeMode;
   difficulty: Difficulty;
@@ -39,6 +81,46 @@ export interface NoteFilter {
   allowedNotes?: Note[];
 }
 
+/**
+ * Filter configuration for controlling which chords appear in Note Training.
+ * Similar to NoteFilter but designed for chord selection.
+ */
+export interface ChordFilter {
+  /**
+   * List of allowed chord types (e.g., major, minor, dominant7).
+   * Use CHORD_TYPES categories or ALL_CHORD_TYPES for selection.
+   */
+  allowedChordTypes: ChordType[];
+
+  /**
+   * Allowed root notes for chords.
+   * Set to null to allow all 12 chromatic notes.
+   * Use WHITE_KEYS or BLACK_KEYS constants for common filters.
+   */
+  allowedRootNotes: Note[] | null;
+
+  /**
+   * Octaves where chord root notes can appear.
+   * Example: [3, 4, 5] allows chords starting in octaves 3-5.
+   */
+  allowedOctaves: number[];
+
+  /**
+   * Whether to include chord inversions (1st, 2nd, etc.).
+   * False means only root position chords.
+   */
+  includeInversions: boolean;
+
+  /**
+   * Optional filter to restrict chords to those in a specific key.
+   * Useful for diatonic chord training.
+   * Example: { key: 'C', scale: 'major' } for chords in C major.
+   */
+  keyFilter?: {
+    key: Note;
+    scale: 'major' | 'minor';
+  };
+}
 
 export type NoteDuration = '8n' | '4n' | '2n' | '1n';
 
@@ -84,6 +166,54 @@ export const DEFAULT_TIMING_SETTINGS: TimingSettings = {
 export const WHITE_KEYS: Note[] = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 export const BLACK_KEYS: Note[] = ['C#', 'D#', 'F#', 'G#', 'A#'];
 export const ALL_NOTES: Note[] = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+export const DEFAULT_CHORD_FILTER: ChordFilter = {
+  allowedChordTypes: [ChordType.MAJOR, ChordType.MINOR, ChordType.DIMINISHED, ChordType.AUGMENTED], // Start with basic triads
+  allowedRootNotes: WHITE_KEYS, // White keys only for beginners
+  allowedOctaves: [3, 4], // Middle octaves
+  includeInversions: false, // Root position only initially
+  // No keyFilter by default (all chromatic chords allowed)
+};
+
+// Chord type categories for UI grouping and filtering
+export const CHORD_TYPES = {
+  TRIADS: [
+    ChordType.MAJOR,
+    ChordType.MINOR,
+    ChordType.DIMINISHED,
+    ChordType.AUGMENTED,
+  ],
+  SEVENTH_CHORDS: [
+    ChordType.MAJOR_7,
+    ChordType.DOMINANT_7,
+    ChordType.MINOR_7,
+    ChordType.HALF_DIMINISHED_7,
+    ChordType.DIMINISHED_7,
+  ],
+  EXTENDED_CHORDS: [
+    ChordType.MAJOR_9,
+    ChordType.DOMINANT_9,
+    ChordType.MINOR_9,
+    ChordType.MAJOR_11,
+    ChordType.DOMINANT_11,
+    ChordType.MINOR_11,
+    ChordType.MAJOR_13,
+    ChordType.DOMINANT_13,
+    ChordType.MINOR_13,
+  ],
+  SUSPENDED: [
+    ChordType.SUS2,
+    ChordType.SUS4,
+  ],
+  ADDED_TONES: [
+    ChordType.ADD9,
+    ChordType.MAJOR_ADD9,
+    ChordType.MINOR_ADD9,
+  ],
+} as const;
+
+// Helper to get all chord types as a flat array
+export const ALL_CHORD_TYPES = Object.values(CHORD_TYPES).flat();
 
 export function isNotePlayable(noteWithOctave: NoteWithOctave, filter: NoteFilter): boolean {
   const { note, octave } = noteWithOctave;
