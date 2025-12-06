@@ -1,6 +1,8 @@
 import React from 'react';
-import type { NoteWithOctave } from './music';
-import type { EarTrainingSubMode } from '../constants';
+import type { NoteWithOctave, ChordFilter } from './music';
+import { DEFAULT_CHORD_FILTER } from './music';
+import type { EarTrainingSubMode, NoteTrainingSubMode } from '../constants';
+import { NOTE_TRAINING_SUB_MODES } from '../constants';
 
 export interface GuessAttempt {
   id: string;
@@ -30,11 +32,30 @@ export interface SandboxModeSettings {
   targetNotes?: number; // Optional notes target
 }
 
+/**
+ * Settings for Note Training mode
+ */
+export interface NoteTrainingModeSettings {
+  /** The selected sub-mode for note training */
+  selectedSubMode: NoteTrainingSubMode;
+  /** Configuration for chord filtering */
+  chordFilter: ChordFilter;
+  /** Duration in seconds */
+  sessionDuration: number;
+  /** Optional percentage goal for accuracy */
+  targetAccuracy?: number;
+  /** Optional goal for total number of chords */
+  targetChords?: number;
+  /** Optional goal for consecutive correct answers */
+  targetStreak?: number;
+}
+
 export interface ModeSettings {
   selectedMode: ModeType;
   rush: RushModeSettings;
   survival: SurvivalModeSettings;
   sandbox: SandboxModeSettings;
+  noteTraining: NoteTrainingModeSettings;
 }
 
 export interface StatItem {
@@ -129,5 +150,13 @@ export const DEFAULT_MODE_SETTINGS: ModeSettings = {
     targetAccuracy: 80,
     targetStreak: 10,
     targetNotes: 20
+  },
+  noteTraining: {
+    selectedSubMode: NOTE_TRAINING_SUB_MODES.SHOW_CHORD_GUESS_NOTES,
+    chordFilter: DEFAULT_CHORD_FILTER,
+    sessionDuration: 300, // 5 minutes in seconds
+    targetAccuracy: 80,
+    targetStreak: 10,
+    targetChords: 20
   }
 };
