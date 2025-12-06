@@ -5,7 +5,8 @@ import type { NoteFilter, TimingSettings, AudioSettings } from '../types/music';
 import type { ModeSettings } from '../types/game';
 import type { AppSettings } from '../types/settings';
 import { DEFAULT_NOTE_FILTER, DEFAULT_TIMING_SETTINGS, DEFAULT_AUDIO_SETTINGS } from '../types/music';
-import { SETTINGS_TABS } from '../constants';
+import { SETTINGS_TABS, TRAINING_MODES } from '../constants';
+import type { TrainingType } from '../constants';
 import { DEFAULT_MODE_SETTINGS } from '../types/game';
 
 export interface SettingsContextType {
@@ -15,6 +16,7 @@ export interface SettingsContextType {
   updateAudioSettings: (audio: Partial<AudioSettings>) => void;
   updateModeSettings: (modes: Partial<ModeSettings>) => void;
   updateShowNoteLabels: (show: boolean) => void;
+  updateTrainingType: (type: TrainingType) => void;
   resetToDefaults: () => void;
   isSettingsOpen: boolean;
   openSettings: (tab?: string) => void;
@@ -31,7 +33,8 @@ const defaultSettings: AppSettings = {
   timing: DEFAULT_TIMING_SETTINGS,
   audio: DEFAULT_AUDIO_SETTINGS,
   modes: DEFAULT_MODE_SETTINGS,
-  showNoteLabels: false
+  showNoteLabels: false,
+  trainingType: TRAINING_MODES.EAR_TRAINING
 };
 
 export const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -94,6 +97,13 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     }));
   };
 
+  const updateTrainingType = (type: TrainingType) => {
+    setSettings(prevSettings => ({
+      ...prevSettings,
+      trainingType: type
+    }));
+  };
+
   const resetToDefaults = () => {
     setSettings(defaultSettings);
   };
@@ -129,6 +139,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     updateAudioSettings,
     updateModeSettings,
     updateShowNoteLabels,
+    updateTrainingType,
     resetToDefaults,
     isSettingsOpen,
     openSettings,
