@@ -80,3 +80,6 @@ export const ARIA_LABELS = {
   RESUME: 'Resume',
   OPEN_SETTINGS: 'Open Settings'
 } as const;
+
+// Chord Constants
+export { CHORD_FORMULAS, CHORD_NAME_FORMATS, formatChordName } from './chords';
