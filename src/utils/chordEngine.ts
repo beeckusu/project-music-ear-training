@@ -21,19 +21,54 @@ export class ChordEngine {
   /**
    * Builds a chord from a root note, chord type, octave, and optional inversion
    *
+   * This method generates all notes in a chord based on the interval formula for the
+   * specified chord type. Notes are calculated from the root note and automatically
+   * wrap across octaves for extended chords (9ths, 11ths, etc.).
+   *
+   * **Enharmonic Spelling:**
+   * All notes use sharp notation (e.g., C#, F#, G#) rather than flat notation
+   * (Db, Gb, Ab). This is based on the ALL_NOTES array which defines the chromatic
+   * scale using sharps.
+   *
+   * **Octave Boundaries:**
+   * Valid octave range is 1-8 (not 0-8). This prevents notes from going below C1
+   * or above C8. Extended chords (major11, dominant11, etc.) automatically span
+   * multiple octaves and may throw errors if the resulting notes exceed C8.
+   *
+   * **Inversion Behavior:**
+   * When an inversion is specified, notes are moved to higher octaves and then
+   * sorted by pitch to maintain ascending order. The chord name reflects the
+   * new bass note (e.g., "C/E" for C major in first inversion).
+   *
    * @param root - The root note of the chord (e.g., 'C', 'F#', 'Bb')
    * @param type - The chord type (e.g., 'major', 'minor7', 'dominant9')
-   * @param octave - The octave for the root note (1-8)
+   * @param octave - The octave for the root note (1-8, NOT 0-8)
    * @param inversion - Optional inversion number (0 = root position, 1 = first inversion, etc.)
-   * @returns A complete Chord object with all notes
+   * @returns A complete Chord object with all notes sorted by pitch
+   * @throws {Error} If octave is outside valid range (1-8)
+   * @throws {Error} If inversion is invalid for the chord type
+   * @throws {Error} If resulting notes would exceed octave boundaries
    *
    * @example
    * // Build a C major chord in root position at octave 4
-   * buildChord('C', 'major', 4) // { name: "C", root: "C", type: "major", notes: [C4, E4, G4], inversion: 0 }
+   * buildChord('C', 'major', 4)
+   * // Returns: { name: "C", root: "C", type: "major", notes: [C4, E4, G4], inversion: 0 }
    *
    * @example
    * // Build a F# minor 7 chord in first inversion at octave 3
-   * buildChord('F#', 'minor7', 3, 1) // { name: "F#m7/A", root: "F#", type: "minor7", notes: [A3, C#4, F#4, E4], inversion: 1 }
+   * buildChord('F#', 'minor7', 3, 1)
+   * // Returns: { name: "F#m7/A", root: "F#", type: "minor7", notes: [A3, C#4, E4, F#4], inversion: 1 }
+   *
+   * @example
+   * // Extended chord showing octave wrapping (9th = 14 semitones = 2 semitones + 1 octave)
+   * buildChord('C', 'major9', 4)
+   * // Returns: { name: "Cmaj9", root: "C", type: "major9", notes: [C4, E4, G4, B4, D5], inversion: 0 }
+   * // Note: D5 is one octave above the root
+   *
+   * @example
+   * // Sharp notation is always used (enharmonic preference)
+   * buildChord('C', 'augmented', 4)
+   * // Returns notes: [C4, E4, G#4] (uses G# not Ab)
    */
   static buildChord(root: Note, type: ChordType, octave: number, inversion: number = 0): Chord {
     // Get the interval formula for this chord type

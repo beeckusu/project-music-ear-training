@@ -186,6 +186,50 @@ describe('ChordEngine', () => {
             { note: 'G' as Note, octave: 4 }
           ],
           expectedName: 'Dm11'
+        },
+        {
+          name: 'A minor 9',
+          root: 'A' as Note,
+          type: 'minor9' as ChordType,
+          octave: 3,
+          expectedNotes: [
+            { note: 'A' as Note, octave: 3 },
+            { note: 'C' as Note, octave: 4 },
+            { note: 'E' as Note, octave: 4 },
+            { note: 'G' as Note, octave: 4 },
+            { note: 'B' as Note, octave: 4 }
+          ],
+          expectedName: 'Am9'
+        },
+        {
+          name: 'C major 11',
+          root: 'C' as Note,
+          type: 'major11' as ChordType,
+          octave: 3,
+          expectedNotes: [
+            { note: 'C' as Note, octave: 3 },
+            { note: 'E' as Note, octave: 3 },
+            { note: 'G' as Note, octave: 3 },
+            { note: 'B' as Note, octave: 3 },
+            { note: 'D' as Note, octave: 4 },
+            { note: 'F' as Note, octave: 4 }
+          ],
+          expectedName: 'Cmaj11'
+        },
+        {
+          name: 'G dominant 11',
+          root: 'G' as Note,
+          type: 'dominant11' as ChordType,
+          octave: 3,
+          expectedNotes: [
+            { note: 'G' as Note, octave: 3 },
+            { note: 'B' as Note, octave: 3 },
+            { note: 'D' as Note, octave: 4 },
+            { note: 'F' as Note, octave: 4 },
+            { note: 'A' as Note, octave: 4 },
+            { note: 'C' as Note, octave: 5 }
+          ],
+          expectedName: 'G11'
         }
       ])('should build $name chord', ({ root, type, octave, expectedNotes, expectedName }) => {
         const chord = ChordEngine.buildChord(root, type, octave);
@@ -234,6 +278,19 @@ describe('ChordEngine', () => {
             { note: 'D' as Note, octave: 5 }
           ],
           expectedName: 'Cadd9'
+        },
+        {
+          name: 'F add11',
+          root: 'F' as Note,
+          type: 'add11' as ChordType,
+          octave: 3,
+          expectedNotes: [
+            { note: 'F' as Note, octave: 3 },
+            { note: 'A' as Note, octave: 3 },
+            { note: 'C' as Note, octave: 4 },
+            { note: 'A#' as Note, octave: 4 }
+          ],
+          expectedName: 'Fadd11'
         }
       ])('should build $name chord', ({ root, type, octave, expectedNotes, expectedName }) => {
         const chord = ChordEngine.buildChord(root, type, octave);
