@@ -82,6 +82,26 @@ export interface NoteFilter {
 }
 
 /**
+ * Represents a musical chord with all its component notes
+ */
+export interface Chord {
+  /** The full name of the chord (e.g., "C Major", "Am7", "Fdim") */
+  name: string;
+
+  /** The root note of the chord */
+  root: Note;
+
+  /** The type of chord (major, minor, diminished, etc.) */
+  type: ChordType;
+
+  /** The actual notes in the chord, sorted by pitch from low to high */
+  notes: NoteWithOctave[];
+
+  /** Optional inversion number (0 = root position, 1 = first inversion, etc.) */
+  inversion?: number;
+}
+
+/**
  * Filter configuration for controlling which chords appear in Note Training.
  * Similar to NoteFilter but designed for chord selection.
  */
@@ -238,4 +258,38 @@ export function isNotePlayable(noteWithOctave: NoteWithOctave, filter: NoteFilte
   }
 
   return true;
+}
+
+/**
+ * Type guard to check if a value is a valid NoteWithOctave
+ */
+export function isNoteWithOctave(value: unknown): value is NoteWithOctave {
+  if (!value || typeof value !== 'object') return false;
+
+  const obj = value as Record<string, unknown>;
+
+  return (
+    typeof obj.note === 'string' &&
+    typeof obj.octave === 'number' &&
+    obj.octave >= 1 &&
+    obj.octave <= 8
+  );
+}
+
+/**
+ * Type guard to check if a value is a valid Chord
+ */
+export function isChord(value: unknown): value is Chord {
+  if (!value || typeof value !== 'object') return false;
+
+  const obj = value as Record<string, unknown>;
+
+  return (
+    typeof obj.name === 'string' &&
+    typeof obj.root === 'string' &&
+    typeof obj.type === 'string' &&
+    Array.isArray(obj.notes) &&
+    obj.notes.every(isNoteWithOctave) &&
+    (obj.inversion === undefined || typeof obj.inversion === 'number')
+  );
 }
