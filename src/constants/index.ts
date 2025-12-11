@@ -81,5 +81,8 @@ export const ARIA_LABELS = {
   OPEN_SETTINGS: 'Open Settings'
 } as const;
 
+// Chord Filter Presets
+export * from './chordPresets';
+
 // Chord Constants
 export { CHORD_FORMULAS, CHORD_NAME_FORMATS, formatChordName } from './chords';
