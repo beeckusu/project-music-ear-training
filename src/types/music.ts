@@ -47,6 +47,7 @@ export const ChordType = {
 
   // Added Tone Chords
   ADD9: 'add9',
+  ADD11: 'add11',
   MAJOR_ADD9: 'majorAdd9',
   MINOR_ADD9: 'minorAdd9',
 } as const;

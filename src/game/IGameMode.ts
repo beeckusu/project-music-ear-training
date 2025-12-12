@@ -1,5 +1,4 @@
-import type { NoteWithOctave } from '../types/music';
-import type { NoteFilter } from '../types/filters';
+import type { NoteWithOctave, NoteFilter } from '../types/music';
 import type { GameStateWithDisplay } from './GameStateFactory';
 
 /**

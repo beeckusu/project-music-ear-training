@@ -10,8 +10,7 @@ import type {
 } from '../types/game';
 import type { CommonDisplayProps, GameActionResult } from './GameStateFactory';
 import type { IGameMode } from './IGameMode';
-import type { NoteWithOctave } from '../types/music';
-import type { NoteFilter } from '../types/filters';
+import type { NoteWithOctave, NoteFilter } from '../types/music';
 import { AudioEngine } from '../utils/audioEngine';
 import { EAR_TRAINING_SUB_MODES } from '../constants';
 import SandboxModeDisplay from '../components/modes/SandboxModeDisplay';
