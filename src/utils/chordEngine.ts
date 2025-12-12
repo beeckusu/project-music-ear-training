@@ -10,7 +10,7 @@
  * @module utils/chordEngine
  */
 
-import type { Note, NoteWithOctave, Chord, ChordType, Octave } from '../types/music';
+import type { Note, NoteWithOctave, Chord, ChordType, Octave, ChordFilter } from '../types/music';
 import { CHORD_FORMULAS, formatChordName } from '../constants/chords';
 import { ALL_NOTES } from '../types/music';
 
@@ -18,6 +18,12 @@ import { ALL_NOTES } from '../types/music';
  * Utility class for chord operations including generation, recognition, and validation
  */
 export class ChordEngine {
+  /**
+   * Cache for storing pre-calculated valid chords for each filter configuration.
+   * Maps filter hash to array of valid chords for performance optimization.
+   */
+  private static chordFilterCache: Map<string, Chord[]> = new Map();
+
   /**
    * Builds a chord from a root note, chord type, octave, and optional inversion
    *
@@ -371,6 +377,156 @@ export class ChordEngine {
 
     // No recognized chord found
     return null;
+  }
+
+  /**
+   * Generates a cache key from a ChordFilter for caching valid chords.
+   *
+   * This creates a deterministic string representation of the filter settings
+   * by sorting arrays to ensure consistent keys for equivalent filters.
+   *
+   * @param filter - The ChordFilter to generate a key for
+   * @returns A unique string key representing the filter configuration
+   */
+  private static getFilterCacheKey(filter: ChordFilter): string {
+    const sortedTypes = [...filter.allowedChordTypes].sort();
+    const sortedRootNotes = filter.allowedRootNotes
+      ? [...filter.allowedRootNotes].sort()
+      : null;
+    const sortedOctaves = [...filter.allowedOctaves].sort((a, b) => a - b);
+
+    const keyParts = [
+      `types:${sortedTypes.join(',')}`,
+      `roots:${sortedRootNotes ? sortedRootNotes.join(',') : 'all'}`,
+      `octaves:${sortedOctaves.join(',')}`,
+      `inversions:${filter.includeInversions}`,
+      `keyFilter:${filter.keyFilter ? `${filter.keyFilter.key}-${filter.keyFilter.scale}` : 'none'}`
+    ];
+
+    return keyParts.join('|');
+  }
+
+  /**
+   * Clears the chord filter cache.
+   *
+   * Use this method if you want to free up memory or force recalculation
+   * of valid chords for all filters.
+   */
+  static clearChordFilterCache(): void {
+    this.chordFilterCache.clear();
+  }
+
+  /**
+   * Generates a random chord based on ChordFilter settings
+   *
+   * This method creates all possible chords that match the filter constraints,
+   * then randomly selects one with even distribution. Similar to
+   * AudioEngine.getRandomNoteFromFilter() but for chord generation.
+   *
+   * **Performance Optimization:**
+   * Results are cached based on filter settings. The first call with a given
+   * filter calculates all valid chords, subsequent calls reuse the cached list.
+   * Use `clearChordFilterCache()` to clear the cache if needed.
+   *
+   * **Filter Constraints:**
+   * - allowedChordTypes: Which chord types to include (e.g., major, minor7, etc.)
+   * - allowedRootNotes: Which root notes are allowed (null = all 12 chromatic notes)
+   * - allowedOctaves: Which octaves the chord root can start in
+   * - includeInversions: Whether to include inversions (true) or only root position (false)
+   * - keyFilter: Optional diatonic key restriction (NOT YET IMPLEMENTED)
+   *
+   * **Distribution:**
+   * Each valid chord has equal probability of being selected. The method builds
+   * an array of all possible combinations and picks a random index.
+   *
+   * **Edge Cases:**
+   * - If no valid chords exist with the current filter, throws an error
+   * - Automatically skips invalid combinations (e.g., chords that exceed C8)
+   * - Empty allowedChordTypes or allowedOctaves will result in no valid chords
+   *
+   * @param filter - ChordFilter configuration specifying which chords are allowed
+   * @returns A randomly selected Chord object matching the filter constraints
+   * @throws {Error} If no valid chords are available with current filter settings
+   * @throws {Error} If keyFilter is specified (not yet implemented)
+   *
+   * @example
+   * // Get random major or minor chord in root position
+   * const filter: ChordFilter = {
+   *   allowedChordTypes: ['major', 'minor'],
+   *   allowedRootNotes: null, // All 12 notes
+   *   allowedOctaves: [3, 4],
+   *   includeInversions: false
+   * };
+   * const chord = ChordEngine.getRandomChordFromFilter(filter);
+   *
+   * @example
+   * // Get random triad with inversions, white keys only
+   * const filter: ChordFilter = {
+   *   allowedChordTypes: ['major', 'minor', 'diminished'],
+   *   allowedRootNotes: ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
+   *   allowedOctaves: [4],
+   *   includeInversions: true
+   * };
+   * const chord = ChordEngine.getRandomChordFromFilter(filter);
+   */
+  static getRandomChordFromFilter(filter: ChordFilter): Chord {
+    // keyFilter not yet implemented
+    if (filter.keyFilter) {
+      throw new Error('keyFilter is not yet implemented');
+    }
+
+    // Check cache first
+    const cacheKey = this.getFilterCacheKey(filter);
+    let validChords = this.chordFilterCache.get(cacheKey);
+
+    // If not cached, calculate and cache
+    if (!validChords) {
+      validChords = [];
+
+      // Determine which root notes to use
+      const rootNotes = filter.allowedRootNotes ?? ALL_NOTES;
+
+      // Iterate through all combinations
+      for (const chordType of filter.allowedChordTypes) {
+        for (const rootNote of rootNotes) {
+          for (const octave of filter.allowedOctaves) {
+            // Determine which inversions to try
+            const formula = CHORD_FORMULAS[chordType];
+            if (!formula) {
+              continue; // Skip unknown chord types
+            }
+
+            const maxInversion = formula.length - 1;
+            const inversionsToTry = filter.includeInversions
+              ? Array.from({ length: maxInversion + 1 }, (_, i) => i) // [0, 1, 2, ...]
+              : [0]; // Only root position
+
+            for (const inversion of inversionsToTry) {
+              try {
+                // Attempt to build the chord
+                const chord = this.buildChord(rootNote, chordType, octave, inversion);
+                validChords.push(chord);
+              } catch (error) {
+                // Skip invalid combinations (e.g., octave out of bounds)
+                continue;
+              }
+            }
+          }
+        }
+      }
+
+      // Check if we have any valid chords
+      if (validChords.length === 0) {
+        throw new Error('No valid chords available with current filter settings');
+      }
+
+      // Cache the result
+      this.chordFilterCache.set(cacheKey, validChords);
+    }
+
+    // Select a random chord with even distribution
+    const randomIndex = Math.floor(Math.random() * validChords.length);
+    return validChords[randomIndex];
   }
 }
 

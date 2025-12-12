@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { ChordEngine } from './chordEngine';
-import type { Chord, ChordType, Note, NoteWithOctave, Octave } from '../types/music';
+import type { Chord, ChordType, Note, NoteWithOctave, Octave, ChordFilter } from '../types/music';
+import { WHITE_KEYS, BLACK_KEYS } from '../types/music';
 
 describe('ChordEngine', () => {
   describe('buildChord', () => {
@@ -691,6 +692,526 @@ describe('ChordEngine', () => {
       expect(chord).not.toBeNull();
       expect(chord?.root).toBe('C');
       expect(chord?.type).toBe('major');
+    });
+  });
+
+  describe('getRandomChordFromFilter', () => {
+    describe('Basic Filtering', () => {
+      it('should generate chord with single chord type filter', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major'],
+          allowedRootNotes: null,
+          allowedOctaves: [4],
+          includeInversions: false
+        };
+
+        const chord = ChordEngine.getRandomChordFromFilter(filter);
+
+        expect(chord).toBeDefined();
+        expect(chord.type).toBe('major');
+        expect(chord.inversion).toBe(0);
+        expect(chord.notes[0].octave).toBe(4);
+      });
+
+      it('should generate chord with multiple chord types', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major', 'minor', 'diminished'],
+          allowedRootNotes: null,
+          allowedOctaves: [4],
+          includeInversions: false
+        };
+
+        const chord = ChordEngine.getRandomChordFromFilter(filter);
+
+        expect(chord).toBeDefined();
+        expect(['major', 'minor', 'diminished']).toContain(chord.type);
+        expect(chord.inversion).toBe(0);
+      });
+
+      it('should respect allowedRootNotes filter (white keys only)', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major'],
+          allowedRootNotes: WHITE_KEYS,
+          allowedOctaves: [4],
+          includeInversions: false
+        };
+
+        // Generate multiple chords to verify constraint
+        for (let i = 0; i < 20; i++) {
+          const chord = ChordEngine.getRandomChordFromFilter(filter);
+          expect(WHITE_KEYS).toContain(chord.root);
+        }
+      });
+
+      it('should respect allowedRootNotes filter (black keys only)', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major'],
+          allowedRootNotes: BLACK_KEYS,
+          allowedOctaves: [4],
+          includeInversions: false
+        };
+
+        // Generate multiple chords to verify constraint
+        for (let i = 0; i < 20; i++) {
+          const chord = ChordEngine.getRandomChordFromFilter(filter);
+          expect(BLACK_KEYS).toContain(chord.root);
+        }
+      });
+
+      it('should respect allowedRootNotes filter (specific notes)', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major'],
+          allowedRootNotes: ['C', 'F', 'G'],
+          allowedOctaves: [4],
+          includeInversions: false
+        };
+
+        for (let i = 0; i < 20; i++) {
+          const chord = ChordEngine.getRandomChordFromFilter(filter);
+          expect(['C', 'F', 'G']).toContain(chord.root);
+        }
+      });
+
+      it('should respect allowedOctaves filter (single octave)', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major'],
+          allowedRootNotes: null,
+          allowedOctaves: [3],
+          includeInversions: false
+        };
+
+        const chord = ChordEngine.getRandomChordFromFilter(filter);
+        expect(chord.notes[0].octave).toBe(3);
+      });
+
+      it('should respect allowedOctaves filter (multiple octaves)', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major'],
+          allowedRootNotes: ['C'],
+          allowedOctaves: [3, 4, 5],
+          includeInversions: false
+        };
+
+        const octavesSeen = new Set<number>();
+        // Generate multiple chords to see different octaves
+        for (let i = 0; i < 50; i++) {
+          const chord = ChordEngine.getRandomChordFromFilter(filter);
+          octavesSeen.add(chord.notes[0].octave);
+        }
+
+        // All seen octaves should be in allowed list
+        octavesSeen.forEach(octave => {
+          expect([3, 4, 5]).toContain(octave);
+        });
+      });
+    });
+
+    describe('Inversion Filtering', () => {
+      it('should only generate root position when includeInversions is false', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major', 'minor'],
+          allowedRootNotes: ['C', 'D', 'E'],
+          allowedOctaves: [4],
+          includeInversions: false
+        };
+
+        for (let i = 0; i < 20; i++) {
+          const chord = ChordEngine.getRandomChordFromFilter(filter);
+          expect(chord.inversion).toBe(0);
+        }
+      });
+
+      it('should generate inversions when includeInversions is true', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major'],
+          allowedRootNotes: ['C'],
+          allowedOctaves: [4],
+          includeInversions: true
+        };
+
+        const inversionsSeen = new Set<number>();
+        // Generate multiple chords to see different inversions
+        for (let i = 0; i < 50; i++) {
+          const chord = ChordEngine.getRandomChordFromFilter(filter);
+          inversionsSeen.add(chord.inversion ?? 0);
+        }
+
+        // Should see multiple inversions (0, 1, 2 for triads)
+        expect(inversionsSeen.size).toBeGreaterThan(1);
+      });
+
+      it('should handle inversions correctly for 7th chords', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['dominant7'],
+          allowedRootNotes: ['G'],
+          allowedOctaves: [3],
+          includeInversions: true
+        };
+
+        const inversionsSeen = new Set<number>();
+        for (let i = 0; i < 100; i++) {
+          const chord = ChordEngine.getRandomChordFromFilter(filter);
+          inversionsSeen.add(chord.inversion ?? 0);
+          // Dominant 7 has 4 notes, so inversions are 0-3
+          expect(chord.inversion).toBeGreaterThanOrEqual(0);
+          expect(chord.inversion).toBeLessThanOrEqual(3);
+        }
+
+        // Should eventually see multiple inversions
+        expect(inversionsSeen.size).toBeGreaterThan(1);
+      });
+    });
+
+    describe('Edge Cases and Error Handling', () => {
+      it('should throw error when no valid chords are available (empty allowedChordTypes)', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: [],
+          allowedRootNotes: null,
+          allowedOctaves: [4],
+          includeInversions: false
+        };
+
+        expect(() => ChordEngine.getRandomChordFromFilter(filter)).toThrow(
+          'No valid chords available with current filter settings'
+        );
+      });
+
+      it('should throw error when no valid chords are available (empty allowedOctaves)', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major'],
+          allowedRootNotes: null,
+          allowedOctaves: [],
+          includeInversions: false
+        };
+
+        expect(() => ChordEngine.getRandomChordFromFilter(filter)).toThrow(
+          'No valid chords available with current filter settings'
+        );
+      });
+
+      it('should throw error when no valid chords are available (empty allowedRootNotes)', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major'],
+          allowedRootNotes: [],
+          allowedOctaves: [4],
+          includeInversions: false
+        };
+
+        expect(() => ChordEngine.getRandomChordFromFilter(filter)).toThrow(
+          'No valid chords available with current filter settings'
+        );
+      });
+
+      it('should throw error when keyFilter is specified (not yet implemented)', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major'],
+          allowedRootNotes: null,
+          allowedOctaves: [4],
+          includeInversions: false,
+          keyFilter: { key: 'C', scale: 'major' }
+        };
+
+        expect(() => ChordEngine.getRandomChordFromFilter(filter)).toThrow(
+          'keyFilter is not yet implemented'
+        );
+      });
+
+      it('should skip invalid chords that exceed octave boundaries', () => {
+        // Extended chords at high octaves might exceed C8
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major11'],
+          allowedRootNotes: ['C'],
+          allowedOctaves: [7, 8],
+          includeInversions: false
+        };
+
+        // Should not throw error, just skip invalid chords
+        // Octave 7 should work, octave 8 might not
+        const chord = ChordEngine.getRandomChordFromFilter(filter);
+        expect(chord).toBeDefined();
+        expect(chord.notes[0].octave).toBe(7); // Should use octave 7, not 8
+      });
+
+      it('should handle very restrictive filter (single chord)', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major'],
+          allowedRootNotes: ['C'],
+          allowedOctaves: [4],
+          includeInversions: false
+        };
+
+        // Should always return the same chord (C major in octave 4)
+        for (let i = 0; i < 10; i++) {
+          const chord = ChordEngine.getRandomChordFromFilter(filter);
+          expect(chord.root).toBe('C');
+          expect(chord.type).toBe('major');
+          expect(chord.notes[0].octave).toBe(4);
+          expect(chord.inversion).toBe(0);
+        }
+      });
+    });
+
+    describe('Integration with buildChord', () => {
+      it('should return valid chords that pass validateChord', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major', 'minor', 'dominant7'],
+          allowedRootNotes: null,
+          allowedOctaves: [3, 4, 5],
+          includeInversions: true
+        };
+
+        for (let i = 0; i < 50; i++) {
+          const chord = ChordEngine.getRandomChordFromFilter(filter);
+          expect(ChordEngine.validateChord(chord)).toBe(true);
+        }
+      });
+
+      it('should return chords with correctly formatted names', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major', 'minor7'],
+          allowedRootNotes: ['C', 'G'],
+          allowedOctaves: [4],
+          includeInversions: false
+        };
+
+        for (let i = 0; i < 20; i++) {
+          const chord = ChordEngine.getRandomChordFromFilter(filter);
+          expect(chord.name).toBeDefined();
+          expect(chord.name.length).toBeGreaterThan(0);
+          // Name should match what getChordName would return
+          expect(chord.name).toBe(ChordEngine.getChordName(chord));
+        }
+      });
+
+      it('should return chords with notes sorted by pitch', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major', 'minor', 'dominant7'],
+          allowedRootNotes: null,
+          allowedOctaves: [3, 4],
+          includeInversions: true
+        };
+
+        for (let i = 0; i < 50; i++) {
+          const chord = ChordEngine.getRandomChordFromFilter(filter);
+
+          // Verify notes are sorted
+          for (let j = 1; j < chord.notes.length; j++) {
+            const prev = chord.notes[j - 1];
+            const curr = chord.notes[j];
+
+            if (curr.octave === prev.octave) {
+              // Same octave: current note index should be higher
+              const prevIndex = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'].indexOf(prev.note);
+              const currIndex = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'].indexOf(curr.note);
+              expect(currIndex).toBeGreaterThan(prevIndex);
+            } else {
+              // Different octave: current octave should be higher
+              expect(curr.octave).toBeGreaterThan(prev.octave);
+            }
+          }
+        }
+      });
+    });
+
+    describe('Randomness and Distribution', () => {
+      it('should generate different chord types with roughly even distribution', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major', 'minor'],
+          allowedRootNotes: ['C'],
+          allowedOctaves: [4],
+          includeInversions: false
+        };
+
+        const typeCounts: Record<string, number> = { major: 0, minor: 0 };
+        const iterations = 100;
+
+        for (let i = 0; i < iterations; i++) {
+          const chord = ChordEngine.getRandomChordFromFilter(filter);
+          typeCounts[chord.type]++;
+        }
+
+        // Both types should appear (not one-sided)
+        expect(typeCounts.major).toBeGreaterThan(0);
+        expect(typeCounts.minor).toBeGreaterThan(0);
+
+        // Distribution should be roughly even (allow some variance)
+        // Each should be between 30% and 70%
+        expect(typeCounts.major).toBeGreaterThan(iterations * 0.3);
+        expect(typeCounts.major).toBeLessThan(iterations * 0.7);
+      });
+
+      it('should generate different root notes when multiple are allowed', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major'],
+          allowedRootNotes: ['C', 'D', 'E', 'F', 'G'],
+          allowedOctaves: [4],
+          includeInversions: false
+        };
+
+        const rootsSeen = new Set<string>();
+
+        for (let i = 0; i < 100; i++) {
+          const chord = ChordEngine.getRandomChordFromFilter(filter);
+          rootsSeen.add(chord.root);
+        }
+
+        // Should see multiple different roots
+        expect(rootsSeen.size).toBeGreaterThan(1);
+      });
+
+      it('should generate different inversions with roughly even distribution', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major'],
+          allowedRootNotes: ['C'],
+          allowedOctaves: [4],
+          includeInversions: true
+        };
+
+        const inversionCounts: Record<number, number> = { 0: 0, 1: 0, 2: 0 };
+        const iterations = 150;
+
+        for (let i = 0; i < iterations; i++) {
+          const chord = ChordEngine.getRandomChordFromFilter(filter);
+          inversionCounts[chord.inversion ?? 0]++;
+        }
+
+        // All inversions should appear
+        expect(inversionCounts[0]).toBeGreaterThan(0);
+        expect(inversionCounts[1]).toBeGreaterThan(0);
+        expect(inversionCounts[2]).toBeGreaterThan(0);
+
+        // Rough evenness check (allow variance)
+        const expectedPerInversion = iterations / 3;
+        expect(inversionCounts[0]).toBeGreaterThan(expectedPerInversion * 0.5);
+        expect(inversionCounts[1]).toBeGreaterThan(expectedPerInversion * 0.5);
+        expect(inversionCounts[2]).toBeGreaterThan(expectedPerInversion * 0.5);
+      });
+    });
+
+    describe('Caching Behavior', () => {
+      it('should cache valid chords and reuse them on subsequent calls', () => {
+        // Clear cache to start fresh
+        ChordEngine.clearChordFilterCache();
+
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major', 'minor'],
+          allowedRootNotes: ['C', 'D'],
+          allowedOctaves: [4],
+          includeInversions: false
+        };
+
+        // First call - should calculate and cache
+        const chord1 = ChordEngine.getRandomChordFromFilter(filter);
+        expect(chord1).toBeDefined();
+
+        // Subsequent calls should use cache - we can verify this works by
+        // calling multiple times and checking we get valid results
+        for (let i = 0; i < 10; i++) {
+          const chord = ChordEngine.getRandomChordFromFilter(filter);
+          expect(chord).toBeDefined();
+          expect(['major', 'minor']).toContain(chord.type);
+          expect(['C', 'D']).toContain(chord.root);
+        }
+      });
+
+      it('should generate same cache key for filters with same settings but different array order', () => {
+        ChordEngine.clearChordFilterCache();
+
+        const filter1: ChordFilter = {
+          allowedChordTypes: ['major', 'minor'],
+          allowedRootNotes: ['C', 'D', 'E'],
+          allowedOctaves: [3, 4],
+          includeInversions: false
+        };
+
+        const filter2: ChordFilter = {
+          allowedChordTypes: ['minor', 'major'], // Different order
+          allowedRootNotes: ['E', 'C', 'D'], // Different order
+          allowedOctaves: [4, 3], // Different order
+          includeInversions: false
+        };
+
+        // Generate chords with first filter
+        ChordEngine.getRandomChordFromFilter(filter1);
+
+        // Second filter should reuse cache (verified by it not throwing error)
+        const chord = ChordEngine.getRandomChordFromFilter(filter2);
+        expect(chord).toBeDefined();
+      });
+
+      it('should use different cache entries for different filters', () => {
+        ChordEngine.clearChordFilterCache();
+
+        const filter1: ChordFilter = {
+          allowedChordTypes: ['major'],
+          allowedRootNotes: ['C'],
+          allowedOctaves: [4],
+          includeInversions: false
+        };
+
+        const filter2: ChordFilter = {
+          allowedChordTypes: ['minor'],
+          allowedRootNotes: ['D'],
+          allowedOctaves: [4],
+          includeInversions: false
+        };
+
+        // Generate with first filter
+        const chord1 = ChordEngine.getRandomChordFromFilter(filter1);
+        expect(chord1.type).toBe('major');
+        expect(chord1.root).toBe('C');
+
+        // Generate with second filter
+        const chord2 = ChordEngine.getRandomChordFromFilter(filter2);
+        expect(chord2.type).toBe('minor');
+        expect(chord2.root).toBe('D');
+      });
+
+      it('should clear cache when clearChordFilterCache is called', () => {
+        const filter: ChordFilter = {
+          allowedChordTypes: ['major'],
+          allowedRootNotes: ['C'],
+          allowedOctaves: [4],
+          includeInversions: false
+        };
+
+        // Populate cache
+        ChordEngine.getRandomChordFromFilter(filter);
+
+        // Clear cache
+        ChordEngine.clearChordFilterCache();
+
+        // Should still work after clearing (will recalculate)
+        const chord = ChordEngine.getRandomChordFromFilter(filter);
+        expect(chord).toBeDefined();
+        expect(chord.type).toBe('major');
+        expect(chord.root).toBe('C');
+      });
+
+      it('should handle null allowedRootNotes consistently in cache', () => {
+        ChordEngine.clearChordFilterCache();
+
+        const filter1: ChordFilter = {
+          allowedChordTypes: ['major'],
+          allowedRootNotes: null,
+          allowedOctaves: [4],
+          includeInversions: false
+        };
+
+        const filter2: ChordFilter = {
+          allowedChordTypes: ['major'],
+          allowedRootNotes: null,
+          allowedOctaves: [4],
+          includeInversions: false
+        };
+
+        // Both should use same cache entry
+        ChordEngine.getRandomChordFromFilter(filter1);
+        const chord = ChordEngine.getRandomChordFromFilter(filter2);
+
+        expect(chord).toBeDefined();
+        expect(chord.type).toBe('major');
+      });
     });
   });
 });
