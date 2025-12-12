@@ -143,6 +143,59 @@ export class AudioEngine {
     instrument.triggerAttackRelease(noteStrings, duration);
   }
 
+  /**
+   * Plays a chord with notes in sequence (arpeggio) rather than simultaneously.
+   * Notes are played in ascending pitch order.
+   *
+   * @param chord - The chord object containing notes to arpeggiate
+   * @param noteDuration - Duration each note plays in seconds
+   * @param delayBetweenNotes - Delay between note starts in seconds
+   * @throws Error if AudioEngine is not initialized
+   * @throws Error if chord has no notes
+   * @throws Error if current instrument is not found
+   * @throws Error if noteDuration or delayBetweenNotes are not positive numbers
+   *
+   * @example
+   * ```typescript
+   * const cMajor = { root: { note: 'C', octave: 4 }, notes: [{ note: 'C', octave: 4 }, { note: 'E', octave: 4 }, { note: 'G', octave: 4 }] };
+   * // Play each note for 0.5 seconds with 0.1 second delay between starts
+   * audioEngine.playChordArpeggio(cMajor, 0.5, 0.1);
+   * ```
+   */
+  playChordArpeggio(chord: Chord, noteDuration: number, delayBetweenNotes: number): void {
+    if (!this.isInitialized) {
+      throw new Error('AudioEngine not initialized. Call initialize() first.');
+    }
+
+    if (!chord.notes || chord.notes.length === 0) {
+      throw new Error('Chord must contain at least one note');
+    }
+
+    const instrument = this.instruments.get(this.currentInstrument);
+    if (!instrument) {
+      throw new Error(`Instrument ${this.currentInstrument} not found`);
+    }
+
+    if (noteDuration <= 0) {
+      throw new Error('noteDuration must be a positive number');
+    }
+
+    if (delayBetweenNotes <= 0) {
+      throw new Error('delayBetweenNotes must be a positive number');
+    }
+
+    // Play each note sequentially with configurable delay
+    // Notes are already sorted by pitch in ascending order per Chord interface
+    chord.notes.forEach((note, index) => {
+      const noteString = `${note.note}${note.octave}`;
+      const startTime = index * delayBetweenNotes * 1000; // Convert to milliseconds
+
+      setTimeout(() => {
+        instrument.triggerAttackRelease(noteString, noteDuration);
+      }, startTime);
+    });
+  }
+
   static noteToFrequency(noteWithOctave: NoteWithOctave): number {
     return Tone.Frequency(noteWithOctave.note + noteWithOctave.octave).toFrequency();
   }
