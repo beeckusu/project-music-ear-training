@@ -47,13 +47,6 @@ export interface GameStateWithDisplay extends BaseGameState {
   getCompletionMessage: () => string;
   getSessionSettings: () => Record<string, any>;
   getSessionResults: (stats: GameStats) => Record<string, any>;
-
-  // Timer management
-  initializeTimer: (responseTimeLimit: number | null, isPaused: boolean, onTimeUp: () => void, onTimeUpdate?: (timeRemaining: number) => void) => void;
-  getTimerState: () => { timeRemaining: number; isActive: boolean };
-  pauseTimer: () => void;
-  resumeTimer: () => void;
-  resetTimer: () => void;
 }
 
 // Factory function

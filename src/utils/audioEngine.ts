@@ -1,5 +1,5 @@
 import * as Tone from 'tone';
-import type { Note, Octave, NoteWithOctave, NoteFilter } from '../types/music';
+import type { Note, Octave, NoteWithOctave, NoteFilter, Chord } from '../types/music';
 import { InstrumentType } from '../types/music';
 import { isNotePlayable, ALL_NOTES } from '../types/music';
 
@@ -14,9 +14,9 @@ export class AudioEngine {
   }
 
   private initializeInstruments() {
-    this.instruments.set(InstrumentType.SYNTH, new Tone.Synth().toDestination());
+    this.instruments.set(InstrumentType.SYNTH, new Tone.PolySynth(Tone.Synth).toDestination());
     this.instruments.set(InstrumentType.PIANO, new Tone.PolySynth(Tone.Synth).toDestination());
-    this.instruments.set(InstrumentType.FM, new Tone.FMSynth().toDestination());
+    this.instruments.set(InstrumentType.FM, new Tone.PolySynth(Tone.FMSynth).toDestination());
     this.instruments.set(InstrumentType.MONO, new Tone.MonoSynth().toDestination());
 
     this.updateVolume();
@@ -59,6 +59,88 @@ export class AudioEngine {
 
     const noteString = `${noteWithOctave.note}${noteWithOctave.octave}`;
     instrument.triggerAttackRelease(noteString, duration);
+  }
+
+  /**
+   * Plays a chord (multiple notes simultaneously).
+   *
+   * @param chord - The chord object containing notes to play
+   * @param duration - Duration in Tone.js notation (e.g., '8n', '4n', '2n', '1n'). Defaults to '2n'.
+   * @throws Error if AudioEngine is not initialized
+   * @throws Error if chord has no notes
+   * @throws Error if current instrument is MONO (cannot play chords)
+   *
+   * @example
+   * ```typescript
+   * const cMajor = { root: { note: 'C', octave: 4 }, notes: [{ note: 'C', octave: 4 }, { note: 'E', octave: 4 }, { note: 'G', octave: 4 }] };
+   * audioEngine.playChord(cMajor, '2n');
+   * ```
+   */
+  playChord(chord: Chord, duration: string = '2n') {
+    if (!this.isInitialized) {
+      throw new Error('AudioEngine not initialized. Call initialize() first.');
+    }
+
+    if (!chord.notes || chord.notes.length === 0) {
+      throw new Error('Chord must contain at least one note');
+    }
+
+    const instrument = this.instruments.get(this.currentInstrument);
+    if (!instrument) {
+      throw new Error(`Instrument ${this.currentInstrument} not found`);
+    }
+
+    // MONO instrument cannot play chords (monophonic by design)
+    if (this.currentInstrument === InstrumentType.MONO) {
+      throw new Error('MONO instrument cannot play chords. Please switch to SYNTH, PIANO, or FM for polyphonic playback.');
+    }
+
+    // Convert chord notes to Tone.js note strings
+    const noteStrings = chord.notes.map(note => `${note.note}${note.octave}`);
+
+    // Play all notes simultaneously
+    instrument.triggerAttackRelease(noteStrings, duration);
+  }
+
+  /**
+   * Plays multiple notes simultaneously from an array.
+   * More flexible than playChord() as it doesn't require a full Chord object.
+   *
+   * @param notes - Array of notes to play simultaneously
+   * @param duration - Duration in Tone.js notation (e.g., '8n', '4n', '2n', '1n'). Defaults to '2n'.
+   * @throws Error if AudioEngine is not initialized
+   * @throws Error if notes array is empty
+   * @throws Error if current instrument is MONO (cannot play multiple notes)
+   *
+   * @example
+   * ```typescript
+   * audioEngine.playNotes([{ note: 'C', octave: 4 }, { note: 'E', octave: 4 }, { note: 'G', octave: 4 }], '4n');
+   * ```
+   */
+  playNotes(notes: NoteWithOctave[], duration: string = '2n') {
+    if (!this.isInitialized) {
+      throw new Error('AudioEngine not initialized. Call initialize() first.');
+    }
+
+    if (!notes || notes.length === 0) {
+      throw new Error('Notes array must contain at least one note');
+    }
+
+    const instrument = this.instruments.get(this.currentInstrument);
+    if (!instrument) {
+      throw new Error(`Instrument ${this.currentInstrument} not found`);
+    }
+
+    // MONO instrument cannot play multiple notes (monophonic by design)
+    if (this.currentInstrument === InstrumentType.MONO && notes.length > 1) {
+      throw new Error('MONO instrument cannot play multiple notes simultaneously. Please switch to SYNTH, PIANO, or FM for polyphonic playback.');
+    }
+
+    // Convert notes to Tone.js note strings
+    const noteStrings = notes.map(note => `${note.note}${note.octave}`);
+
+    // Play all notes simultaneously
+    instrument.triggerAttackRelease(noteStrings, duration);
   }
 
   static noteToFrequency(noteWithOctave: NoteWithOctave): number {

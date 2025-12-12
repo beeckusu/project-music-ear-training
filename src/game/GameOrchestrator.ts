@@ -7,7 +7,7 @@ import type { NoteWithOctave, NoteDuration } from '../types/music';
 import { EventEmitter } from '../utils/EventEmitter';
 import type { OrchestratorEvents } from './OrchestratorEvents';
 import type { IGameMode } from './IGameMode';
-import type { NoteFilter } from '../types/filters';
+import type { NoteFilter } from '../types/music';
 import type { GuessAttempt } from '../types/game';
 import { LOGS_STATE_ENABLED, LOGS_EVENTS_ENABLED, LOGS_TIMERS_ENABLED, LOGS_USER_ACTIONS_ENABLED } from '../config/logging';
 import { createGameState } from './GameStateFactory';

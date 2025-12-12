@@ -60,6 +60,11 @@ export const CHORD_FORMULAS: Record<ChordType, number[]> = {
   minor11: [0, 3, 7, 10, 14, 17],
   dominant11: [0, 4, 7, 10, 14, 17],
 
+  // Extended chords (13ths)
+  major13: [0, 4, 7, 11, 14, 21],
+  minor13: [0, 3, 7, 10, 14, 21],
+  dominant13: [0, 4, 7, 10, 14, 21],
+
   // Suspended chords
   sus2: [0, 2, 7],
   sus4: [0, 5, 7],
@@ -67,6 +72,8 @@ export const CHORD_FORMULAS: Record<ChordType, number[]> = {
   // Added tone chords
   add9: [0, 4, 7, 14],
   add11: [0, 4, 7, 17],
+  majorAdd9: [0, 4, 7, 14],
+  minorAdd9: [0, 3, 7, 14],
 } as const;
 
 /**
@@ -107,6 +114,11 @@ export const CHORD_NAME_FORMATS: Record<ChordType, string> = {
   minor11: 'm11',      // C Minor 11 → "Cm11"
   dominant11: '11',    // C Dominant 11 → "C11"
 
+  // Extended chords (13ths)
+  major13: 'maj13',    // C Major 13 → "Cmaj13"
+  minor13: 'm13',      // C Minor 13 → "Cm13"
+  dominant13: '13',    // C Dominant 13 → "C13"
+
   // Suspended chords
   sus2: 'sus2',        // C Suspended 2 → "Csus2"
   sus4: 'sus4',        // C Suspended 4 → "Csus4"
@@ -114,6 +126,8 @@ export const CHORD_NAME_FORMATS: Record<ChordType, string> = {
   // Added tone chords
   add9: 'add9',        // C Add 9 → "Cadd9"
   add11: 'add11',      // C Add 11 → "Cadd11"
+  majorAdd9: 'add9',   // C Major Add 9 → "Cadd9"
+  minorAdd9: 'madd9',  // C Minor Add 9 → "Cmadd9"
 } as const;
 
 /**
