@@ -12,7 +12,7 @@ export interface GuessAttempt {
   isCorrect: boolean;
 }
 
-export type ModeType = EarTrainingSubMode;
+export type ModeType = EarTrainingSubMode | NoteTrainingSubMode;
 
 export interface RushModeSettings {
   targetNotes: number; // Number of correct notes to hit
