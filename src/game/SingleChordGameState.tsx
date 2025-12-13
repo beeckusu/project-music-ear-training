@@ -1,0 +1,542 @@
+import React from 'react';
+import type {
+  BaseGameState,
+  NoteTrainingModeSettings,
+  GameStats,
+  StatItem,
+  HistoryItem,
+  GameSession
+} from '../types/game';
+import type { CommonDisplayProps, GameActionResult, GameStateWithDisplay } from './GameStateFactory';
+import type { Chord, NoteWithOctave } from '../types/music';
+import { AudioEngine } from '../utils/audioEngine';
+import { NOTE_TRAINING_SUB_MODES } from '../constants';
+
+/**
+ * Game state implementation for "Single Chord" mode.
+ *
+ * In this mode:
+ * - A chord is played/displayed to the user
+ * - The user must identify all individual notes that make up the chord
+ * - Tracks partial correctness (which notes are correct/incorrect)
+ * - Supports multiple completion criteria (target chords, accuracy, duration)
+ */
+export class SingleChordGameState implements GameStateWithDisplay {
+  // BaseGameState properties
+  elapsedTime: number = 0;
+  isCompleted: boolean = false;
+  totalAttempts: number = 0;
+  longestStreak: number = 0;
+  currentStreak: number = 0;
+  startTime?: Date;
+
+  // Mode-specific properties
+  currentChord: Chord | null = null;
+  selectedNotes: Set<NoteWithOctave> = new Set();
+  correctNotes: Set<NoteWithOctave> = new Set();
+  incorrectNotes: Set<NoteWithOctave> = new Set();
+  correctChordsCount: number = 0;
+  noteTrainingSettings: NoteTrainingModeSettings;
+
+  /**
+   * Creates a new ShowChordGuessNotesGameState instance.
+   *
+   * @param noteTrainingSettings - Configuration for note training mode including
+   *                               chord filters, session duration, and target goals
+   */
+  constructor(noteTrainingSettings: NoteTrainingModeSettings) {
+    this.noteTrainingSettings = noteTrainingSettings;
+  }
+
+  // Placeholder for modeDisplay - will be implemented when display component is created
+  modeDisplay = (props: CommonDisplayProps) => {
+    return React.createElement('div', null, 'Show Chord Guess Notes Mode - Display Coming Soon');
+  };
+
+  /**
+   * Handles a successful chord identification.
+   * Called when the user has correctly identified all notes in the current chord.
+   *
+   * @returns GameActionResult indicating whether the game is complete and relevant stats
+   */
+  handleCorrectGuess = (): GameActionResult => {
+    const newCorrectCount = this.correctChordsCount + 1;
+    const newCurrentStreak = this.currentStreak + 1;
+    const newLongestStreak = Math.max(this.longestStreak, newCurrentStreak);
+    const newTotalAttempts = this.totalAttempts + 1;
+
+    // Update state
+    this.correctChordsCount = newCorrectCount;
+    this.currentStreak = newCurrentStreak;
+    this.longestStreak = newLongestStreak;
+    this.totalAttempts = newTotalAttempts;
+
+    // Check completion conditions
+    const targetChords = this.noteTrainingSettings.targetChords;
+    const hasReachedTarget = targetChords && newCorrectCount >= targetChords;
+
+    if (hasReachedTarget) {
+      this.isCompleted = true;
+
+      const finalStats: GameStats = {
+        completionTime: this.elapsedTime,
+        accuracy: (newCorrectCount / newTotalAttempts) * 100,
+        averageTimePerNote: this.elapsedTime / newCorrectCount,
+        longestStreak: newLongestStreak,
+        totalAttempts: newTotalAttempts,
+        correctAttempts: newCorrectCount
+      };
+
+      return {
+        gameCompleted: true,
+        feedback: `🎉 Note Training Complete! ${newCorrectCount}/${targetChords} chords identified`,
+        shouldAdvance: false,
+        stats: finalStats
+      };
+    }
+
+    return {
+      gameCompleted: false,
+      feedback: `Correct! ${newCorrectCount}/${targetChords || '∞'} chords identified`,
+      shouldAdvance: true
+    };
+  };
+
+  /**
+   * Handles an incorrect chord guess attempt.
+   * Called when the user submits an incorrect set of notes.
+   *
+   * @returns GameActionResult indicating to stay on current chord
+   */
+  handleIncorrectGuess = (): GameActionResult => {
+    this.currentStreak = 0;
+    this.totalAttempts = this.totalAttempts + 1;
+
+    return {
+      gameCompleted: false,
+      feedback: 'Not quite right. Keep trying!',
+      shouldAdvance: false
+    };
+  };
+
+  /**
+   * Updates the game state with partial updates.
+   *
+   * @param updates - Partial state updates to apply
+   */
+  updateState = (updates: Partial<BaseGameState>) => {
+    Object.assign(this, updates);
+  };
+
+  /**
+   * Gets the current feedback message to display to the user.
+   *
+   * @param currentNote - Whether there's currently a chord being played
+   * @returns Feedback message string
+   */
+  getFeedbackMessage = (currentNote: boolean): string => {
+    if (!currentNote || !this.currentChord) {
+      return 'Click "Start Practice" to begin chord training';
+    }
+
+    const totalNotes = this.currentChord.notes.length;
+    const correctCount = this.correctNotes.size;
+
+    return `Select all notes in the chord (${correctCount}/${totalNotes} identified)`;
+  };
+
+  /**
+   * Hook called when starting a new round.
+   * Generates a new chord and resets selection state.
+   */
+  onStartNewRound = (): void => {
+    // Track start time on first round
+    if (!this.startTime && !this.isCompleted) {
+      this.startTime = new Date();
+    }
+
+    // Generate new chord
+    this.currentChord = AudioEngine.getRandomChordFromFilter(
+      this.noteTrainingSettings.chordFilter
+    );
+
+    // Reset selection state for new chord
+    this.selectedNotes = new Set();
+    this.correctNotes = new Set();
+    this.incorrectNotes = new Set();
+  };
+
+  /**
+   * Gets the timer mode for this game state.
+   *
+   * @returns Timer mode based on session settings
+   */
+  getTimerMode = (): 'count-up' | 'count-down' | 'none' => {
+    return this.noteTrainingSettings.sessionDuration > 0 ? 'count-down' : 'count-up';
+  };
+
+  /**
+   * Gets the completion message to display when the game ends.
+   *
+   * @returns Completion message string
+   */
+  getCompletionMessage = (): string => {
+    if (!this.isCompleted) return '';
+    return '🎉 Note Training Complete! Piano is now in free play mode.';
+  };
+
+  /**
+   * Gets the session settings for history tracking.
+   *
+   * @returns Session settings object
+   */
+  getSessionSettings = (): Record<string, any> => {
+    return {
+      selectedSubMode: this.noteTrainingSettings.selectedSubMode,
+      targetChords: this.noteTrainingSettings.targetChords,
+      sessionDuration: this.noteTrainingSettings.sessionDuration,
+      chordFilter: this.noteTrainingSettings.chordFilter
+    };
+  };
+
+  /**
+   * Gets the session results for history tracking.
+   *
+   * @param stats - Game statistics
+   * @returns Session results object
+   */
+  getSessionResults = (stats: GameStats): Record<string, any> => {
+    return {
+      chordsCompleted: stats.correctAttempts,
+      longestStreak: stats.longestStreak,
+      averageTimePerChord: stats.averageTimePerNote,
+      accuracy: stats.accuracy
+    };
+  };
+
+  // ========================================
+  // End Screen Strategy Methods
+  // ========================================
+
+  /**
+   * Gets the celebration emoji for the end screen.
+   *
+   * @param sessionResults - Results from the completed session
+   * @returns Emoji string
+   */
+  getCelebrationEmoji = (sessionResults: Record<string, any>): string => {
+    return '🎵';
+  };
+
+  /**
+   * Gets the header title for the end screen.
+   *
+   * @param sessionResults - Results from the completed session
+   * @returns Header title string
+   */
+  getHeaderTitle = (sessionResults: Record<string, any>): string => {
+    return 'Well Done!';
+  };
+
+  /**
+   * Gets the mode completion text for the end screen.
+   *
+   * @param sessionResults - Results from the completed session
+   * @returns Mode completion text
+   */
+  getModeCompletionText = (sessionResults: Record<string, any>): string => {
+    return 'Note Training Complete';
+  };
+
+  /**
+   * Gets the performance rating based on game statistics.
+   *
+   * @param gameStats - Statistics from the game
+   * @param sessionResults - Results from the session
+   * @returns Performance rating string
+   */
+  getPerformanceRating = (gameStats: GameStats, sessionResults: Record<string, any>): string => {
+    const accuracy = gameStats.accuracy;
+
+    if (accuracy >= 95) return 'Perfect Pitch! 🌟';
+    if (accuracy >= 85) return 'Excellent Ear! 🎯';
+    if (accuracy >= 75) return 'Great Progress! 🎵';
+    if (accuracy >= 65) return 'Keep Practicing! 📚';
+    return 'Good Effort! 💪';
+  };
+
+  /**
+   * Gets the header theme CSS class for the end screen.
+   *
+   * @param sessionResults - Results from the completed session
+   * @returns CSS class name
+   */
+  getHeaderThemeClass = (sessionResults: Record<string, any>): string => {
+    return 'note-training-complete';
+  };
+
+  /**
+   * Gets the stats items to display on the end screen.
+   *
+   * @param gameStats - Statistics from the game
+   * @param sessionResults - Results from the session
+   * @returns Array of stat items
+   */
+  getStatsItems = (gameStats: GameStats, sessionResults: Record<string, any>): StatItem[] => {
+    const formatTime = (seconds: number): string => {
+      const minutes = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${minutes}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    return [
+      {
+        label: 'Time',
+        value: formatTime(gameStats.completionTime),
+        className: 'stat-neutral'
+      },
+      {
+        label: 'Accuracy',
+        value: `${gameStats.accuracy.toFixed(1)}%`,
+        className: gameStats.accuracy >= 85 ? 'stat-success' : gameStats.accuracy >= 65 ? 'stat-neutral' : 'stat-warning'
+      },
+      {
+        label: 'Chords Completed',
+        value: `${sessionResults.chordsCompleted}`,
+        className: 'stat-neutral'
+      },
+      {
+        label: 'Average per Chord',
+        value: `${sessionResults.averageTimePerChord.toFixed(1)}s`,
+        className: sessionResults.averageTimePerChord <= 5.0 ? 'stat-success' : 'stat-neutral'
+      },
+      {
+        label: 'Longest Streak',
+        value: sessionResults.longestStreak.toString(),
+        className: 'stat-neutral'
+      },
+      {
+        label: 'Total Attempts',
+        value: `${gameStats.correctAttempts}/${gameStats.totalAttempts}`,
+        className: 'stat-neutral'
+      }
+    ];
+  };
+
+  /**
+   * Gets additional stats section for the end screen.
+   *
+   * @param sessionResults - Results from the completed session
+   * @returns React node or null
+   */
+  getAdditionalStatsSection = (sessionResults: Record<string, any>): React.ReactNode => {
+    return null; // Note training mode doesn't need additional sections
+  };
+
+  /**
+   * Gets the history section title.
+   *
+   * @param settings - Session settings
+   * @returns History title string
+   */
+  getHistoryTitle = (settings: Record<string, any>): string => {
+    const targetChords = settings.targetChords || 'Practice';
+    return `Your Recent Chord Training Sessions (${targetChords} chords)`;
+  };
+
+  /**
+   * Gets the history items to display.
+   *
+   * @param sessions - Array of game sessions
+   * @returns Array of history items
+   */
+  getHistoryItems = (sessions: GameSession[]): HistoryItem[] => {
+    const formatTime = (seconds: number): string => {
+      const minutes = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${minutes}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const formatRelativeTime = (timestamp: Date): string => {
+      const now = new Date();
+      const diffMs = now.getTime() - timestamp.getTime();
+      const diffMinutes = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMinutes / 60);
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffMinutes < 1) return 'just now';
+      if (diffMinutes < 60) return `${diffMinutes}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffDays < 7) return `${diffDays}d ago`;
+      return timestamp.toLocaleDateString();
+    };
+
+    return sessions.map(session => ({
+      primaryStat: `${session.results?.chordsCompleted || 0} chords`,
+      secondaryStat: `${session.accuracy.toFixed(1)}%`,
+      metadata: formatRelativeTime(session.timestamp),
+      className: 'history-neutral'
+    }));
+  };
+
+  /**
+   * Determines whether to show the history section.
+   *
+   * @param sessions - Array of game sessions
+   * @returns True if history should be shown
+   */
+  shouldShowHistory = (sessions: GameSession[]): boolean => {
+    return sessions.length > 0;
+  };
+
+  // ========================================
+  // Timer Management Methods
+  // ========================================
+
+  private timerState = {
+    timeRemaining: 0,
+    isActive: false
+  };
+
+  private timerCallback: (() => void) | null = null;
+  private updateCallback: ((timeRemaining: number) => void) | null = null;
+
+  /**
+   * Initializes the timer for response time limits.
+   *
+   * @param responseTimeLimit - Time limit in seconds (null for unlimited)
+   * @param isPaused - Whether the timer should start paused
+   * @param onTimeUp - Callback when time runs out
+   * @param onTimeUpdate - Optional callback for timer updates
+   */
+  initializeTimer = (
+    responseTimeLimit: number | null,
+    isPaused: boolean,
+    onTimeUp: () => void,
+    onTimeUpdate?: (timeRemaining: number) => void
+  ): void => {
+    this.timerCallback = onTimeUp;
+    this.updateCallback = onTimeUpdate || null;
+
+    if (responseTimeLimit !== null) {
+      this.timerState = {
+        timeRemaining: responseTimeLimit,
+        isActive: !isPaused
+      };
+    } else {
+      this.timerState = {
+        timeRemaining: 0,
+        isActive: false
+      };
+    }
+  };
+
+  /**
+   * Gets the current timer state.
+   *
+   * @returns Current timer state with remaining time and active status
+   */
+  getTimerState = (): { timeRemaining: number; isActive: boolean } => {
+    return { ...this.timerState };
+  };
+
+  /**
+   * Pauses the timer.
+   */
+  pauseTimer = (): void => {
+    this.timerState.isActive = false;
+  };
+
+  /**
+   * Resumes the timer.
+   */
+  resumeTimer = (): void => {
+    this.timerState.isActive = true;
+  };
+
+  /**
+   * Resets the timer to initial state.
+   */
+  resetTimer = (): void => {
+    this.timerState = {
+      timeRemaining: 0,
+      isActive: false
+    };
+  };
+
+  // ========================================
+  // Mode-Specific Methods
+  // ========================================
+
+  /**
+   * Handles a note selection/deselection by the user.
+   * Updates the selection state and checks correctness.
+   *
+   * @param note - The note that was selected/deselected
+   * @returns True if the note was added, false if it was removed
+   */
+  handleNoteSelection = (note: NoteWithOctave): boolean => {
+    if (!this.currentChord) return false;
+
+    // Check if note is already selected
+    const noteKey = this.getNoteKey(note);
+    const alreadySelected = Array.from(this.selectedNotes).some(
+      n => this.getNoteKey(n) === noteKey
+    );
+
+    if (alreadySelected) {
+      // Deselect the note
+      this.selectedNotes = new Set(
+        Array.from(this.selectedNotes).filter(n => this.getNoteKey(n) !== noteKey)
+      );
+      this.correctNotes = new Set(
+        Array.from(this.correctNotes).filter(n => this.getNoteKey(n) !== noteKey)
+      );
+      this.incorrectNotes = new Set(
+        Array.from(this.incorrectNotes).filter(n => this.getNoteKey(n) !== noteKey)
+      );
+      return false;
+    } else {
+      // Select the note
+      this.selectedNotes.add(note);
+
+      // Check if the note is in the current chord
+      const isCorrect = this.currentChord.notes.some(
+        chordNote => this.getNoteKey(chordNote) === noteKey
+      );
+
+      if (isCorrect) {
+        this.correctNotes.add(note);
+      } else {
+        this.incorrectNotes.add(note);
+      }
+
+      return true;
+    }
+  };
+
+  /**
+   * Checks if all notes in the current chord have been correctly identified.
+   *
+   * @returns True if all chord notes are in correctNotes set
+   */
+  isChordComplete = (): boolean => {
+    if (!this.currentChord) return false;
+
+    const chordNoteKeys = this.currentChord.notes.map(n => this.getNoteKey(n));
+    const correctNoteKeys = Array.from(this.correctNotes).map(n => this.getNoteKey(n));
+
+    return chordNoteKeys.every(key => correctNoteKeys.includes(key)) &&
+           chordNoteKeys.length === correctNoteKeys.length;
+  };
+
+  /**
+   * Gets a unique key for a note (for comparison purposes).
+   *
+   * @param note - The note to get a key for
+   * @returns String key in format "note-octave"
+   */
+  private getNoteKey = (note: NoteWithOctave): string => {
+    return `${note.note}-${note.octave}`;
+  };
+}
