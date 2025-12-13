@@ -5,12 +5,14 @@ import type {
   RushModeSettings,
   SurvivalModeSettings,
   SandboxModeSettings,
+  NoteTrainingModeSettings,
   GameStats
 } from '../types/game';
-import { EAR_TRAINING_SUB_MODES } from '../constants';
+import { EAR_TRAINING_SUB_MODES, NOTE_TRAINING_SUB_MODES } from '../constants';
 import { RushGameStateImpl } from './RushGameState';
 import { SurvivalGameStateImpl } from './SurvivalGameState';
 import { SandboxGameStateImpl } from './SandboxGameState';
+import { SingleChordGameState } from './SingleChordGameState';
 
 // Game action results
 export interface GameActionResult {
@@ -56,6 +58,7 @@ export function createGameState(
     rush: RushModeSettings;
     survival: SurvivalModeSettings;
     sandbox: SandboxModeSettings;
+    noteTraining: NoteTrainingModeSettings;
   }
 ): GameStateWithDisplay {
   switch (mode) {
@@ -64,6 +67,9 @@ export function createGameState(
     case EAR_TRAINING_SUB_MODES.SURVIVAL:
       return new SurvivalGameStateImpl(modeSettings.survival);
     case EAR_TRAINING_SUB_MODES.SANDBOX:
+      return new SandboxGameStateImpl(modeSettings.sandbox);
+    case NOTE_TRAINING_SUB_MODES.SHOW_CHORD_GUESS_NOTES:
+      return new SingleChordGameState(modeSettings.noteTraining);
     default:
       return new SandboxGameStateImpl(modeSettings.sandbox);
   }

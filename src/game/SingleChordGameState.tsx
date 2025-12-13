@@ -9,8 +9,9 @@ import type {
 } from '../types/game';
 import type { CommonDisplayProps, GameActionResult, GameStateWithDisplay } from './GameStateFactory';
 import type { Chord, NoteWithOctave } from '../types/music';
-import { AudioEngine } from '../utils/audioEngine';
+import { ChordEngine } from '../utils/chordEngine';
 import { NOTE_TRAINING_SUB_MODES } from '../constants';
+import SingleChordModeDisplay from '../components/modes/SingleChordModeDisplay';
 
 /**
  * Game state implementation for "Single Chord" mode.
@@ -48,9 +49,19 @@ export class SingleChordGameState implements GameStateWithDisplay {
     this.noteTrainingSettings = noteTrainingSettings;
   }
 
-  // Placeholder for modeDisplay - will be implemented when display component is created
+  /**
+   * Renders the mode-specific display component.
+   *
+   * @param props - Common display props passed from the game container
+   * @returns React element for the mode display
+   */
   modeDisplay = (props: CommonDisplayProps) => {
-    return React.createElement('div', null, 'Show Chord Guess Notes Mode - Display Coming Soon');
+    return React.createElement(SingleChordModeDisplay, {
+      ...props,
+      gameState: this,
+      onSubmitAnswer: this.handleSubmitAnswer,
+      onClearSelection: this.clearSelection
+    });
   };
 
   /**
@@ -120,6 +131,39 @@ export class SingleChordGameState implements GameStateWithDisplay {
   };
 
   /**
+   * Handles the user submitting their answer.
+   * Validates the selected notes against the current chord.
+   *
+   * @returns GameActionResult indicating success, failure, or partial completion
+   */
+  handleSubmitAnswer = (): GameActionResult => {
+    if (!this.currentChord) {
+      return {
+        gameCompleted: false,
+        feedback: 'No chord to validate',
+        shouldAdvance: false
+      };
+    }
+
+    // Check if user selected any incorrect notes
+    if (this.incorrectNotes.size > 0) {
+      return this.handleIncorrectGuess();
+    }
+
+    // Check if all chord notes are identified
+    if (this.isChordComplete()) {
+      return this.handleCorrectGuess();
+    }
+
+    // Partial answer - not all notes selected yet
+    return {
+      gameCompleted: false,
+      feedback: `Keep going! ${this.correctNotes.size}/${this.currentChord.notes.length} notes identified`,
+      shouldAdvance: false
+    };
+  };
+
+  /**
    * Updates the game state with partial updates.
    *
    * @param updates - Partial state updates to apply
@@ -156,7 +200,7 @@ export class SingleChordGameState implements GameStateWithDisplay {
     }
 
     // Generate new chord
-    this.currentChord = AudioEngine.getRandomChordFromFilter(
+    this.currentChord = ChordEngine.getRandomChordFromFilter(
       this.noteTrainingSettings.chordFilter
     );
 
@@ -528,6 +572,16 @@ export class SingleChordGameState implements GameStateWithDisplay {
 
     return chordNoteKeys.every(key => correctNoteKeys.includes(key)) &&
            chordNoteKeys.length === correctNoteKeys.length;
+  };
+
+  /**
+   * Clears the current note selection.
+   * Resets all selected, correct, and incorrect notes.
+   */
+  clearSelection = (): void => {
+    this.selectedNotes = new Set();
+    this.correctNotes = new Set();
+    this.incorrectNotes = new Set();
   };
 
   /**

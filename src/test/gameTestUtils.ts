@@ -24,6 +24,7 @@ export const TEST_NOTES = {
  * Default note filter for tests (naturals only, octave 4)
  */
 export const DEFAULT_NOTE_FILTER = {
+  keyType: 'chromatic' as const,
   includeNaturals: true,
   includeSharps: false,
   includeFlats: false,
@@ -38,11 +39,49 @@ export const DEFAULT_SANDBOX_SETTINGS = {
     sessionDuration: 5,
     targetNotes: 10,
     targetAccuracy: 80
+  },
+  rush: { targetNotes: 10 },
+  survival: {
+    sessionDuration: 5,
+    healthDrainRate: 1,
+    healthRecovery: 10,
+    healthDamage: 5
+  },
+  noteTraining: {
+    selectedSubMode: 'show-chord-guess-notes' as const,
+    targetChords: 10,
+    sessionDuration: 0,
+    chordFilter: {
+      allowedChordTypes: ['major' as const],
+      allowedRoots: ['C' as const],
+      allowedInversions: [0]
+    }
   }
 };
 
 export const DEFAULT_RUSH_SETTINGS = {
-  rush: { targetNotes: 10 }
+  rush: { targetNotes: 10 },
+  sandbox: {
+    sessionDuration: 5,
+    targetNotes: 10,
+    targetAccuracy: 80
+  },
+  survival: {
+    sessionDuration: 5,
+    healthDrainRate: 1,
+    healthRecovery: 10,
+    healthDamage: 5
+  },
+  noteTraining: {
+    selectedSubMode: 'show-chord-guess-notes' as const,
+    targetChords: 10,
+    sessionDuration: 0,
+    chordFilter: {
+      allowedChordTypes: ['major' as const],
+      allowedRoots: ['C' as const],
+      allowedInversions: [0]
+    }
+  }
 };
 
 export const DEFAULT_SURVIVAL_SETTINGS = {
@@ -51,6 +90,22 @@ export const DEFAULT_SURVIVAL_SETTINGS = {
     healthDrainRate: 1,
     healthRecovery: 10,
     healthDamage: 20
+  },
+  rush: { targetNotes: 10 },
+  sandbox: {
+    sessionDuration: 5,
+    targetNotes: 10,
+    targetAccuracy: 80
+  },
+  noteTraining: {
+    selectedSubMode: 'show-chord-guess-notes' as const,
+    targetChords: 10,
+    sessionDuration: 0,
+    chordFilter: {
+      allowedChordTypes: ['major' as const],
+      allowedRoots: ['C' as const],
+      allowedInversions: [0]
+    }
   }
 };
 
