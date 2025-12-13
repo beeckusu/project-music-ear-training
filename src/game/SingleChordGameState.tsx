@@ -8,7 +8,8 @@ import type {
   GameSession
 } from '../types/game';
 import type { CommonDisplayProps, GameActionResult, GameStateWithDisplay } from './GameStateFactory';
-import type { Chord, NoteWithOctave } from '../types/music';
+import type { Chord, NoteWithOctave, NoteFilter } from '../types/music';
+import type { IGameMode } from './IGameMode';
 import { ChordEngine } from '../utils/chordEngine';
 import { NOTE_TRAINING_SUB_MODES } from '../constants';
 import SingleChordModeDisplay from '../components/modes/SingleChordModeDisplay';
@@ -22,7 +23,7 @@ import SingleChordModeDisplay from '../components/modes/SingleChordModeDisplay';
  * - Tracks partial correctness (which notes are correct/incorrect)
  * - Supports multiple completion criteria (target chords, accuracy, duration)
  */
-export class SingleChordGameState implements GameStateWithDisplay {
+export class SingleChordGameState implements IGameMode {
   // BaseGameState properties
   elapsedTime: number = 0;
   isCompleted: boolean = false;
@@ -123,9 +124,42 @@ export class SingleChordGameState implements GameStateWithDisplay {
     this.currentStreak = 0;
     this.totalAttempts = this.totalAttempts + 1;
 
+    if (!this.currentChord) {
+      return {
+        gameCompleted: false,
+        feedback: 'Not quite right. Keep trying!',
+        shouldAdvance: false
+      };
+    }
+
+    const totalNotes = this.currentChord.notes.length;
+    const correctCount = this.correctNotes.size;
+    const incorrectCount = this.incorrectNotes.size;
+    const missingCount = this.getMissingNotes().size;
+
+    // Build detailed feedback message
+    let feedback = '';
+    if (correctCount > 0) {
+      feedback = `${correctCount} out of ${totalNotes} notes correct. `;
+    } else {
+      feedback = 'Not quite right. ';
+    }
+
+    // Add breakdown
+    const parts: string[] = [];
+    if (correctCount > 0) parts.push(`✓ ${correctCount} correct`);
+    if (incorrectCount > 0) parts.push(`✗ ${incorrectCount} incorrect`);
+    if (missingCount > 0) parts.push(`⊝ ${missingCount} missing`);
+
+    if (parts.length > 0) {
+      feedback += parts.join(', ') + '. ';
+    }
+
+    feedback += 'Try again!';
+
     return {
       gameCompleted: false,
-      feedback: 'Not quite right. Keep trying!',
+      feedback,
       shouldAdvance: false
     };
   };
@@ -199,15 +233,9 @@ export class SingleChordGameState implements GameStateWithDisplay {
       this.startTime = new Date();
     }
 
-    // Generate new chord
-    this.currentChord = ChordEngine.getRandomChordFromFilter(
-      this.noteTrainingSettings.chordFilter
-    );
-
-    // Reset selection state for new chord
-    this.selectedNotes = new Set();
-    this.correctNotes = new Set();
-    this.incorrectNotes = new Set();
+    // Generate new chord using the generateNote method
+    // (Note filter is not used in chord mode, pass null)
+    this.generateNote(null as any);
   };
 
   /**
@@ -585,6 +613,28 @@ export class SingleChordGameState implements GameStateWithDisplay {
   };
 
   /**
+   * Gets the notes that are required but not selected.
+   * These are notes in the current chord that the user hasn't selected yet.
+   *
+   * @returns Set of notes that are missing from the user's selection
+   */
+  getMissingNotes = (): Set<NoteWithOctave> => {
+    if (!this.currentChord) return new Set();
+
+    const missingNotes = new Set<NoteWithOctave>();
+    const selectedNoteKeys = Array.from(this.selectedNotes).map(n => this.getNoteKey(n));
+
+    for (const chordNote of this.currentChord.notes) {
+      const chordNoteKey = this.getNoteKey(chordNote);
+      if (!selectedNoteKeys.includes(chordNoteKey)) {
+        missingNotes.add(chordNote);
+      }
+    }
+
+    return missingNotes;
+  };
+
+  /**
    * Gets a unique key for a note (for comparison purposes).
    *
    * @param note - The note to get a key for
@@ -592,5 +642,64 @@ export class SingleChordGameState implements GameStateWithDisplay {
    */
   private getNoteKey = (note: NoteWithOctave): string => {
     return `${note.note}-${note.octave}`;
+  };
+
+  // ========================================
+  // IGameMode Interface Methods
+  // ========================================
+
+  /**
+   * Generate a new chord for the round.
+   * Note: For chord mode, this generates a chord, not a single note.
+   * The return value is the first note of the chord (for compatibility).
+   *
+   * @param filter - Note filter (not used in chord mode, uses chordFilter instead)
+   * @returns The first note of the generated chord
+   */
+  generateNote = (filter: NoteFilter): NoteWithOctave => {
+    // Generate a new chord using the chord filter
+    this.currentChord = ChordEngine.getRandomChordFromFilter(
+      this.noteTrainingSettings.chordFilter
+    );
+
+    // Reset selection state for new chord
+    this.selectedNotes = new Set();
+    this.correctNotes = new Set();
+    this.incorrectNotes = new Set();
+
+    // Return the first note of the chord for orchestrator compatibility
+    return this.currentChord.notes[0];
+  };
+
+  /**
+   * Validate a guess (not used in chord mode).
+   * Chord mode uses handleSubmitAnswer instead.
+   *
+   * @param guess - User's guessed note
+   * @param actual - The actual note
+   * @returns Always false (validation happens in handleSubmitAnswer)
+   */
+  validateGuess = (guess: NoteWithOctave, actual: NoteWithOctave): boolean => {
+    // Chord mode doesn't use single-note validation
+    // Validation happens when user clicks "Submit Answer"
+    return false;
+  };
+
+  /**
+   * Check if the game is complete.
+   *
+   * @returns True if game is complete, false otherwise
+   */
+  isGameComplete = (): boolean => {
+    return this.isCompleted;
+  };
+
+  /**
+   * Get the game mode identifier.
+   *
+   * @returns Mode identifier string
+   */
+  getMode = (): string => {
+    return NOTE_TRAINING_SUB_MODES.SHOW_CHORD_GUESS_NOTES;
   };
 }

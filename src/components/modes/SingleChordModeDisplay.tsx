@@ -1,7 +1,9 @@
 import React from 'react';
 import type { SingleChordGameState } from '../../game/SingleChordGameState';
 import type { CommonDisplayProps } from '../../game/GameStateFactory';
+import type { NoteWithOctave } from '../../types/music';
 import TimerDigital from '../TimerDigital';
+import PianoKeyboard from '../PianoKeyboard';
 import './SingleChordModeDisplay.css';
 
 interface SingleChordModeDisplayProps extends CommonDisplayProps {
@@ -17,12 +19,25 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
   onClearSelection
 }) => {
   const { currentChord, correctNotes, incorrectNotes, selectedNotes, correctChordsCount, currentStreak, totalAttempts, noteTrainingSettings } = gameState;
+  const [, forceUpdate] = React.useReducer(x => x + 1, 0);
 
   // Calculate accuracy
   const accuracy = totalAttempts > 0 ? Math.round((correctChordsCount / totalAttempts) * 100) : 0;
 
   // Determine if submit button should be enabled
   const canSubmit = selectedNotes.size > 0 && currentChord !== null && !gameState.isCompleted;
+
+  // Handle note selection with re-render
+  const handleNoteClick = (note: NoteWithOctave) => {
+    gameState.handleNoteSelection(note);
+    forceUpdate();
+  };
+
+  // Handle clear selection with re-render
+  const handleClearSelection = () => {
+    onClearSelection();
+    forceUpdate();
+  };
 
   return (
     <>
@@ -89,7 +104,7 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
           <div className="chord-actions">
             <button
               className="clear-button"
-              onClick={onClearSelection}
+              onClick={handleClearSelection}
               disabled={selectedNotes.size === 0}
             >
               Clear Selection
@@ -102,6 +117,20 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
               Submit Answer
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Piano Keyboard with Multi-Note Highlighting */}
+      {currentChord && currentNote && !gameState.isCompleted && (
+        <div className="piano-container">
+          <PianoKeyboard
+            onNoteClick={handleNoteClick}
+            correctNotes={correctNotes}
+            incorrectNotes={incorrectNotes}
+            missingNotes={gameState.getMissingNotes()}
+            selectedNotes={selectedNotes}
+            disabled={gameState.isCompleted}
+          />
         </div>
       )}
     </>
