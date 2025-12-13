@@ -8,6 +8,11 @@ interface PianoKeyboardProps {
   onNoteClick?: (noteWithOctave: NoteWithOctave) => void;
   highlightedNote?: NoteWithOctave;
   correctNote?: NoteWithOctave;
+  // Multi-note highlighting for chord modes
+  correctNotes?: Set<NoteWithOctave>;
+  incorrectNotes?: Set<NoteWithOctave>;
+  missingNotes?: Set<NoteWithOctave>;
+  selectedNotes?: Set<NoteWithOctave>;
   octave?: number;
   disabled?: boolean;
 }
@@ -16,6 +21,10 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
   onNoteClick,
   highlightedNote,
   correctNote,
+  correctNotes,
+  incorrectNotes,
+  missingNotes,
+  selectedNotes,
   octave = 4,
   disabled = false
 }) => {
@@ -81,6 +90,21 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
     return correctNote.octave === octave;
   };
 
+  // Helper to check if a note is in a Set
+  const isNoteInSet = (noteSet: Set<NoteWithOctave> | undefined, note: Note, keyIndex: number): boolean => {
+    if (!noteSet) return false;
+
+    const keyOctave = (note === 'C' && keyIndex === 7) ? octave + 1 : octave;
+
+    return Array.from(noteSet).some(n =>
+      n.note === note && n.octave === keyOctave
+    );
+  };
+
+  const isCorrectNote = (note: Note, keyIndex: number) => isNoteInSet(correctNotes, note, keyIndex);
+  const isIncorrectNote = (note: Note, keyIndex: number) => isNoteInSet(incorrectNotes, note, keyIndex);
+  const isMissingNote = (note: Note, keyIndex: number) => isNoteInSet(missingNotes, note, keyIndex);
+  const isSelectedNote = (note: Note, keyIndex: number) => isNoteInSet(selectedNotes, note, keyIndex);
 
   return (
     <div className="piano-keyboard">
@@ -88,7 +112,14 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
         {whiteKeys.map((note, index) => {
           const highlighted = isHighlighted(note, index);
           const correct = isCorrect(note, index);
-          const className = `white-key ${highlighted ? 'highlighted' : ''} ${correct ? 'correct' : ''}`.trim();
+
+          // Multi-note highlighting for chord modes
+          const correctMulti = isCorrectNote(note, index);
+          const incorrectMulti = isIncorrectNote(note, index);
+          const missingMulti = isMissingNote(note, index);
+          const selectedMulti = isSelectedNote(note, index);
+
+          const className = `white-key ${highlighted ? 'highlighted' : ''} ${correct ? 'correct' : ''} ${correctMulti ? 'note-correct' : ''} ${incorrectMulti ? 'note-incorrect' : ''} ${missingMulti ? 'note-missing' : ''} ${selectedMulti ? 'selected' : ''}`.trim();
 
           return (
             <button
@@ -106,7 +137,14 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
         {blackKeys.map(({ note, leftOffset }) => {
           const highlighted = isHighlighted(note, -1);
           const correct = isCorrect(note, -1);
-          const className = `black-key ${highlighted ? 'highlighted' : ''} ${correct ? 'correct' : ''}`.trim();
+
+          // Multi-note highlighting for chord modes
+          const correctMulti = isCorrectNote(note, -1);
+          const incorrectMulti = isIncorrectNote(note, -1);
+          const missingMulti = isMissingNote(note, -1);
+          const selectedMulti = isSelectedNote(note, -1);
+
+          const className = `black-key ${highlighted ? 'highlighted' : ''} ${correct ? 'correct' : ''} ${correctMulti ? 'note-correct' : ''} ${incorrectMulti ? 'note-incorrect' : ''} ${missingMulti ? 'note-missing' : ''} ${selectedMulti ? 'selected' : ''}`.trim();
 
           return (
             <button

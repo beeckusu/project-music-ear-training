@@ -1,10 +1,11 @@
 import React from 'react';
 import { useSettings } from '../../hooks/useSettings';
 import type { ModeType } from '../../types/game';
-import { EAR_TRAINING_SUB_MODES } from '../../constants';
+import { EAR_TRAINING_SUB_MODES, NOTE_TRAINING_SUB_MODES } from '../../constants';
 import RushModeSettings from './RushModeSettings';
 import SurvivalModeSettings from './SurvivalModeSettings';
 import SandboxModeSettings from './SandboxModeSettings';
+import NoteTrainingModeSettings from './NoteTrainingModeSettings';
 
 interface ModeCardProps {
   mode: ModeType;
@@ -75,6 +76,12 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ onRestartGame }) => {
       icon: '❤️',
       title: 'Survival',
       description: 'Survive the time limit while keeping your health up'
+    },
+    {
+      mode: NOTE_TRAINING_SUB_MODES.SHOW_CHORD_GUESS_NOTES as ModeType,
+      icon: '🎹',
+      title: 'Chord Training',
+      description: 'Identify individual notes in chords'
     }
   ];
 
@@ -107,6 +114,7 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ onRestartGame }) => {
             {selectedMode === EAR_TRAINING_SUB_MODES.RUSH && <RushModeSettings />}
             {selectedMode === EAR_TRAINING_SUB_MODES.SURVIVAL && <SurvivalModeSettings />}
             {selectedMode === EAR_TRAINING_SUB_MODES.SANDBOX && <SandboxModeSettings />}
+            {selectedMode === NOTE_TRAINING_SUB_MODES.SHOW_CHORD_GUESS_NOTES && <NoteTrainingModeSettings />}
           </div>
         </div>
       )}
