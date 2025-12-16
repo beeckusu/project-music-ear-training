@@ -8,11 +8,8 @@ import type {
   NoteTrainingModeSettings,
   GameStats
 } from '../types/game';
-import { EAR_TRAINING_SUB_MODES, NOTE_TRAINING_SUB_MODES } from '../constants';
-import { RushGameStateImpl } from './RushGameState';
-import { SurvivalGameStateImpl } from './SurvivalGameState';
-import { SandboxGameStateImpl } from './SandboxGameState';
-import { SingleChordGameState } from './SingleChordGameState';
+import { EAR_TRAINING_SUB_MODES } from '../constants';
+import { modeRegistry } from './ModeRegistry';
 
 // Game action results
 export interface GameActionResult {
@@ -61,16 +58,16 @@ export function createGameState(
     noteTraining: NoteTrainingModeSettings;
   }
 ): GameStateWithDisplay {
-  switch (mode) {
-    case EAR_TRAINING_SUB_MODES.RUSH:
-      return new RushGameStateImpl(modeSettings.rush);
-    case EAR_TRAINING_SUB_MODES.SURVIVAL:
-      return new SurvivalGameStateImpl(modeSettings.survival);
-    case EAR_TRAINING_SUB_MODES.SANDBOX:
-      return new SandboxGameStateImpl(modeSettings.sandbox);
-    case NOTE_TRAINING_SUB_MODES.SHOW_CHORD_GUESS_NOTES:
-      return new SingleChordGameState(modeSettings.noteTraining);
-    default:
-      return new SandboxGameStateImpl(modeSettings.sandbox);
+  const modeMetadata = modeRegistry.get(mode);
+
+  if (!modeMetadata) {
+    console.warn(`Unknown mode: ${mode}, falling back to sandbox`);
+    const sandboxMetadata = modeRegistry.get(EAR_TRAINING_SUB_MODES.SANDBOX)!;
+    const sandboxSettings = modeSettings[sandboxMetadata.settingsKey];
+    return sandboxMetadata.gameStateFactory(sandboxSettings);
   }
+
+  // Extract only the settings this mode needs using its settingsKey
+  const modeSpecificSettings = modeSettings[modeMetadata.settingsKey];
+  return modeMetadata.gameStateFactory(modeSpecificSettings);
 }
