@@ -8,7 +8,7 @@ import type {
   GameSession
 } from '../types/game';
 import type { CommonDisplayProps, GameActionResult, GameStateWithDisplay } from './GameStateFactory';
-import type { Chord, NoteWithOctave, NoteFilter } from '../types/music';
+import type { Chord, NoteWithOctave, NoteFilter, NoteHighlight } from '../types/music';
 import type { IGameMode } from './IGameMode';
 import { ChordEngine } from '../utils/chordEngine';
 import { NOTE_TRAINING_SUB_MODES } from '../constants';
@@ -632,6 +632,53 @@ export class SingleChordGameState implements IGameMode {
     }
 
     return missingNotes;
+  };
+
+  /**
+   * Computes the visual highlights for piano keys based on current game state.
+   * This encapsulates the game logic for determining which notes should be
+   * displayed with which visual feedback.
+   *
+   * The highlight priority is:
+   * 1. Correct notes (success) - highest priority
+   * 2. Incorrect notes (error)
+   * 3. Missing notes (dimmed)
+   * 4. Selected notes (selected) - lowest priority, only shown if not already marked
+   *
+   * @returns Array of note highlights to display on the piano
+   */
+  getNoteHighlights = (): NoteHighlight[] => {
+    const highlights: NoteHighlight[] = [];
+
+    // Correct notes - show success feedback
+    for (const note of this.correctNotes) {
+      highlights.push({ note, type: 'success' });
+    }
+
+    // Incorrect notes - show error feedback
+    for (const note of this.incorrectNotes) {
+      highlights.push({ note, type: 'error' });
+    }
+
+    // Missing notes (after submission) - show dimmed
+    const missingNotes = this.getMissingNotes();
+    for (const note of missingNotes) {
+      highlights.push({ note, type: 'dimmed' });
+    }
+
+    // Selected notes (before submission) - show selection
+    // Only show if not already marked as correct/incorrect
+    for (const note of this.selectedNotes) {
+      const noteKey = this.getNoteKey(note);
+      const alreadyMarked = Array.from(this.correctNotes).some(n => this.getNoteKey(n) === noteKey) ||
+                            Array.from(this.incorrectNotes).some(n => this.getNoteKey(n) === noteKey);
+
+      if (!alreadyMarked) {
+        highlights.push({ note, type: 'selected' });
+      }
+    }
+
+    return highlights;
   };
 
   /**

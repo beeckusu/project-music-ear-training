@@ -144,6 +144,24 @@ export class AudioEngine {
   }
 
   /**
+   * Stops all currently playing notes on the current instrument.
+   * Useful for ear training mode where only one note should play at a time.
+   *
+   * @example
+   * ```typescript
+   * // Stop all notes before playing a new one
+   * audioEngine.releaseAllNotes();
+   * audioEngine.playNote({ note: 'C', octave: 4 }, '2n');
+   * ```
+   */
+  releaseAllNotes(): void {
+    const instrument = this.instruments.get(this.currentInstrument);
+    if (instrument && instrument.releaseAll) {
+      instrument.releaseAll();
+    }
+  }
+
+  /**
    * Plays a chord with notes in sequence (arpeggio) rather than simultaneously.
    * Notes are played in ascending pitch order.
    *
