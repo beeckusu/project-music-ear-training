@@ -7,6 +7,34 @@ export interface NoteWithOctave {
   octave: Octave;
 }
 
+/**
+ * Types of visual highlights that can be applied to piano keys.
+ * These are generic presentation states, not game-specific semantics.
+ */
+export type NoteHighlightType =
+  | 'default'      // No highlight (normal state)
+  | 'selected'     // User has selected this note (pre-submission)
+  | 'success'      // Positive feedback (e.g., correct note)
+  | 'error'        // Negative feedback (e.g., incorrect note)
+  | 'dimmed'       // Subdued/grayed out (e.g., missing note)
+  | 'highlighted'  // General highlight (e.g., note being played)
+  | 'custom';      // Custom styling via className
+
+/**
+ * Represents a visual highlight to apply to a specific note.
+ * Used by PianoKeyboard to display note feedback without knowing game semantics.
+ */
+export interface NoteHighlight {
+  /** The note to highlight */
+  note: NoteWithOctave;
+
+  /** The type of highlight to apply */
+  type: NoteHighlightType;
+
+  /** Optional custom CSS class (only used when type is 'custom') */
+  className?: string;
+}
+
 export type Difficulty = 'beginner' | 'intermediate' | 'advanced';
 
 export type PracticeMode = 'note-identification' | 'note-repetition' | 'chord-recognition';
