@@ -1,11 +1,7 @@
 import React from 'react';
 import { useSettings } from '../../hooks/useSettings';
 import type { ModeType } from '../../types/game';
-import { EAR_TRAINING_SUB_MODES, NOTE_TRAINING_SUB_MODES } from '../../constants';
-import RushModeSettings from './RushModeSettings';
-import SurvivalModeSettings from './SurvivalModeSettings';
-import SandboxModeSettings from './SandboxModeSettings';
-import NoteTrainingModeSettings from './NoteTrainingModeSettings';
+import { modeRegistry } from '../../game/ModeRegistry';
 
 interface ModeCardProps {
   mode: ModeType;
@@ -58,32 +54,12 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ onRestartGame }) => {
     completeModeSetup();
   };
 
-  const modes = [
-    {
-      mode: 'sandbox' as ModeType,
-      icon: '🎯',
-      title: 'Sandbox',
-      description: 'Practice at your own pace with optional targets'
-    },
-    {
-      mode: 'rush' as ModeType,
-      icon: '🏃‍♂️',
-      title: 'Rush',
-      description: 'Race to hit your target note count as fast as possible'
-    },
-    {
-      mode: 'survival' as ModeType,
-      icon: '❤️',
-      title: 'Survival',
-      description: 'Survive the time limit while keeping your health up'
-    },
-    {
-      mode: NOTE_TRAINING_SUB_MODES.SHOW_CHORD_GUESS_NOTES as ModeType,
-      icon: '🎹',
-      title: 'Chord Training',
-      description: 'Identify individual notes in chords'
-    }
-  ];
+  const modes = modeRegistry.getAll().map(metadata => ({
+    mode: metadata.id,
+    icon: metadata.icon,
+    title: metadata.title,
+    description: metadata.description
+  }));
 
   return (
     <div className="tab-content">
@@ -111,10 +87,11 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ onRestartGame }) => {
       {selectedMode && (
         <div className="mode-settings-section">
           <div className="mode-specific-settings">
-            {selectedMode === EAR_TRAINING_SUB_MODES.RUSH && <RushModeSettings />}
-            {selectedMode === EAR_TRAINING_SUB_MODES.SURVIVAL && <SurvivalModeSettings />}
-            {selectedMode === EAR_TRAINING_SUB_MODES.SANDBOX && <SandboxModeSettings />}
-            {selectedMode === NOTE_TRAINING_SUB_MODES.SHOW_CHORD_GUESS_NOTES && <NoteTrainingModeSettings />}
+            {(() => {
+              const modeMetadata = modeRegistry.get(selectedMode);
+              const SettingsComponent = modeMetadata?.settingsComponent;
+              return SettingsComponent ? <SettingsComponent /> : null;
+            })()}
           </div>
         </div>
       )}
