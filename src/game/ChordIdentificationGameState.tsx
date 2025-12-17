@@ -11,6 +11,7 @@ import type { CommonDisplayProps, GameActionResult, GameStateWithDisplay } from 
 import type { Chord, NoteWithOctave, NoteFilter } from '../types/music';
 import type { IGameMode } from './IGameMode';
 import { ChordEngine } from '../utils/chordEngine';
+import { validateChordGuess } from '../utils/chordValidation';
 import { NOTE_TRAINING_SUB_MODES } from '../constants';
 import ChordIdentificationModeDisplay from '../components/modes/ChordIdentificationModeDisplay';
 
@@ -161,11 +162,10 @@ export class ChordIdentificationGameState implements IGameMode {
 
     this.userGuess = guess;
 
-    // Validate the guess (case-insensitive comparison)
-    const normalizedGuess = guess.trim().toLowerCase();
-    const normalizedAnswer = this.currentChord.name.toLowerCase();
+    // Validate the guess using the chord validation utility
+    const validationResult = validateChordGuess(guess, this.currentChord);
 
-    if (normalizedGuess === normalizedAnswer) {
+    if (validationResult.isCorrect) {
       return this.handleCorrectGuess();
     } else {
       return this.handleIncorrectGuess();
