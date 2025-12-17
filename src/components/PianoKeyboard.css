@@ -39,13 +39,8 @@
   transform: translateY(4px);
 }
 
-.white-key.highlighted {
+.white-key.piano-key-highlighted {
   background-color: #4CAF50;
-  color: white;
-}
-
-.white-key.correct {
-  background-color: #dc3545;
   color: white;
 }
 
@@ -87,13 +82,8 @@
   transform: translateX(-50%) translateY(4px);
 }
 
-.black-key.highlighted {
+.black-key.piano-key-highlighted {
   background-color: #FF9800;
-  color: white;
-}
-
-.black-key.correct {
-  background-color: #dc3545;
   color: white;
 }
 
@@ -115,7 +105,7 @@
   transform: translateX(-50%);
 }
 
-.white-key.highlighted .note-label {
+.white-key.piano-key-highlighted .note-label {
   color: white;
 }
 
@@ -129,71 +119,71 @@
   transform: translateX(-50%);
 }
 
-.black-key.highlighted .note-label {
+.black-key.piano-key-highlighted .note-label {
   color: white;
 }
 
-/* Multi-note feedback styles for chord modes */
+/* Semantic highlight styles */
 
-/* Correct notes - Green */
-.white-key.note-correct {
+/* Success - Positive feedback (e.g., correct notes) - Green */
+.white-key.piano-key-success {
   background-color: #28a745;
   color: white;
   border-color: #1e7e34;
 }
 
-.black-key.note-correct {
+.black-key.piano-key-success {
   background-color: #28a745;
   color: white;
 }
 
-.white-key.note-correct .note-label,
-.black-key.note-correct .note-label {
+.white-key.piano-key-success .note-label,
+.black-key.piano-key-success .note-label {
   color: white;
 }
 
-/* Incorrect notes - Red */
-.white-key.note-incorrect {
+/* Error - Negative feedback (e.g., incorrect notes) - Red */
+.white-key.piano-key-error {
   background-color: #dc3545;
   color: white;
   border-color: #bd2130;
 }
 
-.black-key.note-incorrect {
+.black-key.piano-key-error {
   background-color: #dc3545;
   color: white;
 }
 
-.white-key.note-incorrect .note-label,
-.black-key.note-incorrect .note-label {
+.white-key.piano-key-error .note-label,
+.black-key.piano-key-error .note-label {
   color: white;
 }
 
-/* Missing notes - Gray/Dim */
-.white-key.note-missing {
+/* Dimmed - Subdued/grayed out (e.g., missing notes) - Gray */
+.white-key.piano-key-dimmed {
   background-color: #6c757d;
   color: white;
   border-color: #5a6268;
   opacity: 0.6;
 }
 
-.black-key.note-missing {
+.black-key.piano-key-dimmed {
   background-color: #495057;
   color: white;
   opacity: 0.6;
 }
 
-.white-key.note-missing .note-label,
-.black-key.note-missing .note-label {
+.white-key.piano-key-dimmed .note-label,
+.black-key.piano-key-dimmed .note-label {
   color: white;
 }
 
-/* Selected notes (before submission) - Subtle blue tint */
-.white-key.selected:not(.note-correct):not(.note-incorrect):not(.note-missing) {
+/* Selected - User selection (before submission) - Subtle blue tint */
+.white-key.piano-key-selected:not(.piano-key-success):not(.piano-key-error):not(.piano-key-dimmed) {
   background-color: #e7f3ff;
   border-color: #007bff;
 }
 
-.black-key.selected:not(.note-correct):not(.note-incorrect):not(.note-missing) {
+.black-key.piano-key-selected:not(.piano-key-success):not(.piano-key-error):not(.piano-key-dimmed) {
   background-color: #004085;
 }

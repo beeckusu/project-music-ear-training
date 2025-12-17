@@ -9,8 +9,8 @@
  * - Listen to orchestrator events and update UI state
  * - Manage component-specific UI state (modals, highlights)
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import type { NoteWithOctave } from '../types/music';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import type { NoteWithOctave, NoteHighlight } from '../types/music';
 import type { GuessAttempt, GameStats } from '../types/game';
 import type { GameStateWithDisplay } from '../game/GameStateFactory';
 import { createGameState } from '../game/GameStateFactory';
@@ -50,6 +50,10 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
   const [isEndModalOpen, setIsEndModalOpen] = useState(false);
   const [gameStats, setGameStats] = useState<GameStats | null>(null);
 
+  // Refs to track current values for event handlers (avoid stale closures)
+  const currentNoteRef = useRef<NoteWithOctave | null>(null);
+  const correctNoteHighlightRef = useRef<NoteWithOctave | null>(null);
+
   // Game state and settings
   const { responseTimeLimit, autoAdvanceSpeed, noteDuration } = settings.timing;
   const { selectedMode } = settings.modes;
@@ -82,8 +86,11 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
         if (LOGS_EVENTS_ENABLED) {
           console.log('[NoteIdentification] Event received: roundStart', { note, feedback });
         }
+        currentNoteRef.current = note;
         setCurrentNote(note);
         setUserGuess(null);
+        // Clear correct note highlight when starting a new round
+        correctNoteHighlightRef.current = null;
         setCorrectNoteHighlight(null);
         setFeedback(feedback);
       });
@@ -92,6 +99,8 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
         if (LOGS_EVENTS_ENABLED) {
           console.log('[NoteIdentification] Event received: guessAttempt', attempt);
         }
+        // Clear the correct note highlight when user makes a new guess
+        setCorrectNoteHighlight(null);
         onGuessAttempt?.(attempt);
       });
 
@@ -101,8 +110,10 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
         }
         setFeedback(result.feedback);
 
-        if (!result.isCorrect && currentNote) {
-          setCorrectNoteHighlight(currentNote);
+        // Use ref to get current note value (avoid stale closure)
+        if (!result.isCorrect && currentNoteRef.current) {
+          correctNoteHighlightRef.current = currentNoteRef.current;
+          setCorrectNoteHighlight(currentNoteRef.current);
         }
 
         // Force React re-render to update game state displays
@@ -137,7 +148,21 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
           console.log('[NoteIdentification] Event received: advanceToNextRound');
         }
 
-        orchestratorRef.current?.beginNewRound();
+        // Use refs to get current values (avoid stale closures)
+        const currentNoteValue = currentNoteRef.current;
+        const correctNoteHighlightValue = correctNoteHighlightRef.current;
+
+        // Show correct note before advancing (on timeout/skip)
+        if (currentNoteValue && !correctNoteHighlightValue) {
+          correctNoteHighlightRef.current = currentNoteValue;
+          setCorrectNoteHighlight(currentNoteValue);
+          // Wait briefly to let user see the correct note before advancing
+          setTimeout(() => {
+            orchestratorRef.current?.beginNewRound();
+          }, 100);
+        } else {
+          orchestratorRef.current?.beginNewRound();
+        }
       });
 
       orchestratorRef.current.on('gameReset', () => {
@@ -145,8 +170,10 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
           console.log('[NoteIdentification] Event received: gameReset');
         }
 
+        currentNoteRef.current = null;
         setCurrentNote(null);
         setUserGuess(null);
+        correctNoteHighlightRef.current = null;
         setCorrectNoteHighlight(null);
         setIsEndModalOpen(false);
         setGameStats(null);
@@ -260,8 +287,10 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
     const newGameState = createGameState(selectedMode, settings.modes);
     setGameState(newGameState);
 
+    currentNoteRef.current = null;
     setCurrentNote(null);
     setUserGuess(null);
+    correctNoteHighlightRef.current = null;
     setCorrectNoteHighlight(null);
     setIsEndModalOpen(false);
     setGameStats(null);
@@ -282,6 +311,24 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
   const handleShowScores = useCallback(() => {
     setIsEndModalOpen(true);
   }, []);
+
+  // Compute piano highlights from note identification state
+  const pianoHighlights = useMemo((): NoteHighlight[] => {
+    const highlights: NoteHighlight[] = [];
+
+    // User's guess gets 'highlighted' highlight (green, like original behavior)
+    if (userGuess) {
+      highlights.push({ note: userGuess, type: 'highlighted' });
+    }
+
+    // Correct note shown after wrong guess or timeout gets 'error' highlight (red)
+    // This shows the user what the correct answer was
+    if (correctNoteHighlight) {
+      highlights.push({ note: correctNoteHighlight, type: 'error' });
+    }
+
+    return highlights;
+  }, [userGuess, correctNoteHighlight]);
 
   return (
     <div className="note-identification">
@@ -363,9 +410,10 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
               setUserGuess(guessedNote);
               orchestratorRef.current?.submitGuess(guessedNote);
             }}
-            highlightedNote={userGuess || undefined}
-            correctNote={correctNoteHighlight || undefined}
+            highlights={pianoHighlights}
             disabled={!isWaitingInput}
+            preventNoteRestart={true}
+            monoMode={true}
           />
         </div>
       </div>
