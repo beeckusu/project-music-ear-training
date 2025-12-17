@@ -38,6 +38,8 @@ export class SingleChordGameState implements IGameMode {
   correctNotes: Set<NoteWithOctave> = new Set();
   incorrectNotes: Set<NoteWithOctave> = new Set();
   correctChordsCount: number = 0;
+  totalNotesAttempted: number = 0;      // Sum of all notes across all attempts
+  totalNotesCorrect: number = 0;         // Sum of correct notes across all attempts
   noteTrainingSettings: NoteTrainingModeSettings;
 
   /**
@@ -77,6 +79,11 @@ export class SingleChordGameState implements IGameMode {
     const newLongestStreak = Math.max(this.longestStreak, newCurrentStreak);
     const newTotalAttempts = this.totalAttempts + 1;
 
+    // Update cumulative accuracy tracking (perfect match = 100%)
+    const notesInChord = this.currentChord!.notes.length;
+    this.totalNotesAttempted += notesInChord;
+    this.totalNotesCorrect += notesInChord;
+
     // Update state
     this.correctChordsCount = newCorrectCount;
     this.currentStreak = newCurrentStreak;
@@ -90,9 +97,14 @@ export class SingleChordGameState implements IGameMode {
     if (hasReachedTarget) {
       this.isCompleted = true;
 
+      // Calculate note-level accuracy
+      const noteAccuracy = this.totalNotesAttempted > 0
+        ? (this.totalNotesCorrect / this.totalNotesAttempted) * 100
+        : 100;
+
       const finalStats: GameStats = {
         completionTime: this.elapsedTime,
-        accuracy: (newCorrectCount / newTotalAttempts) * 100,
+        accuracy: noteAccuracy,
         averageTimePerNote: this.elapsedTime / newCorrectCount,
         longestStreak: newLongestStreak,
         totalAttempts: newTotalAttempts,
@@ -109,7 +121,7 @@ export class SingleChordGameState implements IGameMode {
 
     return {
       gameCompleted: false,
-      feedback: `Correct! ${newCorrectCount}/${targetChords || '∞'} chords identified`,
+      feedback: `Perfect! 100% - ${newCorrectCount}/${targetChords || '∞'} chords identified`,
       shouldAdvance: true
     };
   };
@@ -137,12 +149,19 @@ export class SingleChordGameState implements IGameMode {
     const incorrectCount = this.incorrectNotes.size;
     const missingCount = this.getMissingNotes().size;
 
+    // Update cumulative accuracy tracking
+    this.totalNotesAttempted += totalNotes;
+    this.totalNotesCorrect += correctCount;
+
+    // Calculate accuracy for this attempt
+    const attemptAccuracy = totalNotes > 0 ? (correctCount / totalNotes) * 100 : 0;
+
     // Build detailed feedback message
     let feedback = '';
     if (correctCount > 0) {
-      feedback = `${correctCount} out of ${totalNotes} notes correct. `;
+      feedback = `${attemptAccuracy.toFixed(1)}% - ${correctCount} out of ${totalNotes} notes correct. `;
     } else {
-      feedback = 'Not quite right. ';
+      feedback = '0% - Not quite right. ';
     }
 
     // Add breakdown
