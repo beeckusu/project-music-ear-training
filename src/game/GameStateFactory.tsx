@@ -32,7 +32,23 @@ export interface CommonDisplayProps {
 }
 
 
-// Enhanced base interface with modeDisplay and game actions
+/**
+ * Enhanced base interface combining game state, display rendering, and game actions.
+ *
+ * This interface defines the contract that all game mode implementations must fulfill,
+ * whether they are Ear Training modes or Note Training modes. It extends BaseGameState
+ * with mode-specific display rendering and action handling capabilities.
+ *
+ * Implementations must provide:
+ * - A React display component via modeDisplay()
+ * - Handlers for correct/incorrect guesses
+ * - State update mechanisms
+ * - Timer and feedback strategies
+ * - Session management and results formatting
+ *
+ * @see BaseGameState for core game state properties
+ * @see createGameState for the factory that produces instances of this interface
+ */
 export interface GameStateWithDisplay extends BaseGameState {
   modeDisplay: (props: CommonDisplayProps) => React.ReactElement;
   handleCorrectGuess: () => GameActionResult;
@@ -48,7 +64,38 @@ export interface GameStateWithDisplay extends BaseGameState {
   getSessionResults: (stats: GameStats) => Record<string, any>;
 }
 
-// Factory function
+/**
+ * Factory function to create game state instances for different training modes.
+ *
+ * This factory uses the mode registry pattern to dynamically create the appropriate
+ * game state based on the selected mode. It supports both Ear Training modes
+ * (Rush, Survival, Sandbox) and Note Training modes (Show Chord Guess Notes,
+ * Show Notes Guess Chord).
+ *
+ * The factory automatically extracts the correct settings for each mode using
+ * the mode's registered settingsKey, ensuring type-safe settings propagation.
+ *
+ * @param mode - The training mode type (from EarTrainingSubMode or NoteTrainingSubMode)
+ * @param modeSettings - Object containing settings for all available modes
+ * @returns A game state instance implementing GameStateWithDisplay interface
+ *
+ * @example
+ * ```typescript
+ * // Create a Note Training game state
+ * const gameState = createGameState(
+ *   NOTE_TRAINING_SUB_MODES.SHOW_CHORD_GUESS_NOTES,
+ *   {
+ *     rush: rushSettings,
+ *     survival: survivalSettings,
+ *     sandbox: sandboxSettings,
+ *     noteTraining: noteTrainingSettings
+ *   }
+ * );
+ * ```
+ *
+ * @see modeRegistry for available modes and their configurations
+ * @see GameStateWithDisplay for the returned interface contract
+ */
 export function createGameState(
   mode: ModeType,
   modeSettings: {
@@ -62,7 +109,12 @@ export function createGameState(
 
   if (!modeMetadata) {
     console.warn(`Unknown mode: ${mode}, falling back to sandbox`);
-    const sandboxMetadata = modeRegistry.get(EAR_TRAINING_SUB_MODES.SANDBOX)!;
+    const sandboxMetadata = modeRegistry.get(EAR_TRAINING_SUB_MODES.SANDBOX);
+
+    if (!sandboxMetadata) {
+      throw new Error(`Critical error: Sandbox mode not registered in mode registry`);
+    }
+
     const sandboxSettings = modeSettings[sandboxMetadata.settingsKey];
     return sandboxMetadata.gameStateFactory(sandboxSettings);
   }
