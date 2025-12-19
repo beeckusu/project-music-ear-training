@@ -26,6 +26,12 @@ export interface ChordValidationResult {
 
   /** Optional feedback message about what was wrong */
   feedback?: string;
+
+  /** Whether the correct answer used an enharmonic equivalent (e.g., user entered Db for C#) */
+  isEnharmonic?: boolean;
+
+  /** The original guess before normalization */
+  originalGuess?: string;
 }
 
 /**
@@ -166,7 +172,19 @@ const CHORD_SUFFIX_ALIASES: Record<string, string> = {
 
 /**
  * Map of sharp notes to their flat equivalents (as strings, not Note types)
- * We use this for checking enharmonic equivalents during validation
+ *
+ * We use this for checking enharmonic equivalents during validation.
+ * Enharmonic equivalents are notes that sound the same but are written differently.
+ *
+ * Standard enharmonic pairs:
+ * - C# / Db
+ * - D# / Eb
+ * - F# / Gb
+ * - G# / Ab
+ * - A# / Bb
+ *
+ * Note: Theoretical enharmonics (B#/C, Cb/B, E#/F, Fb/E) are handled
+ * separately in the NOTE_ALIASES map for normalization purposes.
  */
 const SHARP_TO_FLAT_MAP: Record<string, string> = {
   'C#': 'Db',
@@ -178,9 +196,27 @@ const SHARP_TO_FLAT_MAP: Record<string, string> = {
 
 /**
  * Alternative note spellings (flats and sharps)
- * Maps flat notation to sharp notation (our canonical form)
+ *
+ * Maps flat notation to sharp notation (our canonical form). This enables
+ * the validation system to accept both sharp and flat spellings of the same note.
+ *
+ * Canonical Form: All notes are normalized to sharp notation internally.
+ * For example:
+ * - User enters "Db" → normalized to "C#"
+ * - User enters "D♭" (unicode) → normalized to "C#"
+ * - User enters "C#" → remains "C#"
+ *
+ * Supported formats:
+ * - ASCII flat: "b" (e.g., "Db", "Eb")
+ * - Unicode flat: "♭" (e.g., "D♭", "E♭")
+ * - ASCII sharp: "#" (e.g., "C#", "F#")
+ *
+ * Theoretical enharmonics: This map now includes theoretical enharmonics
+ * (B#/C, Cb/B, E#/F, Fb/E) for comprehensive support, though they are rare
+ * in practical music contexts.
  */
 const NOTE_ALIASES: Record<string, Note> = {
+  // Standard enharmonic pairs (sharps and flats)
   'Db': 'C#',
   'D♭': 'C#',
   'Eb': 'D#',
@@ -191,30 +227,65 @@ const NOTE_ALIASES: Record<string, Note> = {
   'A♭': 'G#',
   'Bb': 'A#',
   'B♭': 'A#',
-  // Also map sharps to themselves for consistency
+
+  // Theoretical enharmonics (natural notes with accidentals)
+  // B# = C
+  'B#': 'C',
+  'B♯': 'C',
+  // Cb = B
+  'Cb': 'B',
+  'C♭': 'B',
+  // E# = F
+  'E#': 'F',
+  'E♯': 'F',
+  // Fb = E
+  'Fb': 'E',
+  'F♭': 'E',
+
+  // Map natural notes and sharps to themselves for consistency
   'C': 'C',
   'C#': 'C#',
+  'C♯': 'C#',
   'D': 'D',
   'D#': 'D#',
+  'D♯': 'D#',
   'E': 'E',
   'F': 'F',
   'F#': 'F#',
+  'F♯': 'F#',
   'G': 'G',
   'G#': 'G#',
+  'G♯': 'G#',
   'A': 'A',
   'A#': 'A#',
+  'A♯': 'A#',
   'B': 'B',
 };
 
 /**
  * Returns all enharmonic equivalents of a note, including the note itself
  *
- * @param note - The note to find equivalents for
+ * Enharmonic equivalents are notes that sound the same but are written differently
+ * in music notation. For example, C# and Db are enharmonic equivalents.
+ *
+ * This function returns the standard 5 enharmonic pairs:
+ * - C# / Db
+ * - D# / Eb
+ * - F# / Gb
+ * - G# / Ab
+ * - A# / Bb
+ *
+ * Note: Theoretical enharmonics (B#/C, Cb/B, E#/F, Fb/E) are supported through
+ * the NOTE_ALIASES normalization map, so they work in validation even though
+ * this function doesn't explicitly list them as equivalents.
+ *
+ * @param note - The note to find equivalents for (in sharp notation)
  * @returns Array of enharmonic equivalent note names (as strings)
  *
  * @example
  * getEnharmonicEquivalents('C#') // ['C#', 'Db']
- * getEnharmonicEquivalents('C') // ['C']
+ * getEnharmonicEquivalents('C') // ['C'] (B# is handled via normalization)
+ * getEnharmonicEquivalents('F#') // ['F#', 'Gb']
  */
 export function getEnharmonicEquivalents(note: Note): string[] {
   // Return the sharp form and the flat equivalent if it exists
@@ -364,6 +435,14 @@ export function normalizeChordName(chordName: string): string {
 }
 
 /**
+ * Checks if a chord name contains flat notation (either 'b' or '♭')
+ * Used to detect when users enter enharmonic equivalents
+ */
+function containsFlatNotation(chordName: string): boolean {
+  return /[b♭]/.test(chordName) && /[A-G][b♭]/.test(chordName);
+}
+
+/**
  * Validates a user's chord name guess against the actual chord
  *
  * This function handles:
@@ -378,10 +457,13 @@ export function normalizeChordName(chordName: string): string {
  *
  * @example
  * validateChordGuess('C Major', chordC) // { isCorrect: true, ... }
- * validateChordGuess('Dbm7', chordCSharpMinor7) // { isCorrect: true, ... }
+ * validateChordGuess('Dbm7', chordCSharpMinor7) // { isCorrect: true, isEnharmonic: true, ... }
  * validateChordGuess('C/E', chordCFirstInversion) // { isCorrect: true, ... }
  */
 export function validateChordGuess(guess: string, actualChord: Chord): ChordValidationResult {
+  // Store original guess for enharmonic detection
+  const originalGuess = guess.trim();
+
   // Generate the canonical name for the actual chord
   const canonicalName = `${actualChord.root}${CHORD_NAME_FORMATS[actualChord.type]}`;
 
@@ -396,12 +478,20 @@ export function validateChordGuess(guess: string, actualChord: Chord): ChordVali
   const normalizedGuess = normalizeChordName(guess);
   const normalizedAnswer = normalizeChordName(actualChordName);
 
+  // Detect if user entered an enharmonic equivalent
+  // Check if the original guess contained flat notation and the answer uses sharps
+  const usedFlatNotation = containsFlatNotation(originalGuess);
+  const answerUsesSharp = actualChordName.includes('#');
+  const isEnharmonic = usedFlatNotation && answerUsesSharp && normalizedGuess === normalizedAnswer;
+
   // Check for exact match after normalization
   if (normalizedGuess === normalizedAnswer) {
     return {
       isCorrect: true,
       normalizedGuess,
       normalizedAnswer,
+      isEnharmonic,
+      originalGuess,
     };
   }
 
@@ -428,6 +518,8 @@ export function validateChordGuess(guess: string, actualChord: Chord): ChordVali
         isCorrect: true,
         normalizedGuess,
         normalizedAnswer,
+        isEnharmonic: true,
+        originalGuess,
       };
     }
   }
@@ -438,5 +530,6 @@ export function validateChordGuess(guess: string, actualChord: Chord): ChordVali
     normalizedGuess,
     normalizedAnswer,
     feedback: `Incorrect. The correct answer is ${actualChordName}.`,
+    originalGuess,
   };
 }
