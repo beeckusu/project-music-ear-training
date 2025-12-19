@@ -166,7 +166,15 @@ export class ChordIdentificationGameState implements IGameMode {
     const validationResult = validateChordGuess(guess, this.currentChord);
 
     if (validationResult.isCorrect) {
-      return this.handleCorrectGuess();
+      const result = this.handleCorrectGuess();
+
+      // Add enharmonic feedback if the user entered an enharmonic equivalent
+      if (validationResult.isEnharmonic && result.feedback) {
+        const enharmonicNote = `You entered ${validationResult.originalGuess}, which is enharmonically equivalent to ${this.currentChord.name}`;
+        result.feedback = `${result.feedback} (${enharmonicNote})`;
+      }
+
+      return result;
     } else {
       return this.handleIncorrectGuess();
     }

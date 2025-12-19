@@ -7,7 +7,6 @@ import {
   normalizeChordName,
   getEnharmonicEquivalents,
   validateChordGuess,
-  type ChordValidationResult,
 } from './chordValidation';
 import type { Chord } from '../types/music';
 
@@ -271,6 +270,289 @@ describe('chordValidation', () => {
       const chord = createChord('C', 'add9', 'Cadd9');
       expect(validateChordGuess('Cadd9', chord).isCorrect).toBe(true);
       expect(validateChordGuess('C add 9', chord).isCorrect).toBe(true);
+    });
+
+    describe('comprehensive enharmonic equivalent validation', () => {
+      it('should validate all sharp-flat enharmonic pairs', () => {
+        // C#/Db
+        const cSharpChord = createChord('C#', 'major', 'C#');
+        expect(validateChordGuess('C#', cSharpChord).isCorrect).toBe(true);
+        expect(validateChordGuess('Db', cSharpChord).isCorrect).toBe(true);
+
+        // D#/Eb
+        const dSharpChord = createChord('D#', 'major', 'D#');
+        expect(validateChordGuess('D#', dSharpChord).isCorrect).toBe(true);
+        expect(validateChordGuess('Eb', dSharpChord).isCorrect).toBe(true);
+
+        // F#/Gb
+        const fSharpChord = createChord('F#', 'major', 'F#');
+        expect(validateChordGuess('F#', fSharpChord).isCorrect).toBe(true);
+        expect(validateChordGuess('Gb', fSharpChord).isCorrect).toBe(true);
+
+        // G#/Ab
+        const gSharpChord = createChord('G#', 'major', 'G#');
+        expect(validateChordGuess('G#', gSharpChord).isCorrect).toBe(true);
+        expect(validateChordGuess('Ab', gSharpChord).isCorrect).toBe(true);
+
+        // A#/Bb
+        const aSharpChord = createChord('A#', 'major', 'A#');
+        expect(validateChordGuess('A#', aSharpChord).isCorrect).toBe(true);
+        expect(validateChordGuess('Bb', aSharpChord).isCorrect).toBe(true);
+      });
+
+      it('should validate enharmonic equivalents with complex chord types', () => {
+        // Major 7th
+        const dbMaj7 = createChord('C#', 'major7', 'C#maj7');
+        expect(validateChordGuess('C#maj7', dbMaj7).isCorrect).toBe(true);
+        expect(validateChordGuess('Dbmaj7', dbMaj7).isCorrect).toBe(true);
+        expect(validateChordGuess('Db Major 7', dbMaj7).isCorrect).toBe(true);
+
+        // Minor 7th
+        const ebm7 = createChord('D#', 'minor7', 'D#m7');
+        expect(validateChordGuess('D#m7', ebm7).isCorrect).toBe(true);
+        expect(validateChordGuess('Ebm7', ebm7).isCorrect).toBe(true);
+
+        // Dominant 7th
+        const gb7 = createChord('F#', 'dominant7', 'F#7');
+        expect(validateChordGuess('F#7', gb7).isCorrect).toBe(true);
+        expect(validateChordGuess('Gb7', gb7).isCorrect).toBe(true);
+
+        // Diminished
+        const abDim = createChord('G#', 'diminished', 'G#dim');
+        expect(validateChordGuess('G#dim', abDim).isCorrect).toBe(true);
+        expect(validateChordGuess('Abdim', abDim).isCorrect).toBe(true);
+
+        // Augmented
+        const bbAug = createChord('A#', 'augmented', 'A#aug');
+        expect(validateChordGuess('A#aug', bbAug).isCorrect).toBe(true);
+        expect(validateChordGuess('Bbaug', bbAug).isCorrect).toBe(true);
+      });
+
+      it('should validate enharmonic equivalents with extended chords', () => {
+        // Major 9th
+        const dbMaj9 = createChord('C#', 'major9', 'C#maj9');
+        expect(validateChordGuess('C#maj9', dbMaj9).isCorrect).toBe(true);
+        expect(validateChordGuess('Dbmaj9', dbMaj9).isCorrect).toBe(true);
+
+        // Minor 9th
+        const ebm9 = createChord('D#', 'minor9', 'D#m9');
+        expect(validateChordGuess('D#m9', ebm9).isCorrect).toBe(true);
+        expect(validateChordGuess('Ebm9', ebm9).isCorrect).toBe(true);
+
+        // Dominant 13th
+        const ab13 = createChord('G#', 'dominant13', 'G#13');
+        expect(validateChordGuess('G#13', ab13).isCorrect).toBe(true);
+        expect(validateChordGuess('Ab13', ab13).isCorrect).toBe(true);
+      });
+
+      it('should validate enharmonic equivalents with suspended chords', () => {
+        // Sus4
+        const dbSus4 = createChord('C#', 'sus4', 'C#sus4');
+        expect(validateChordGuess('C#sus4', dbSus4).isCorrect).toBe(true);
+        expect(validateChordGuess('Dbsus4', dbSus4).isCorrect).toBe(true);
+
+        // Sus2
+        const gbSus2 = createChord('F#', 'sus2', 'F#sus2');
+        expect(validateChordGuess('F#sus2', gbSus2).isCorrect).toBe(true);
+        expect(validateChordGuess('Gbsus2', gbSus2).isCorrect).toBe(true);
+      });
+
+      it('should validate slash notation with enharmonic bass notes', () => {
+        // C/Db should equal C/C#
+        const cSlashCSharp: Chord = {
+          root: 'C' as any,
+          type: 'major' as any,
+          name: 'C/C#',
+          notes: [
+            { note: 'C#' as any, octave: 4 },
+            { note: 'E' as any, octave: 4 },
+            { note: 'G' as any, octave: 4 },
+          ],
+          inversion: 1,
+        };
+        expect(validateChordGuess('C/C#', cSlashCSharp).isCorrect).toBe(true);
+        expect(validateChordGuess('C/Db', cSlashCSharp).isCorrect).toBe(true);
+
+        // Am7/Db should equal Am7/C#
+        const am7SlashCSharp: Chord = {
+          root: 'A' as any,
+          type: 'minor7' as any,
+          name: 'Am7/C#',
+          notes: [
+            { note: 'C#' as any, octave: 4 },
+            { note: 'A' as any, octave: 4 },
+            { note: 'C' as any, octave: 4 },
+            { note: 'E' as any, octave: 4 },
+            { note: 'G' as any, octave: 4 },
+          ],
+          inversion: 2,
+        };
+        expect(validateChordGuess('Am7/C#', am7SlashCSharp).isCorrect).toBe(true);
+        expect(validateChordGuess('Am7/Db', am7SlashCSharp).isCorrect).toBe(true);
+      });
+
+      it('should validate slash notation with enharmonic root notes', () => {
+        // Dbm/F should equal C#m/F
+        const cSharpMinorSlashF: Chord = {
+          root: 'C#' as any,
+          type: 'minor' as any,
+          name: 'C#m/F',
+          notes: [
+            { note: 'F' as any, octave: 4 },
+            { note: 'C#' as any, octave: 4 },
+            { note: 'E' as any, octave: 4 },
+            { note: 'G#' as any, octave: 4 },
+          ],
+          inversion: 1,
+        };
+        expect(validateChordGuess('C#m/F', cSharpMinorSlashF).isCorrect).toBe(true);
+        expect(validateChordGuess('Dbm/F', cSharpMinorSlashF).isCorrect).toBe(true);
+
+        // Gbmaj7/Bb should equal F#maj7/A#
+        const fSharpMaj7SlashASharp: Chord = {
+          root: 'F#' as any,
+          type: 'major7' as any,
+          name: 'F#maj7/A#',
+          notes: [
+            { note: 'A#' as any, octave: 4 },
+            { note: 'F#' as any, octave: 4 },
+            { note: 'A' as any, octave: 4 },
+            { note: 'C#' as any, octave: 4 },
+            { note: 'E#' as any, octave: 4 },
+          ],
+          inversion: 1,
+        };
+        expect(validateChordGuess('F#maj7/A#', fSharpMaj7SlashASharp).isCorrect).toBe(true);
+        expect(validateChordGuess('Gbmaj7/Bb', fSharpMaj7SlashASharp).isCorrect).toBe(true);
+      });
+
+      it('should validate enharmonic equivalents with unicode symbols', () => {
+        // Unicode flat symbol (♭)
+        const cSharpChord = createChord('C#', 'minor', 'C#m');
+        expect(validateChordGuess('D♭m', cSharpChord).isCorrect).toBe(true);
+        expect(validateChordGuess('C#m', cSharpChord).isCorrect).toBe(true);
+
+        // Multiple unicode symbols
+        const fSharpMaj7 = createChord('F#', 'major7', 'F#maj7');
+        expect(validateChordGuess('G♭maj7', fSharpMaj7).isCorrect).toBe(true);
+      });
+
+      it('should detect when user enters enharmonic equivalent', () => {
+        // Test isEnharmonic flag
+        const cSharpChord = createChord('C#', 'minor', 'C#m');
+
+        // User enters flat notation, should be marked as enharmonic
+        const dbResult = validateChordGuess('Dbm', cSharpChord);
+        expect(dbResult.isCorrect).toBe(true);
+        expect(dbResult.isEnharmonic).toBe(true);
+        expect(dbResult.originalGuess).toBe('Dbm');
+
+        // User enters sharp notation, should NOT be marked as enharmonic
+        const cSharpResult = validateChordGuess('C#m', cSharpChord);
+        expect(cSharpResult.isCorrect).toBe(true);
+        expect(cSharpResult.isEnharmonic).toBe(false);
+        expect(cSharpResult.originalGuess).toBe('C#m');
+      });
+
+      it('should track original guess for all results', () => {
+        const chord = createChord('C', 'major', 'C');
+
+        // Correct answer
+        const correctResult = validateChordGuess('C Major', chord);
+        expect(correctResult.originalGuess).toBe('C Major');
+
+        // Incorrect answer
+        const incorrectResult = validateChordGuess('Dm', chord);
+        expect(incorrectResult.originalGuess).toBe('Dm');
+      });
+
+      it('should detect enharmonic in slash notation', () => {
+        const cSlashCSharp: Chord = {
+          root: 'C' as any,
+          type: 'major' as any,
+          name: 'C/C#',
+          notes: [
+            { note: 'C#' as any, octave: 4 },
+            { note: 'E' as any, octave: 4 },
+            { note: 'G' as any, octave: 4 },
+          ],
+          inversion: 1,
+        };
+
+        // User enters C/Db - should be marked as enharmonic
+        const result = validateChordGuess('C/Db', cSlashCSharp);
+        expect(result.isCorrect).toBe(true);
+        expect(result.isEnharmonic).toBe(true);
+        expect(result.originalGuess).toBe('C/Db');
+      });
+
+      it('should validate theoretical enharmonic equivalents', () => {
+        // B# = C
+        const cMajorChord = createChord('C', 'major', 'C');
+        expect(validateChordGuess('B#', cMajorChord).isCorrect).toBe(true);
+        expect(validateChordGuess('B♯', cMajorChord).isCorrect).toBe(true);
+
+        // Cb = B
+        const bMajorChord = createChord('B', 'major', 'B');
+        expect(validateChordGuess('Cb', bMajorChord).isCorrect).toBe(true);
+        expect(validateChordGuess('C♭', bMajorChord).isCorrect).toBe(true);
+
+        // E# = F
+        const fMajorChord = createChord('F', 'major', 'F');
+        expect(validateChordGuess('E#', fMajorChord).isCorrect).toBe(true);
+        expect(validateChordGuess('E♯', fMajorChord).isCorrect).toBe(true);
+
+        // Fb = E
+        const eMajorChord = createChord('E', 'major', 'E');
+        expect(validateChordGuess('Fb', eMajorChord).isCorrect).toBe(true);
+        expect(validateChordGuess('F♭', eMajorChord).isCorrect).toBe(true);
+      });
+
+      it('should validate theoretical enharmonics with chord types', () => {
+        // B#m = Cm
+        const cMinorChord = createChord('C', 'minor', 'Cm');
+        expect(validateChordGuess('B#m', cMinorChord).isCorrect).toBe(true);
+        expect(validateChordGuess('B# minor', cMinorChord).isCorrect).toBe(true);
+
+        // E#7 = F7
+        const f7Chord = createChord('F', 'dominant7', 'F7');
+        expect(validateChordGuess('E#7', f7Chord).isCorrect).toBe(true);
+
+        // Fbmaj7 = Emaj7
+        const eMaj7Chord = createChord('E', 'major7', 'Emaj7');
+        expect(validateChordGuess('Fbmaj7', eMaj7Chord).isCorrect).toBe(true);
+      });
+
+      it('should validate theoretical enharmonics in slash notation', () => {
+        // C/E# should equal C/F
+        const cSlashF: Chord = {
+          root: 'C' as any,
+          type: 'major' as any,
+          name: 'C/F',
+          notes: [
+            { note: 'F' as any, octave: 4 },
+            { note: 'E' as any, octave: 4 },
+            { note: 'G' as any, octave: 4 },
+          ],
+          inversion: 1,
+        };
+        expect(validateChordGuess('C/E#', cSlashF).isCorrect).toBe(true);
+        expect(validateChordGuess('C/F', cSlashF).isCorrect).toBe(true);
+
+        // B#/E should equal C/E
+        const cSlashE: Chord = {
+          root: 'C' as any,
+          type: 'major' as any,
+          name: 'C/E',
+          notes: [
+            { note: 'E' as any, octave: 4 },
+            { note: 'G' as any, octave: 4 },
+            { note: 'C' as any, octave: 5 },
+          ],
+          inversion: 1,
+        };
+        expect(validateChordGuess('B#/E', cSlashE).isCorrect).toBe(true);
+      });
     });
   });
 });
