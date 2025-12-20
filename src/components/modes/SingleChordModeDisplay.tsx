@@ -4,6 +4,7 @@ import type { CommonDisplayProps } from '../../game/GameStateFactory';
 import type { NoteWithOctave } from '../../types/music';
 import TimerDigital from '../TimerDigital';
 import PianoKeyboard from '../PianoKeyboard';
+import ChordDisplay from '../ChordDisplay';
 import './SingleChordModeDisplay.css';
 
 interface SingleChordModeDisplayProps extends CommonDisplayProps {
@@ -42,16 +43,11 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
   return (
     <>
       {/* Chord Name Display */}
-      {currentChord && (currentNote || gameState.isCompleted) && (
-        <div className="chord-display-section">
-          <div className="chord-name-container">
-            <div className="chord-label">Current Chord</div>
-            <div className="chord-name">{currentChord.name}</div>
-            <div className="chord-instruction">
-              Select all {currentChord.notes.length} notes in this chord
-            </div>
-          </div>
-        </div>
+      {(currentNote || gameState.isCompleted) && (
+        <ChordDisplay
+          chord={currentChord}
+          showInstructions={!gameState.isCompleted}
+        />
       )}
 
       {/* Progress Stats */}
