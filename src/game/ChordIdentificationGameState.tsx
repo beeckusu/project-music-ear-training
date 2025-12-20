@@ -442,6 +442,81 @@ export class ChordIdentificationGameState implements IGameMode {
   };
 
   // ========================================
+  // Timer Management Methods
+  // ========================================
+
+  private timerState = {
+    timeRemaining: 0,
+    isActive: false
+  };
+
+  private timerCallback: (() => void) | null = null;
+  private updateCallback: ((timeRemaining: number) => void) | null = null;
+
+  /**
+   * Initializes the timer for response time limits.
+   *
+   * @param responseTimeLimit - Time limit in seconds (null for unlimited)
+   * @param isPaused - Whether the timer should start paused
+   * @param onTimeUp - Callback when time runs out
+   * @param onTimeUpdate - Optional callback for timer updates
+   */
+  initializeTimer = (
+    responseTimeLimit: number | null,
+    isPaused: boolean,
+    onTimeUp: () => void,
+    onTimeUpdate?: (timeRemaining: number) => void
+  ): void => {
+    this.timerCallback = onTimeUp;
+    this.updateCallback = onTimeUpdate || null;
+
+    if (responseTimeLimit !== null) {
+      this.timerState = {
+        timeRemaining: responseTimeLimit,
+        isActive: !isPaused
+      };
+    } else {
+      this.timerState = {
+        timeRemaining: 0,
+        isActive: false
+      };
+    }
+  };
+
+  /**
+   * Gets the current timer state.
+   *
+   * @returns Current timer state with remaining time and active status
+   */
+  getTimerState = (): { timeRemaining: number; isActive: boolean } => {
+    return { ...this.timerState };
+  };
+
+  /**
+   * Pauses the timer.
+   */
+  pauseTimer = (): void => {
+    this.timerState.isActive = false;
+  };
+
+  /**
+   * Resumes the timer.
+   */
+  resumeTimer = (): void => {
+    this.timerState.isActive = true;
+  };
+
+  /**
+   * Resets the timer to initial state.
+   */
+  resetTimer = (): void => {
+    this.timerState = {
+      timeRemaining: 0,
+      isActive: false
+    };
+  };
+
+  // ========================================
   // IGameMode Interface Methods
   // ========================================
 
