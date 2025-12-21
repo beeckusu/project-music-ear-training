@@ -10,6 +10,7 @@ import NoteTrainingModeSettings from '../../components/settings/NoteTrainingMode
 modeRegistry.register({
   id: NOTE_TRAINING_SUB_MODES.SHOW_CHORD_GUESS_NOTES,
   type: TRAINING_MODES.NOTE_TRAINING,
+  strategyType: 'chord-training',
   icon: '🎹',
   title: 'Chord Training',
   description: 'Identify individual notes in chords',

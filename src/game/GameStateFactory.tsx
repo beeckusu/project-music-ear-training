@@ -8,6 +8,8 @@ import type {
   NoteTrainingModeSettings,
   GameStats
 } from '../types/game';
+import type { NoteWithOctave } from '../types/music';
+import type { RoundContext } from '../types/orchestrator';
 import { EAR_TRAINING_SUB_MODES } from '../constants';
 import { modeRegistry } from './ModeRegistry';
 
@@ -62,6 +64,19 @@ export interface GameStateWithDisplay extends BaseGameState {
   getCompletionMessage: () => string;
   getSessionSettings: () => Record<string, any>;
   getSessionResults: (stats: GameStats) => Record<string, any>;
+
+  // Optional callbacks for component interaction with strategy
+  /**
+   * Optional callback invoked when user clicks a piano key
+   * Used by chord training to toggle note selection
+   */
+  onPianoKeyClick?(note: NoteWithOctave, context: RoundContext): void;
+
+  /**
+   * Optional callback invoked when user clicks submit button
+   * Used by chord training to validate selected notes
+   */
+  onSubmitClick?(context: RoundContext): void;
 }
 
 /**
