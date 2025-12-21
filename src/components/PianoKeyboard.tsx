@@ -30,6 +30,26 @@ interface PianoKeyboardProps {
    * Set to false for chord mode where multiple notes should sound together
    */
   monoMode?: boolean;
+
+  /**
+   * Selection mode (default: 'single')
+   * - 'single': clicking a key immediately triggers callback (ear training mode)
+   * - 'multi': clicking toggles selection, allowing multiple notes to be selected (chord/note training mode)
+   */
+  selectionMode?: 'single' | 'multi';
+
+  /**
+   * Callback when notes are selected in multi-selection mode
+   * Called with the current array of selected notes whenever selection changes
+   */
+  onNotesSelected?: (notes: NoteWithOctave[]) => void;
+
+  /**
+   * Controlled selection state for multi-selection mode
+   * If provided, component uses this instead of internal state
+   * Pass a Set of note keys (use getNoteKey format: "C-4", "D#-5", etc.)
+   */
+  selectedNotes?: Set<string>;
 }
 
 const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
@@ -38,7 +58,10 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
   octave = 4,
   disabled = false,
   preventNoteRestart = false,
-  monoMode = false
+  monoMode = false,
+  selectionMode = 'single',
+  onNotesSelected,
+  selectedNotes: controlledSelectedNotes
 }) => {
   const { settings } = useSettings();
   const { noteDuration } = settings.timing;
@@ -46,6 +69,13 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
 
   // Track last played note for restart prevention
   const lastPlayedNoteRef = React.useRef<{ note: NoteWithOctave; endTime: number } | null>(null);
+
+  // Internal state for multi-selection (used when not controlled)
+  const [internalSelectedNotes, setInternalSelectedNotes] = React.useState<Set<string>>(new Set());
+
+  // Determine which selection state to use (controlled vs uncontrolled)
+  const selectedNotes = controlledSelectedNotes ?? internalSelectedNotes;
+  const setSelectedNotes = controlledSelectedNotes ? undefined : setInternalSelectedNotes;
   const whiteKeys: Note[] = ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C'];
   // Black keys positioned between specific white keys
   // C# between C and D, D# between D and E, F# between F and G, G# between G and A, A# between A and B
@@ -108,6 +138,7 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
     // For the second C key (index 7), use the next octave
     const actualOctave = (note === 'C' && keyIndex === 7) ? (octave + 1) as Octave : octave as Octave;
     const noteWithOctave = { note, octave: actualOctave };
+    const noteKey = getNoteKey(noteWithOctave);
 
     // Check if we should prevent replaying the same note
     const now = Date.now();
@@ -117,6 +148,56 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
       lastPlayed.note.octave === noteWithOctave.octave;
     const isStillPlaying = lastPlayed && now < lastPlayed.endTime;
 
+    // Handle multi-selection mode
+    if (selectionMode === 'multi') {
+      // Toggle selection
+      const newSelectedNotes = new Set(selectedNotes);
+      if (newSelectedNotes.has(noteKey)) {
+        newSelectedNotes.delete(noteKey);
+      } else {
+        newSelectedNotes.add(noteKey);
+      }
+
+      // Update state (only if using uncontrolled mode)
+      if (setSelectedNotes) {
+        setSelectedNotes(newSelectedNotes);
+      }
+
+      // Convert Set to array of NoteWithOctave for callback
+      const selectedNotesArray: NoteWithOctave[] = Array.from(newSelectedNotes).map(key => {
+        const [noteStr, octaveStr] = key.split('-');
+        return { note: noteStr as Note, octave: parseInt(octaveStr) as Octave };
+      });
+
+      // Play the note sound (only if not preventing restart or not currently playing)
+      if (!preventNoteRestart || !isSameNote || !isStillPlaying) {
+        try {
+          await audioEngine.initialize();
+          // In multi mode, don't use mono mode - allow polyphonic playback
+          audioEngine.playNote(noteWithOctave, noteDuration);
+
+          // Track when this note will finish playing
+          const durationMs = noteDuration === '8n' ? 250 :
+                            noteDuration === '4n' ? 500 :
+                            noteDuration === '2n' ? 1000 : 2000;
+          lastPlayedNoteRef.current = {
+            note: noteWithOctave,
+            endTime: now + durationMs
+          };
+        } catch (error) {
+          console.warn('Failed to play note:', error);
+        }
+      }
+
+      // Call the multi-selection callback
+      if (onNotesSelected) {
+        onNotesSelected(selectedNotesArray);
+      }
+
+      return;
+    }
+
+    // Single mode (original behavior)
     if (preventNoteRestart && isSameNote && isStillPlaying) {
       // Still trigger callback even if we don't replay audio
       if (onNoteClick) {
@@ -163,14 +244,20 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
     const noteKey = getNoteKey({ note, octave: keyOctave });
 
     const highlight = highlightMap.get(noteKey);
-    if (!highlight) return '';
-
-    // For custom type, use the provided className
-    if (highlight.type === 'custom' && highlight.className) {
-      return highlight.className;
+    if (highlight) {
+      // For custom type, use the provided className
+      if (highlight.type === 'custom' && highlight.className) {
+        return highlight.className;
+      }
+      return highlightTypeToClass[highlight.type];
     }
 
-    return highlightTypeToClass[highlight.type];
+    // In multi-selection mode, show selected state if no explicit highlight
+    if (selectionMode === 'multi' && selectedNotes.has(noteKey)) {
+      return 'piano-key-selected';
+    }
+
+    return '';
   };
 
   return (

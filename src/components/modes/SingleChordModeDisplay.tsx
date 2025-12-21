@@ -120,6 +120,7 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
       {currentChord && currentNote && !gameState.isCompleted && (
         <div className="piano-container">
           <PianoKeyboard
+            selectionMode="multi"
             onNoteClick={handleNoteClick}
             highlights={gameState.getNoteHighlights()}
             disabled={gameState.isCompleted}
