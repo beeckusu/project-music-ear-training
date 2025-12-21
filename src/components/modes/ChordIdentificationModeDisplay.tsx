@@ -4,6 +4,7 @@ import type { CommonDisplayProps } from '../../game/GameStateFactory';
 import TimerDigital from '../TimerDigital';
 import PianoKeyboard from '../PianoKeyboard';
 import ChordDisplay from '../ChordDisplay';
+import ChordInput from '../ChordInput';
 import './ChordIdentificationModeDisplay.css';
 
 interface ChordIdentificationModeDisplayProps extends CommonDisplayProps {
@@ -24,14 +25,11 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
   // Calculate accuracy
   const accuracy = totalAttempts > 0 ? Math.round((correctChordsCount / totalAttempts) * 100) : 0;
 
-  // Determine if submit button should be enabled
-  const canSubmit = guessInput.trim().length > 0 && currentChord !== null && !gameState.isCompleted;
-
   // Handle guess submission with re-render
-  const handleSubmitGuess = () => {
-    if (!canSubmit) return;
+  const handleSubmitGuess = (guess: string) => {
+    if (!guess.trim() || !currentChord || gameState.isCompleted) return;
 
-    const result = onSubmitGuess(guessInput.trim());
+    const result = onSubmitGuess(guess);
     setFeedbackMessage(result.feedback);
 
     // Clear input on correct guess (when should advance)
@@ -41,19 +39,6 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
 
     // Force re-render to update progress stats
     forceUpdate();
-  };
-
-  // Handle Enter key press
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && canSubmit) {
-      handleSubmitGuess();
-    }
-  };
-
-  // Handle clear input
-  const handleClearInput = () => {
-    setGuessInput('');
-    setFeedbackMessage('');
   };
 
   // Get note highlights for the piano keyboard
@@ -115,33 +100,17 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
       {/* Chord Input Section */}
       {currentChord && currentNote && !gameState.isCompleted && (
         <div className="chord-input-section">
-          <div className="input-container">
-            <label htmlFor="chord-guess-input" className="input-label">
-              Enter the chord name:
-            </label>
-            <div className="input-field-group">
-              <input
-                id="chord-guess-input"
-                type="text"
-                className="chord-guess-input"
-                value={guessInput}
-                onChange={(e) => setGuessInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="e.g., C, Dm, Gmaj7, F#m"
-                disabled={gameState.isCompleted}
-                autoFocus
-              />
-              {guessInput.length > 0 && (
-                <button
-                  className="clear-input-button"
-                  onClick={handleClearInput}
-                  aria-label="Clear input"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          </div>
+          <label className="input-label">
+            Enter the chord name:
+          </label>
+
+          <ChordInput
+            value={guessInput}
+            onChange={setGuessInput}
+            onSubmit={handleSubmitGuess}
+            disabled={gameState.isCompleted}
+            placeholder="e.g., C, Dm, Gmaj7, F#m"
+          />
 
           {/* Feedback Message */}
           {feedbackMessage && (
@@ -149,17 +118,6 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
               {feedbackMessage}
             </div>
           )}
-
-          {/* Action Buttons */}
-          <div className="chord-actions">
-            <button
-              className="submit-button"
-              onClick={handleSubmitGuess}
-              disabled={!canSubmit}
-            >
-              Submit Guess
-            </button>
-          </div>
         </div>
       )}
 

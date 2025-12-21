@@ -62,7 +62,7 @@
 .chord-input-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   margin: 16px 0;
   padding: 16px;
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
@@ -71,79 +71,11 @@
   border: 1px solid #dee2e6;
 }
 
-.input-container {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
 .input-label {
   font-size: 14px;
   font-weight: 600;
   color: #495057;
   margin-bottom: 4px;
-}
-
-.input-field-group {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.chord-guess-input {
-  flex: 1;
-  padding: 12px 40px 12px 16px;
-  border: 2px solid #ced4da;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  background: white;
-}
-
-.chord-guess-input:focus {
-  outline: none;
-  border-color: #6a11cb;
-  box-shadow: 0 0 0 3px rgba(106, 17, 203, 0.1);
-}
-
-.chord-guess-input::placeholder {
-  color: #adb5bd;
-  font-weight: 400;
-}
-
-.chord-guess-input:disabled {
-  background-color: #e9ecef;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.clear-input-button {
-  position: absolute;
-  right: 8px;
-  background: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s ease;
-  padding: 0;
-  line-height: 1;
-}
-
-.clear-input-button:hover {
-  background: #5a6268;
-  transform: scale(1.1);
-}
-
-.clear-input-button:active {
-  transform: scale(0.95);
 }
 
 /* Feedback Message */
@@ -170,38 +102,6 @@
   }
 }
 
-/* Action Buttons */
-.chord-actions {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-}
-
-.submit-button {
-  padding: 10px 24px;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-  color: white;
-}
-
-.submit-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #218838 0%, #1e7e6a 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
-}
-
-.submit-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
 /* Piano Container */
 .piano-container {
   margin: 16px 0;
@@ -222,19 +122,5 @@
 
   .chord-input-section {
     padding: 12px;
-  }
-
-  .chord-guess-input {
-    font-size: 14px;
-    padding: 10px 36px 10px 12px;
-  }
-
-  .chord-actions {
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .submit-button {
-    width: 100%;
   }
 }
