@@ -35,6 +35,9 @@ class ModeRegistryImpl implements ModeRegistry {
     if (!metadata.gameStateFactory || typeof metadata.gameStateFactory !== 'function') {
       throw new Error(`Mode ${metadata.id} must have a valid gameStateFactory function`);
     }
+    if (!metadata.strategyType) {
+      throw new Error(`Mode ${metadata.id} must have a strategyType`);
+    }
 
     // Check for duplicates
     if (this.modes.has(metadata.id)) {
