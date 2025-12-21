@@ -2,6 +2,7 @@ import React from 'react';
 import type { ModeType, ModeSettings } from './game';
 import type { TrainingType } from '../constants';
 import type { GameStateWithDisplay } from '../game/GameStateFactory';
+import type { StrategyType } from './orchestrator';
 
 /**
  * Metadata for a registered game mode
@@ -12,6 +13,9 @@ export interface ModeMetadata {
 
   /** Category of the mode (ear-training or note-training) */
   type: TrainingType;
+
+  /** Strategy type determining which orchestration strategy to use */
+  strategyType: StrategyType;
 
   /** Icon to display in the UI (emoji or icon identifier) */
   icon: string;

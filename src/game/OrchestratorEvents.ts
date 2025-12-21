@@ -1,6 +1,7 @@
 import type { NoteWithOctave } from '../types/music';
 import type { GuessAttempt, GameStats, GameSession } from '../types/game';
 import type { SessionState, RoundState } from '../machines/types';
+import type { RoundContext } from '../types/orchestrator';
 
 /**
  * Result of a guess attempt
@@ -33,10 +34,11 @@ export interface RoundResult {
 export interface OrchestratorEvents {
   /**
    * Fired when a new round starts
-   * @param note - The note to be played
+   * @param context - Round context containing challenge details (note or chord) - optional for backward compatibility
+   * @param note - The note to be played (deprecated - use context.note instead)
    * @param feedback - Initial feedback message for the round
    */
-  roundStart: { note: NoteWithOctave; feedback: string };
+  roundStart: { context?: RoundContext; note?: NoteWithOctave; feedback: string };
 
   /**
    * Fired when a round ends

@@ -12,6 +12,7 @@ import SandboxModeSettings from '../../components/settings/SandboxModeSettings';
 modeRegistry.register({
   id: EAR_TRAINING_SUB_MODES.RUSH,
   type: TRAINING_MODES.EAR_TRAINING,
+  strategyType: 'ear-training',
   icon: '🏃‍♂️',
   title: 'Rush',
   description: 'Race to hit your target note count as fast as possible',
@@ -27,6 +28,7 @@ modeRegistry.register({
 modeRegistry.register({
   id: EAR_TRAINING_SUB_MODES.SURVIVAL,
   type: TRAINING_MODES.EAR_TRAINING,
+  strategyType: 'ear-training',
   icon: '❤️',
   title: 'Survival',
   description: 'Survive the time limit while keeping your health up',
@@ -42,6 +44,7 @@ modeRegistry.register({
 modeRegistry.register({
   id: EAR_TRAINING_SUB_MODES.SANDBOX,
   type: TRAINING_MODES.EAR_TRAINING,
+  strategyType: 'ear-training',
   icon: '🎯',
   title: 'Sandbox',
   description: 'Practice at your own pace with optional targets',
