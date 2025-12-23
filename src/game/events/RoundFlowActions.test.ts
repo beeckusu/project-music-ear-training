@@ -139,6 +139,40 @@ describe('Round Flow Actions: Events', () => {
       expect(roundStart.feedback).toBeTruthy();
       expect(roundStart.feedback.length).toBeGreaterThan(0);
     });
+
+    it('roundStart includes context with note for ear training', async () => {
+      // WHEN: Start new round in ear training mode
+      await orchestrator.startNewRound();
+
+      // THEN: roundStart event includes properly structured context
+      const roundStart = getLastEventPayload<any>(eventSpies.roundStart);
+      expect(roundStart.context).toBeDefined();
+      expect(roundStart.context).toMatchObject({
+        startTime: expect.any(Date),
+        elapsedTime: 0,
+        note: expect.objectContaining({
+          note: expect.any(String),
+          octave: expect.any(Number),
+        }),
+        noteHighlights: expect.any(Array),
+      });
+
+      // THEN: context.note matches the deprecated note field (backward compatibility)
+      expect(roundStart.context.note).toEqual(roundStart.note);
+
+      // THEN: chord-specific fields are undefined for ear training mode
+      expect(roundStart.context.chord).toBeUndefined();
+      expect(roundStart.context.displayNotes).toBeUndefined();
+      expect(roundStart.context.selectedNotes).toBeUndefined();
+
+      // THEN: noteHighlights is initialized as empty array
+      expect(roundStart.context.noteHighlights).toEqual([]);
+
+      // THEN: startTime is recent (within last second)
+      const now = new Date();
+      const timeDiff = now.getTime() - roundStart.context.startTime.getTime();
+      expect(timeDiff).toBeLessThan(1000);
+    });
   });
 
   describe('Auto-Advance After Correct Guess', () => {
