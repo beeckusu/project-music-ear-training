@@ -2,6 +2,10 @@ import { expect, afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import * as matchers from '@testing-library/jest-dom/matchers';
 
+// Register game modes before tests run
+import '../game/modes/earTrainingModes';
+import '../game/modes/noteTrainingModes';
+
 // Extend Vitest's expect with jest-dom matchers
 expect.extend(matchers);
 
