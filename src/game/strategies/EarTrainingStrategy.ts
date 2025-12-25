@@ -49,6 +49,9 @@ export class EarTrainingStrategy implements ModeStrategy {
     // Update game mode state
     gameMode.onStartNewRound();
 
+    // Initialize audio engine if needed
+    await this.audioEngine.initialize();
+
     // Play the note
     await this.audioEngine.playNote(note, this.noteDuration);
 

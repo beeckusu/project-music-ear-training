@@ -33,8 +33,9 @@ export class GameTestHarness {
     this.orchestrator.start();
 
     // Track note changes
-    this.orchestrator.on('roundStart', ({ note }) => {
-      this.currentNote = note;
+    this.orchestrator.on('roundStart', ({ context, note }) => {
+      // Support both new (context.note) and old (note) formats
+      this.currentNote = context?.note ?? note ?? null;
     });
   }
 

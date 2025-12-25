@@ -44,6 +44,7 @@ describe('EarTrainingStrategy', () => {
 
     // Create mock audio engine
     mockAudioEngine = {
+      initialize: vi.fn().mockResolvedValue(undefined),
       playNote: vi.fn().mockResolvedValue(undefined)
     } as any;
 

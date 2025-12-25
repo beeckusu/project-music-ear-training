@@ -9,9 +9,12 @@ import type { OrchestratorEvents } from './OrchestratorEvents';
 import type { IGameMode } from './IGameMode';
 import type { NoteFilter } from '../types/music';
 import type { GuessAttempt } from '../types/game';
-import type { RoundContext } from '../types/orchestrator';
+import type { UserAction, RoundContext } from '../types/orchestrator';
 import { LOGS_STATE_ENABLED, LOGS_EVENTS_ENABLED, LOGS_TIMERS_ENABLED, LOGS_USER_ACTIONS_ENABLED } from '../config/logging';
 import { createGameState } from './GameStateFactory';
+import { modeRegistry } from './ModeRegistry';
+import type { ModeStrategy } from './strategies/ModeStrategy';
+import { EarTrainingStrategy } from './strategies/EarTrainingStrategy';
 
 /**
  * GameOrchestrator
@@ -118,6 +121,9 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
   private selectedMode: string | null = null;
   private modeSettings: any = null;
 
+  // Strategy pattern for mode-specific logic
+  private currentStrategy: ModeStrategy | null = null;
+
   // Pause state tracking
   private wasInIntermissionWhenPaused: boolean = false;
 
@@ -164,7 +170,11 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
    * Must be called before any state transitions
    */
   start(): void {
+    console.log('[Orchestrator] start() called, creating actor subscription');
+    console.log('[Orchestrator] Actor status before start:', this.actor.getSnapshot().status);
     this.actor.start();
+    console.log('[Orchestrator] Actor status after start:', this.actor.getSnapshot().status);
+    console.log('[Orchestrator] Initial state:', this.actor.getSnapshot().value);
 
     // Track previous state to detect transitions
     let previousState: string | null = null;
@@ -172,43 +182,70 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
     let previousElapsedTime: number | undefined = undefined;
 
     // Subscribe to context updates to sync elapsedTime to game mode and call timer callbacks
-    const subscription = this.actor.subscribe((snapshot) => {
-      if (this.gameMode && snapshot.context.elapsedTime !== undefined) {
-        this.gameMode.elapsedTime = snapshot.context.elapsedTime;
+    console.log('[Orchestrator] Setting up subscription...');
+    console.log('[Orchestrator] About to call this.actor.subscribe(), actor status:', this.actor.getSnapshot().status);
 
-        // Call session timer callback only if elapsedTime changed
-        if (this.onSessionTimerUpdate && snapshot.context.elapsedTime !== previousElapsedTime) {
-          this.onSessionTimerUpdate(snapshot.context.elapsedTime);
-          previousElapsedTime = snapshot.context.elapsedTime;
+    try {
+      const subscription = this.actor.subscribe((snapshot) => {
+        console.log('[Orchestrator] ⚡ Subscription callback fired, snapshot.value:', snapshot.value);
+
+        try {
+          if (this.gameMode && snapshot.context.elapsedTime !== undefined) {
+            this.gameMode.elapsedTime = snapshot.context.elapsedTime;
+
+            // Call session timer callback only if elapsedTime changed
+            if (this.onSessionTimerUpdate && snapshot.context.elapsedTime !== previousElapsedTime) {
+              this.onSessionTimerUpdate(snapshot.context.elapsedTime);
+              previousElapsedTime = snapshot.context.elapsedTime;
+            }
+          }
+
+          // Call round timer callback only if roundTimeRemaining changed
+          if (this.onTimerUpdate && snapshot.context.roundTimeRemaining !== undefined &&
+              snapshot.context.roundTimeRemaining !== previousRoundTimeRemaining) {
+            this.onTimerUpdate(snapshot.context.roundTimeRemaining);
+            previousRoundTimeRemaining = snapshot.context.roundTimeRemaining;
+          }
+
+          // Handle round timeout (when round timer reaches 0)
+          // Detect transition from WAITING_INPUT to TIMEOUT_INTERMISSION with no user guess
+          const currentState = JSON.stringify(snapshot.value);
+          const isInIntermission = snapshot.matches({ [SessionState.PLAYING]: RoundState.TIMEOUT_INTERMISSION });
+          const wasInWaitingInput = previousState?.includes(RoundState.WAITING_INPUT);
+
+          if (isInIntermission && wasInWaitingInput && !snapshot.context.userGuess && this.currentNote) {
+            this.handleTimeout(this.autoAdvanceSpeed);
+          }
+
+          // Emit stateChange event when state changes
+          if (currentState !== previousState) {
+            const sessionState = Object.keys(snapshot.value)[0] as SessionState;
+            const roundState = snapshot.matches(SessionState.PLAYING)
+              ? (snapshot.value as any)[SessionState.PLAYING] as RoundState
+              : undefined;
+
+            console.log('[Orchestrator] State changed:', { sessionState, roundState, previousState, currentState });
+            this.emit('stateChange', { sessionState, roundState });
+          }
+
+          previousState = currentState;
+
+          // Handle automatic session completion (e.g., Sandbox timer expiration)
+          if (snapshot.matches(SessionState.COMPLETED) && this.gameMode && !this.gameMode.isCompleted) {
+            console.log('[GameOrchestrator] Detected COMPLETED state - calling handleExternalCompletion');
+            this.handleExternalCompletion();
+          }
+        } catch (error) {
+          console.error('[Orchestrator] Subscription callback error:', error);
         }
-      }
-
-      // Call round timer callback only if roundTimeRemaining changed
-      if (this.onTimerUpdate && snapshot.context.roundTimeRemaining !== undefined &&
-          snapshot.context.roundTimeRemaining !== previousRoundTimeRemaining) {
-        this.onTimerUpdate(snapshot.context.roundTimeRemaining);
-        previousRoundTimeRemaining = snapshot.context.roundTimeRemaining;
-      }
-
-      // Handle round timeout (when round timer reaches 0)
-      // Detect transition from WAITING_INPUT to TIMEOUT_INTERMISSION with no user guess
-      const currentState = JSON.stringify(snapshot.value);
-      const isInIntermission = snapshot.matches({ [SessionState.PLAYING]: RoundState.TIMEOUT_INTERMISSION });
-      const wasInWaitingInput = previousState?.includes(RoundState.WAITING_INPUT);
-
-      if (isInIntermission && wasInWaitingInput && !snapshot.context.userGuess && this.currentNote) {
-        this.handleTimeout(this.autoAdvanceSpeed);
-      }
-
-      previousState = currentState;
-
-      // Handle automatic session completion (e.g., Sandbox timer expiration)
-      if (snapshot.matches(SessionState.COMPLETED) && this.gameMode && !this.gameMode.isCompleted) {
-        console.log('[GameOrchestrator] Detected COMPLETED state - calling handleExternalCompletion');
-        this.handleExternalCompletion();
-      }
-    });
-    this.subscriptions.push(() => subscription.unsubscribe());
+      });
+      console.log('[Orchestrator] Subscription object created:', typeof subscription, subscription);
+      console.log('[Orchestrator] Adding subscription to subscriptions array');
+      this.subscriptions.push(() => subscription.unsubscribe());
+      console.log('[Orchestrator] Subscriptions count:', this.subscriptions.length);
+    } catch (error) {
+      console.error('[Orchestrator] Error during subscription setup:', error);
+    }
   }
 
   /**
@@ -375,6 +412,8 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
       console.log('[Orchestrator] Sending event:', event.type, event);
     }
     this.actor.send(event);
+    const currentState = this.actor.getSnapshot();
+    console.log('[Orchestrator] After send, state is:', currentState.value, 'matches:', currentState.matches);
   }
 
   // ========================================
@@ -789,11 +828,48 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
   setGameMode(mode: IGameMode): void {
     this.gameMode = mode;
 
+    // Initialize strategy based on mode type
+    this.currentStrategy = this.createStrategy(mode);
+
+    // Log deprecation warning if no strategy available
+    if (!this.currentStrategy) {
+      console.warn('[Orchestrator] DEPRECATION: Using legacy code path for mode', mode.getMode(), '- strategy not yet implemented');
+    }
+
     // Set completion callback for modes that need it (e.g., Sandbox mode timer expiration)
     if (mode.setCompletionCallback) {
       mode.setCompletionCallback(() => {
         this.handleExternalCompletion();
       });
+    }
+  }
+
+  /**
+   * Create a strategy instance based on the game mode's strategy type
+   *
+   * @param mode - The game mode to create a strategy for
+   * @returns Strategy instance or null if not yet implemented
+   */
+  private createStrategy(mode: IGameMode): ModeStrategy | null {
+    const modeType = mode.getMode() as import('../types/game').ModeType;
+    const metadata = modeRegistry.get(modeType);
+
+    if (!metadata) {
+      console.warn('[Orchestrator] Mode metadata not found for:', modeType);
+      return null;
+    }
+
+    const strategyType = metadata.strategyType;
+
+    switch (strategyType) {
+      case 'ear-training':
+        return new EarTrainingStrategy(audioEngine, this.noteDuration);
+      case 'chord-training':
+        // TODO: Implement ChordTrainingStrategy
+        return null;
+      default:
+        console.warn('[Orchestrator] Unknown strategy type:', strategyType);
+        return null;
     }
   }
 
@@ -804,6 +880,14 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
    */
   refreshGameMode(mode: IGameMode): void {
     this.gameMode = mode;
+
+    // Initialize strategy based on mode type
+    this.currentStrategy = this.createStrategy(mode);
+
+    // Log deprecation warning if no strategy available
+    if (!this.currentStrategy) {
+      console.warn('[Orchestrator] DEPRECATION: Using legacy code path for mode', mode.getMode(), '- strategy not yet implemented');
+    }
 
     // Set completion callback for modes that need it
     if (mode.setCompletionCallback) {
@@ -916,6 +1000,30 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
       return;
     }
 
+    // Use strategy if available
+    if (this.currentStrategy && this.noteFilter) {
+      const context = await this.currentStrategy.startNewRound(this.gameMode, this.noteFilter);
+
+      // Update current note from context
+      this.currentNote = context.note || null;
+
+      // Get feedback from game mode
+      const feedback = this.gameMode.getFeedbackMessage(true);
+
+      // Emit roundStart event with context
+      this.emit('roundStart', { context, feedback });
+
+      // Transition to WAITING_INPUT if in IDLE
+      if (this.isIdle()) {
+        this.startGame();
+      }
+
+      return;
+    }
+
+    // Fallback to legacy code path
+    console.warn('[Orchestrator] DEPRECATION: Using legacy startNewRound code path');
+
     // Generate new note
     const newNote = this.generateNote();
     if (!newNote) {
@@ -953,6 +1061,93 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
   // ========================================
 
   /**
+   * Unified entry point for handling user actions
+   * Delegates to strategy if available, otherwise falls back to legacy code
+   *
+   * @param action - The user action to handle
+   * @param context - Current round context (optional, for strategy-based flow)
+   */
+  handleUserAction(action: UserAction, context?: RoundContext): void {
+    if (LOGS_USER_ACTIONS_ENABLED) {
+      console.log('[Orchestrator] handleUserAction:', action.type);
+    }
+
+    // Delegate to strategy if available
+    if (this.currentStrategy && context) {
+      switch (action.type) {
+        case 'piano_click':
+          if (this.currentStrategy.handlePianoKeyClick) {
+            this.currentStrategy.handlePianoKeyClick(action.note, context);
+
+            // Send MAKE_GUESS event to state machine
+            this.send({ type: GameAction.MAKE_GUESS, guessedNote: action.note.note });
+
+            // For strategies with auto-submit (like ear training), validate and advance
+            const result = this.currentStrategy.validateAndAdvance(context);
+
+            // Send result to state machine
+            this.send({
+              type: result.isCorrect ? GameAction.CORRECT_GUESS : GameAction.INCORRECT_GUESS,
+            });
+
+            this.emit('guessResult', result);
+
+            // Handle auto-advance if needed
+            if (result.shouldAdvance && !result.gameCompleted) {
+              this.handleAutoAdvance(1000);
+            }
+
+            // Handle game completion
+            if (result.gameCompleted && result.stats) {
+              this.complete();
+              this.emit('sessionComplete', {
+                session: this.createGameSession(result.stats),
+                stats: result.stats,
+              });
+            }
+          }
+          break;
+        case 'submit':
+          if (this.currentStrategy.handleSubmitClick) {
+            this.currentStrategy.handleSubmitClick(context);
+
+            // Validate and advance after submit
+            const result = this.currentStrategy.validateAndAdvance(context);
+
+            // Send result to state machine
+            this.send({
+              type: result.isCorrect ? GameAction.CORRECT_GUESS : GameAction.INCORRECT_GUESS,
+            });
+
+            this.emit('guessResult', result);
+
+            // Handle auto-advance if needed
+            if (result.shouldAdvance && !result.gameCompleted) {
+              this.handleAutoAdvance(1000);
+            }
+
+            // Handle game completion
+            if (result.gameCompleted && result.stats) {
+              this.complete();
+              this.emit('sessionComplete', {
+                session: this.createGameSession(result.stats),
+                stats: result.stats,
+              });
+            }
+          }
+          break;
+      }
+      return;
+    }
+
+    // Fallback to legacy code path
+    console.warn('[Orchestrator] DEPRECATION: Using legacy submitGuess for action:', action.type);
+    if (action.type === 'piano_click') {
+      this.submitGuess(action.note);
+    }
+  }
+
+  /**
    * Submit a guess for the current note
    * Validates the guess, updates game state, and emits events
    *
@@ -974,6 +1169,7 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
    * @param guessedNote - The note the user guessed
    */
   submitGuess(guessedNote: NoteWithOctave): void {
+    console.log('[Orchestrator] submitGuess called:', guessedNote.note);
     if (LOGS_USER_ACTIONS_ENABLED) {
       console.log('[Orchestrator] User submitted guess:', guessedNote.note);
     }
@@ -990,6 +1186,7 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
 
     // Validate the guess
     const isCorrect = this.gameMode.validateGuess(guessedNote, this.currentNote);
+    console.log('[Orchestrator] Guess validation:', { guessed: guessedNote.note, actual: this.currentNote.note, isCorrect });
 
     // Create attempt record
     const attempt: GuessAttempt = {
@@ -1004,6 +1201,7 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
     this.emit('guessAttempt', attempt);
 
     // Send guess to state machine
+    console.log('[Orchestrator] Sending MAKE_GUESS to state machine');
     this.send({ type: GameAction.MAKE_GUESS, guessedNote: guessedNote.note });
 
     // Handle the guess result through game state
@@ -1012,8 +1210,10 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
       : this.gameMode.handleIncorrectGuess();
 
     // Send result to state machine
+    const action = isCorrect ? GameAction.CORRECT_GUESS : GameAction.INCORRECT_GUESS;
+    console.log('[Orchestrator] Sending', action, 'to state machine');
     this.send({
-      type: isCorrect ? GameAction.CORRECT_GUESS : GameAction.INCORRECT_GUESS,
+      type: action,
     });
 
     // Emit guess result event
@@ -1232,6 +1432,17 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
 
         if (isInIntermission && wasInWaitingInput && !snapshot.context.userGuess && this.currentNote) {
           this.handleTimeout(this.autoAdvanceSpeed);
+        }
+
+        // Emit stateChange event when state changes
+        if (currentState !== previousState) {
+          const sessionState = Object.keys(snapshot.value)[0] as SessionState;
+          const roundState = snapshot.matches(SessionState.PLAYING)
+            ? (snapshot.value as any)[SessionState.PLAYING] as RoundState
+            : undefined;
+
+          console.log('[Orchestrator] State changed (applySettings subscription):', { sessionState, roundState, previousState, currentState });
+          this.emit('stateChange', { sessionState, roundState });
         }
 
         previousState = currentState;
