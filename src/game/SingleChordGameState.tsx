@@ -9,6 +9,7 @@ import type {
 } from '../types/game';
 import type { CommonDisplayProps, GameActionResult, GameStateWithDisplay } from './GameStateFactory';
 import type { Chord, NoteWithOctave, NoteFilter, NoteHighlight } from '../types/music';
+import type { RoundContext } from '../types/orchestrator';
 import type { IGameMode } from './IGameMode';
 import { ChordEngine } from '../utils/chordEngine';
 import { NOTE_TRAINING_SUB_MODES } from '../constants';
@@ -65,6 +66,38 @@ export class SingleChordGameState implements IGameMode {
       onSubmitAnswer: this.handleSubmitAnswer,
       onClearSelection: this.clearSelection
     });
+  };
+
+  /**
+   * Optional callback invoked when user clicks a piano key.
+   * Toggles note selection and updates the round context.
+   *
+   * @param note - The note that was clicked
+   * @param context - Current round context
+   */
+  onPianoKeyClick = (note: NoteWithOctave, context: RoundContext): void => {
+    // Toggle note selection
+    this.handleNoteSelection(note);
+
+    // Update context with new selection state
+    context.selectedNotes = new Set(this.selectedNotes);
+
+    // Update context with note highlights
+    context.noteHighlights = this.getNoteHighlights();
+  };
+
+  /**
+   * Optional callback invoked when user clicks the submit button.
+   * Validates the selected notes against the current chord.
+   *
+   * @param context - Current round context
+   */
+  onSubmitClick = (context: RoundContext): void => {
+    // Validate the selected notes
+    this.handleSubmitAnswer();
+
+    // Update context with latest highlights after submission
+    context.noteHighlights = this.getNoteHighlights();
   };
 
   /**
