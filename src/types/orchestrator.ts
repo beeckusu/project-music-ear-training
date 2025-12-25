@@ -6,6 +6,13 @@ import type { NoteWithOctave, Chord, NoteHighlight } from './music';
 export type StrategyType = 'ear-training' | 'chord-training';
 
 /**
+ * User action types for unified interaction handling
+ */
+export type UserAction =
+  | { type: 'piano_click'; note: NoteWithOctave }
+  | { type: 'submit' };
+
+/**
  * Generic context object for round state
  * Supports both ear training (single note) and chord training (multi-note) modes
  */

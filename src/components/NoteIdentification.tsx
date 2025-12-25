@@ -18,6 +18,7 @@ import { useSettings } from '../hooks/useSettings';
 import { useGameHistory } from '../hooks/useGameHistory';
 import { SETTINGS_TABS } from '../constants';
 import { GameOrchestrator } from '../game/GameOrchestrator';
+import { RoundState } from '../machines/types';
 import PianoKeyboard from './PianoKeyboard';
 import GameEndModal from './GameEndModal';
 import { LOGS_STATE_ENABLED, LOGS_EVENTS_ENABLED, LOGS_USER_ACTIONS_ENABLED } from '../config/logging';
@@ -82,12 +83,14 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
       });
 
       // Subscribe to orchestrator events
-      orchestratorRef.current.on('roundStart', ({ note, feedback }) => {
+      orchestratorRef.current.on('roundStart', ({ context, note, feedback }) => {
         if (LOGS_EVENTS_ENABLED) {
-          console.log('[NoteIdentification] Event received: roundStart', { note, feedback });
+          console.log('[NoteIdentification] Event received: roundStart', { context, note, feedback });
         }
-        currentNoteRef.current = note;
-        setCurrentNote(note);
+        // Support both new (context.note) and old (note) formats
+        const currentNote = context?.note ?? note ?? null;
+        currentNoteRef.current = currentNote;
+        setCurrentNote(currentNote);
         setUserGuess(null);
         // Clear correct note highlight when starting a new round
         correctNoteHighlightRef.current = null;
@@ -110,11 +113,8 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
         }
         setFeedback(result.feedback);
 
-        // Use ref to get current note value (avoid stale closure)
-        if (!result.isCorrect && currentNoteRef.current) {
-          correctNoteHighlightRef.current = currentNoteRef.current;
-          setCorrectNoteHighlight(currentNoteRef.current);
-        }
+        // Don't highlight correct note here - only on timeout via advanceToNextRound event
+        // This allows users to keep trying on incorrect guesses
 
         // Force React re-render to update game state displays
         setGameState(prevState => {
@@ -148,21 +148,8 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
           console.log('[NoteIdentification] Event received: advanceToNextRound');
         }
 
-        // Use refs to get current values (avoid stale closures)
-        const currentNoteValue = currentNoteRef.current;
-        const correctNoteHighlightValue = correctNoteHighlightRef.current;
-
-        // Show correct note before advancing (on timeout/skip)
-        if (currentNoteValue && !correctNoteHighlightValue) {
-          correctNoteHighlightRef.current = currentNoteValue;
-          setCorrectNoteHighlight(currentNoteValue);
-          // Wait briefly to let user see the correct note before advancing
-          setTimeout(() => {
-            orchestratorRef.current?.beginNewRound();
-          }, 100);
-        } else {
-          orchestratorRef.current?.beginNewRound();
-        }
+        // Just advance to next round - correct note visibility is handled by stateChange event
+        orchestratorRef.current?.beginNewRound();
       });
 
       orchestratorRef.current.on('gameReset', () => {
@@ -192,6 +179,32 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
         }
         if (currentNote && gameState) {
           setFeedback(gameState.getFeedbackMessage(true));
+        }
+      });
+
+      orchestratorRef.current.on('stateChange', ({ sessionState, roundState }) => {
+        console.log('[NoteIdentification] stateChange received:', { sessionState, roundState });
+        console.log('[NoteIdentification] RoundState.TIMEOUT_INTERMISSION:', RoundState.TIMEOUT_INTERMISSION);
+        console.log('[NoteIdentification] roundState === TIMEOUT_INTERMISSION?', roundState === RoundState.TIMEOUT_INTERMISSION);
+
+        // Show correct note when entering timeout intermission
+        if (roundState === RoundState.TIMEOUT_INTERMISSION) {
+          const currentNoteValue = currentNoteRef.current;
+          console.log('[NoteIdentification] TIMEOUT_INTERMISSION detected! currentNote:', currentNoteValue);
+          if (currentNoteValue) {
+            console.log('[NoteIdentification] Setting correct note highlight to:', currentNoteValue);
+            correctNoteHighlightRef.current = currentNoteValue;
+            setCorrectNoteHighlight(currentNoteValue);
+          } else {
+            console.log('[NoteIdentification] No current note to highlight!');
+          }
+        }
+
+        // Hide correct note when exiting timeout intermission (entering waiting_input for next round)
+        if (roundState === RoundState.WAITING_INPUT && correctNoteHighlightRef.current) {
+          console.log('[NoteIdentification] WAITING_INPUT detected, hiding correct note');
+          correctNoteHighlightRef.current = null;
+          setCorrectNoteHighlight(null);
         }
       });
 
@@ -407,7 +420,9 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
         <div className={isPaused ? 'piano-container paused' : 'piano-container'}>
           <PianoKeyboard
             onNoteClick={(guessedNote) => {
+              console.log('[NoteIdentification] Piano key clicked:', guessedNote);
               setUserGuess(guessedNote);
+              console.log('[NoteIdentification] Calling submitGuess');
               orchestratorRef.current?.submitGuess(guessedNote);
             }}
             highlights={pianoHighlights}
