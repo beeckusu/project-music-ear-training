@@ -1035,9 +1035,17 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
     this.gameMode.onStartNewRound();
     this.currentNote = newNote;
 
-    // Emit roundStart event
+    // Create round context for mode-agnostic event handling
+    const context: RoundContext = {
+      startTime: new Date(),
+      elapsedTime: 0,
+      note: newNote,
+      noteHighlights: []
+    };
+
+    // Emit roundStart event with both context (new) and note (backward compatibility)
     const feedback = this.gameMode.getFeedbackMessage(true);
-    this.emit('roundStart', { note: newNote, feedback });
+    this.emit('roundStart', { context, note: newNote, feedback });
 
     // Transition to WAITING_INPUT (which will trigger note playback)
     if (this.isIdle()) {

@@ -65,16 +65,82 @@ export interface GameStateWithDisplay extends BaseGameState {
   getSessionSettings: () => Record<string, any>;
   getSessionResults: (stats: GameStats) => Record<string, any>;
 
-  // Optional callbacks for component interaction with strategy
   /**
-   * Optional callback invoked when user clicks a piano key
-   * Used by chord training to toggle note selection
+   * Strategy Pattern Interaction Callbacks
+   *
+   * These optional callbacks enable a clean separation of concerns between UI components
+   * and game state implementations. They support two distinct interaction models:
+   *
+   * **Ear Training Model** (immediate validation):
+   * - User clicks a piano key → onPianoKeyClick validates immediately → game state updates
+   * - No submit button needed
+   * - Existing modes (Rush, Survival, Sandbox) handle this via display components
+   *
+   * **Chord Training Model** (deferred validation):
+   * - User clicks piano keys → onPianoKeyClick toggles selection → visual feedback
+   * - User clicks submit → onSubmitClick validates all selected notes → game state updates
+   * - Requires both callbacks to enable multi-note selection workflow
+   *
+   * Both callbacks are optional to maintain backwards compatibility with existing ear training
+   * modes that handle interactions directly in their display components.
+   */
+  /**
+   * Optional callback invoked when the user clicks a piano key.
+   *
+   * This callback enables mode-specific interaction patterns:
+   * - **Ear Training Modes**: Implement this to handle guess submission when a key is pressed.
+   *   The note represents the user's guess, which is immediately validated against the target.
+   * - **Chord Training Modes**: Implement this to toggle note selection. Multiple notes can be
+   *   selected/deselected before submission via onSubmitClick.
+   *
+   * @param note - The note that was clicked (includes pitch and octave information)
+   * @param context - Current round context including timing, mode-specific state, and visual feedback
+   *
+   * @remarks
+   * This callback is optional for backwards compatibility with existing ear training game states
+   * (Rush, Survival, Sandbox) that handle piano key interactions through their display components
+   * rather than through the strategy pattern.
+   *
+   * @example
+   * ```typescript
+   * // Ear training mode implementation
+   * onPianoKeyClick: (note, context) => {
+   *   const isCorrect = note === context.note;
+   *   return isCorrect ? handleCorrectGuess() : handleIncorrectGuess();
+   * }
+   *
+   * // Chord training mode implementation
+   * onPianoKeyClick: (note, context) => {
+   *   toggleNoteSelection(note, context.selectedNotes);
+   * }
+   * ```
    */
   onPianoKeyClick?(note: NoteWithOctave, context: RoundContext): void;
 
   /**
-   * Optional callback invoked when user clicks submit button
-   * Used by chord training to validate selected notes
+   * Optional callback invoked when the user clicks the submit button.
+   *
+   * This callback is primarily used by chord training modes to validate the user's selected
+   * notes against the target chord. It is typically NOT implemented by ear training modes,
+   * which validate guesses immediately upon piano key click.
+   *
+   * @param context - Current round context including the target chord, selected notes, and timing
+   *
+   * @remarks
+   * This callback is optional for backwards compatibility. Ear training modes do not need to
+   * implement this callback as they validate guesses immediately upon note selection.
+   *
+   * Components that render a submit button should check for the existence of this callback
+   * before attempting to invoke it: `if (gameState.onSubmitClick) { gameState.onSubmitClick(context) }`
+   *
+   * @example
+   * ```typescript
+   * // Chord training mode implementation
+   * onSubmitClick: (context) => {
+   *   const isCorrect = areNotesEqual(context.selectedNotes, context.chord);
+   *   return isCorrect ? handleCorrectGuess() : handleIncorrectGuess();
+   * }
+   * ```
    */
   onSubmitClick?(context: RoundContext): void;
 }

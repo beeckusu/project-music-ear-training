@@ -7,8 +7,9 @@ import type {
   HistoryItem,
   GameSession
 } from '../types/game';
-import type { CommonDisplayProps, GameActionResult, GameStateWithDisplay } from './GameStateFactory';
+import type { CommonDisplayProps, GameActionResult } from './GameStateFactory';
 import type { Chord, NoteWithOctave, NoteFilter } from '../types/music';
+import type { RoundContext } from '../types/orchestrator';
 import type { IGameMode } from './IGameMode';
 import { ChordEngine } from '../utils/chordEngine';
 import { validateChordGuess } from '../utils/chordValidation';
@@ -62,6 +63,32 @@ export class ChordIdentificationGameState implements IGameMode {
       gameState: this,
       onSubmitGuess: this.handleSubmitGuess
     });
+  };
+
+  /**
+   * Optional callback invoked when user clicks a piano key.
+   * No-op for chord identification mode - piano key clicks are disabled
+   * since notes are displayed and user guesses the chord name.
+   *
+   * @param note - The note that was clicked (unused)
+   * @param context - Current round context (unused)
+   */
+  onPianoKeyClick = (note: NoteWithOctave, context: RoundContext): void => {
+    // No-op: Piano key clicks are disabled in chord identification mode
+  };
+
+  /**
+   * Optional callback invoked when user clicks the submit button.
+   * Validates the chord name guess from the context.
+   *
+   * @param context - Current round context (should contain guessedChordName)
+   */
+  onSubmitClick = (context: RoundContext): void => {
+    // Extract the chord guess from the context
+    const guess = (context as any).guessedChordName || '';
+
+    // Validate the chord name guess
+    this.handleSubmitGuess(guess);
   };
 
   /**
@@ -276,7 +303,7 @@ export class ChordIdentificationGameState implements IGameMode {
    * @param sessionResults - Results from the completed session
    * @returns Emoji string
    */
-  getCelebrationEmoji = (sessionResults: Record<string, any>): string => {
+  getCelebrationEmoji = (_sessionResults: Record<string, any>): string => {
     return '🎵';
   };
 
@@ -286,7 +313,7 @@ export class ChordIdentificationGameState implements IGameMode {
    * @param sessionResults - Results from the completed session
    * @returns Header title string
    */
-  getHeaderTitle = (sessionResults: Record<string, any>): string => {
+  getHeaderTitle = (_sessionResults: Record<string, any>): string => {
     return 'Well Done!';
   };
 
@@ -296,7 +323,7 @@ export class ChordIdentificationGameState implements IGameMode {
    * @param sessionResults - Results from the completed session
    * @returns Mode completion text
    */
-  getModeCompletionText = (sessionResults: Record<string, any>): string => {
+  getModeCompletionText = (_sessionResults: Record<string, any>): string => {
     return 'Chord Identification Complete';
   };
 
@@ -307,7 +334,7 @@ export class ChordIdentificationGameState implements IGameMode {
    * @param sessionResults - Results from the session
    * @returns Performance rating string
    */
-  getPerformanceRating = (gameStats: GameStats, sessionResults: Record<string, any>): string => {
+  getPerformanceRating = (gameStats: GameStats, _sessionResults: Record<string, any>): string => {
     const accuracy = gameStats.accuracy;
 
     if (accuracy >= 95) return 'Perfect Pitch! 🌟';
@@ -323,7 +350,7 @@ export class ChordIdentificationGameState implements IGameMode {
    * @param sessionResults - Results from the completed session
    * @returns CSS class name
    */
-  getHeaderThemeClass = (sessionResults: Record<string, any>): string => {
+  getHeaderThemeClass = (_sessionResults: Record<string, any>): string => {
     return 'chord-identification-complete';
   };
 
@@ -381,7 +408,7 @@ export class ChordIdentificationGameState implements IGameMode {
    * @param sessionResults - Results from the completed session
    * @returns React node or null
    */
-  getAdditionalStatsSection = (sessionResults: Record<string, any>): React.ReactNode => {
+  getAdditionalStatsSection = (_sessionResults: Record<string, any>): React.ReactNode => {
     return null; // Chord identification mode doesn't need additional sections
   };
 
@@ -403,12 +430,6 @@ export class ChordIdentificationGameState implements IGameMode {
    * @returns Array of history items
    */
   getHistoryItems = (sessions: GameSession[]): HistoryItem[] => {
-    const formatTime = (seconds: number): string => {
-      const minutes = Math.floor(seconds / 60);
-      const secs = Math.floor(seconds % 60);
-      return `${minutes}:${secs.toString().padStart(2, '0')}`;
-    };
-
     const formatRelativeTime = (timestamp: Date): string => {
       const now = new Date();
       const diffMs = now.getTime() - timestamp.getTime();
@@ -450,8 +471,8 @@ export class ChordIdentificationGameState implements IGameMode {
     isActive: false
   };
 
-  private timerCallback: (() => void) | null = null;
-  private updateCallback: ((timeRemaining: number) => void) | null = null;
+  private _timerCallback: (() => void) | null = null;
+  private _updateCallback: ((timeRemaining: number) => void) | null = null;
 
   /**
    * Initializes the timer for response time limits.
@@ -467,8 +488,8 @@ export class ChordIdentificationGameState implements IGameMode {
     onTimeUp: () => void,
     onTimeUpdate?: (timeRemaining: number) => void
   ): void => {
-    this.timerCallback = onTimeUp;
-    this.updateCallback = onTimeUpdate || null;
+    this._timerCallback = onTimeUp;
+    this._updateCallback = onTimeUpdate || null;
 
     if (responseTimeLimit !== null) {
       this.timerState = {
@@ -527,7 +548,7 @@ export class ChordIdentificationGameState implements IGameMode {
    * @param filter - Note filter (not used in chord mode, uses chordFilter instead)
    * @returns The first note of the generated chord
    */
-  generateNote = (filter: NoteFilter): NoteWithOctave => {
+  generateNote = (_filter: NoteFilter): NoteWithOctave => {
     // Generate a new chord using the chord filter
     this.currentChord = ChordEngine.getRandomChordFromFilter(
       this.noteTrainingSettings.chordFilter
@@ -551,7 +572,7 @@ export class ChordIdentificationGameState implements IGameMode {
    * @param actual - The actual note
    * @returns Always false (validation happens in handleSubmitGuess)
    */
-  validateGuess = (guess: NoteWithOctave, actual: NoteWithOctave): boolean => {
+  validateGuess = (_guess: NoteWithOctave, _actual: NoteWithOctave): boolean => {
     // Chord identification mode doesn't use single-note validation
     // Validation happens when user submits chord name
     return false;
