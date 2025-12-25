@@ -9,6 +9,7 @@ import type {
 } from '../types/game';
 import type { CommonDisplayProps, GameActionResult } from './GameStateFactory';
 import type { Chord, NoteWithOctave, NoteFilter } from '../types/music';
+import type { RoundContext } from '../types/orchestrator';
 import type { IGameMode } from './IGameMode';
 import { ChordEngine } from '../utils/chordEngine';
 import { validateChordGuess } from '../utils/chordValidation';
@@ -62,6 +63,32 @@ export class ChordIdentificationGameState implements IGameMode {
       gameState: this,
       onSubmitGuess: this.handleSubmitGuess
     });
+  };
+
+  /**
+   * Optional callback invoked when user clicks a piano key.
+   * No-op for chord identification mode - piano key clicks are disabled
+   * since notes are displayed and user guesses the chord name.
+   *
+   * @param note - The note that was clicked (unused)
+   * @param context - Current round context (unused)
+   */
+  onPianoKeyClick = (note: NoteWithOctave, context: RoundContext): void => {
+    // No-op: Piano key clicks are disabled in chord identification mode
+  };
+
+  /**
+   * Optional callback invoked when user clicks the submit button.
+   * Validates the chord name guess from the context.
+   *
+   * @param context - Current round context (should contain guessedChordName)
+   */
+  onSubmitClick = (context: RoundContext): void => {
+    // Extract the chord guess from the context
+    const guess = (context as any).guessedChordName || '';
+
+    // Validate the chord name guess
+    this.handleSubmitGuess(guess);
   };
 
   /**
