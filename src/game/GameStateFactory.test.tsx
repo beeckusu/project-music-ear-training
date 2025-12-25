@@ -248,8 +248,8 @@ describe('GameStateFactory', () => {
   });
 
   describe('Optional Callback Properties (META-204)', () => {
-    it('should accept implementations without optional callbacks (backwards compatibility)', () => {
-      // Existing ear training modes don't implement the optional callbacks
+    it('ear training modes should have onPianoKeyClick callback (META-207)', () => {
+      // Ear training modes now implement onPianoKeyClick callback (META-207)
       const earTrainingStates = [
         createGameState(EAR_TRAINING_SUB_MODES.RUSH, defaultModeSettings),
         createGameState(EAR_TRAINING_SUB_MODES.SURVIVAL, defaultModeSettings),
@@ -262,8 +262,10 @@ describe('GameStateFactory', () => {
         expect(typeof gameState.handleCorrectGuess).toBe('function');
         expect(typeof gameState.handleIncorrectGuess).toBe('function');
 
-        // Optional callbacks should be undefined (not implemented)
-        expect(gameState.onPianoKeyClick).toBeUndefined();
+        // Ear training modes implement onPianoKeyClick (META-207)
+        expect(typeof gameState.onPianoKeyClick).toBe('function');
+
+        // Ear training modes don't need onSubmitClick (auto-submit on piano click)
         expect(gameState.onSubmitClick).toBeUndefined();
       });
     });
