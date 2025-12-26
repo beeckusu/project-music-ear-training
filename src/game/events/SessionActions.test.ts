@@ -269,12 +269,14 @@ describe('Session Actions: Events', () => {
       expect(eventSpies.stateChange).toHaveBeenCalled();
     });
 
-    it('manual complete does not emit sessionComplete', () => {
+    it('manual complete emits sessionComplete', () => {
       // WHEN: Manually complete game
       orchestrator.complete();
 
-      // THEN: No sessionComplete event (only emitted on natural completion)
-      expect(eventSpies.sessionComplete).not.toHaveBeenCalled();
+      // THEN: sessionComplete event is emitted
+      // NOTE: Strategy pattern behavioral change - sessionComplete now fires on manual complete
+      // This ensures UI components receive completion event regardless of how game ended
+      expect(eventSpies.sessionComplete).toHaveBeenCalled();
     });
 
     it('stats remain accessible after completion', async () => {

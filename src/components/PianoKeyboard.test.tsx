@@ -1,28 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent } from '@testing-library/react';
+import { render, fireEvent, waitFor } from '@testing-library/react';
+import type { NoteWithOctave } from '../types/music';
+import React from 'react';
+import { SettingsProvider } from '../contexts/SettingsContext';
 import PianoKeyboard from './PianoKeyboard';
 import { audioEngine } from '../utils/audioEngine';
-import type { NoteWithOctave } from '../types/music';
 
-// Mock the audio engine
-vi.mock('../utils/audioEngine', () => ({
-  audioEngine: {
-    initialize: vi.fn().mockResolvedValue(undefined),
-    playNote: vi.fn(),
-    releaseAllNotes: vi.fn()
-  }
-}));
-
-vi.mock('../hooks/useSettings', () => ({
-  useSettings: () => ({
-    settings: {
-      timing: {
-        noteDuration: '2n'
-      },
-      showNoteLabels: true
-    }
-  })
-}));
+// Helper to render with SettingsProvider
+const renderWithSettings = (ui: React.ReactElement) => {
+  return render(
+    <SettingsProvider>
+      {ui}
+    </SettingsProvider>
+  );
+};
 
 describe('PianoKeyboard - Mono Mode', () => {
   beforeEach(() => {
@@ -31,59 +22,62 @@ describe('PianoKeyboard - Mono Mode', () => {
 
   it('should release all notes before playing new note when monoMode is true', async () => {
     const onNoteClick = vi.fn();
-    const { container } = render(
+    const { container, debug } = renderWithSettings(
       <PianoKeyboard
         onNoteClick={onNoteClick}
         monoMode={true}
       />
     );
 
-    // Click on C key
-    const cKey = container.querySelector('.white-key');
-    expect(cKey).toBeInTheDocument();
+    // Find all white keys
+    const allKeys = container.querySelectorAll('button');
+    expect(allKeys.length).toBeGreaterThan(0);
 
-    if (cKey) {
-      fireEvent.click(cKey);
+    // Click the first key (should be C)
+    const firstKey = allKeys[0];
+    expect(firstKey).toBeInTheDocument();
 
-      // Wait for async operations
-      await vi.waitFor(() => {
-        expect(audioEngine.releaseAllNotes).toHaveBeenCalled();
-      });
+    fireEvent.click(firstKey);
 
+    // Wait for async operations
+    await waitFor(() => {
+      expect(audioEngine.releaseAllNotes).toHaveBeenCalled();
       expect(audioEngine.playNote).toHaveBeenCalled();
       expect(onNoteClick).toHaveBeenCalled();
-    }
+    });
   });
 
   it('should NOT release notes before playing when monoMode is false', async () => {
     const onNoteClick = vi.fn();
-    const { container } = render(
+    const { container } = renderWithSettings(
       <PianoKeyboard
         onNoteClick={onNoteClick}
         monoMode={false}
       />
     );
 
-    // Click on C key
-    const cKey = container.querySelector('.white-key');
-    expect(cKey).toBeInTheDocument();
+    // Find all buttons
+    const allKeys = container.querySelectorAll('button');
+    expect(allKeys.length).toBeGreaterThan(0);
 
-    if (cKey) {
-      fireEvent.click(cKey);
+    // Click the first key
+    const firstKey = allKeys[0];
+    expect(firstKey).toBeInTheDocument();
 
-      // Wait for async operations
-      await vi.waitFor(() => {
-        expect(audioEngine.playNote).toHaveBeenCalled();
-      });
+    fireEvent.click(firstKey);
 
-      expect(audioEngine.releaseAllNotes).not.toHaveBeenCalled();
+    // Wait for async operations
+    await waitFor(() => {
+      expect(audioEngine.playNote).toHaveBeenCalled();
       expect(onNoteClick).toHaveBeenCalled();
-    }
+    });
+
+    expect(audioEngine.releaseAllNotes).not.toHaveBeenCalled();
   });
 
   it('should highlight notes with error type in red', () => {
     const testNote: NoteWithOctave = { note: 'C', octave: 4 };
-    const { container } = render(
+    const { container } = renderWithSettings(
       <PianoKeyboard
         highlights={[{ note: testNote, type: 'error' }]}
       />
@@ -97,7 +91,7 @@ describe('PianoKeyboard - Mono Mode', () => {
   it('should have preventNoteRestart prop available', () => {
     // This test verifies the prop exists and can be set
     const onNoteClick = vi.fn();
-    const { container } = render(
+    const { container } = renderWithSettings(
       <PianoKeyboard
         onNoteClick={onNoteClick}
         preventNoteRestart={true}
