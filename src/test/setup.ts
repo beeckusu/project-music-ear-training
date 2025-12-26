@@ -20,6 +20,7 @@ vi.mock('../utils/audioEngine', () => {
     audioEngine: {
       initialize: vi.fn().mockResolvedValue(undefined),
       playNote: vi.fn().mockResolvedValue(undefined),
+      releaseAllNotes: vi.fn(),
       stopAll: vi.fn(),
       setInstrument: vi.fn()
     },
@@ -27,6 +28,7 @@ vi.mock('../utils/audioEngine', () => {
       vi.fn().mockImplementation(() => ({
         initialize: vi.fn().mockResolvedValue(undefined),
         playNote: vi.fn().mockResolvedValue(undefined),
+        releaseAllNotes: vi.fn(),
         stopAll: vi.fn(),
         setInstrument: vi.fn()
       })),
