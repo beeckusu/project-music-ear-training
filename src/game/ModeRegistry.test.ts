@@ -134,7 +134,7 @@ describe('Mode Registration Integration', () => {
 
     // Verify all modes are registered
     const allModes = modeRegistry.getAll();
-    expect(allModes.length).toBe(5); // Rush, Survival, Sandbox, Single Chord, Chord Identification
+    expect(allModes.length).toBe(5); // Rush, Survival, Sandbox, Chord Training, Chord Identification
 
     // Verify ear training modes exist
     expect(modeRegistry.isRegistered(EAR_TRAINING_SUB_MODES.RUSH)).toBe(true);
@@ -153,7 +153,7 @@ describe('Mode Registration Integration', () => {
     expect(earTrainingModes.length).toBe(3); // Rush, Survival, Sandbox
 
     const noteTrainingModes = modeRegistry.getAllByType(TRAINING_MODES.NOTE_TRAINING);
-    expect(noteTrainingModes.length).toBe(2); // Single Chord, Chord Identification
+    expect(noteTrainingModes.length).toBe(2); // Chord Training, Chord Identification
   });
 
   it('should create valid game states from registered modes', async () => {

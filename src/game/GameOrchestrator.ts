@@ -1023,8 +1023,8 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
       // Get feedback from game mode
       const feedback = this.gameMode.getFeedbackMessage(true);
 
-      // Emit roundStart event with context
-      this.emit('roundStart', { context, feedback });
+      // Emit roundStart event with both context (new) and note (backward compatibility)
+      this.emit('roundStart', { context, note: context.note, feedback });
 
       // Transition to WAITING_INPUT if in IDLE
       if (this.isIdle()) {
@@ -1182,9 +1182,14 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
    * @param guessedNote - The note the user guessed
    */
   submitGuess(guessedNote: NoteWithOctave): void {
-    console.log('[Orchestrator] submitGuess called:', guessedNote.note);
+    console.log('[Orchestrator] submitGuess called:', guessedNote?.note ?? 'null');
     if (LOGS_USER_ACTIONS_ENABLED) {
-      console.log('[Orchestrator] User submitted guess:', guessedNote.note);
+      console.log('[Orchestrator] User submitted guess:', guessedNote?.note ?? 'null');
+    }
+
+    if (!guessedNote) {
+      console.warn('[Orchestrator] Cannot submit guess: guessedNote is null');
+      return;
     }
 
     if (!this.gameMode) {
