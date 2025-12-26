@@ -522,7 +522,19 @@ describe('Edge Case Actions: Events', () => {
             octave: expect.any(Number),
           }),
           feedback: expect.any(String),
+          context: expect.objectContaining({
+            startTime: expect.any(Date),
+            elapsedTime: 0,
+            note: expect.objectContaining({
+              note: expect.any(String),
+              octave: expect.any(Number),
+            }),
+            noteHighlights: expect.any(Array),
+          }),
         });
+
+        // Verify context.note matches the deprecated note field
+        expect(roundStart.context.note).toEqual(roundStart.note);
 
         if (i < 2) {
           orchestrator.handleTimeout(1);

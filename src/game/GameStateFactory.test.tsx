@@ -246,4 +246,130 @@ describe('GameStateFactory', () => {
       expect(displayElement.type).toBeDefined();
     });
   });
+
+  describe('Optional Callback Properties (META-204)', () => {
+    it('ear training modes should have onPianoKeyClick callback (META-207)', () => {
+      // Ear training modes now implement onPianoKeyClick callback (META-207)
+      const earTrainingStates = [
+        createGameState(EAR_TRAINING_SUB_MODES.RUSH, defaultModeSettings),
+        createGameState(EAR_TRAINING_SUB_MODES.SURVIVAL, defaultModeSettings),
+        createGameState(EAR_TRAINING_SUB_MODES.SANDBOX, defaultModeSettings)
+      ];
+
+      earTrainingStates.forEach(gameState => {
+        // All required interface methods should exist
+        expect(typeof gameState.modeDisplay).toBe('function');
+        expect(typeof gameState.handleCorrectGuess).toBe('function');
+        expect(typeof gameState.handleIncorrectGuess).toBe('function');
+
+        // Ear training modes implement onPianoKeyClick (META-207)
+        expect(typeof gameState.onPianoKeyClick).toBe('function');
+
+        // Ear training modes don't need onSubmitClick (auto-submit on piano click)
+        expect(gameState.onSubmitClick).toBeUndefined();
+      });
+    });
+
+    it('should accept implementations with optional callbacks', () => {
+      // Note training modes will implement these callbacks in future tickets
+      const gameState = createGameState(
+        NOTE_TRAINING_SUB_MODES.SHOW_CHORD_GUESS_NOTES,
+        defaultModeSettings
+      );
+
+      // The interface should allow optional callbacks
+      // Currently SingleChordGameState doesn't implement them yet,
+      // but the interface should support it when it does
+      expect(gameState).toBeDefined();
+
+      // TypeScript should allow assignment of optional callbacks
+      // This test verifies type safety at compile time
+      const withCallbacks: typeof gameState = {
+        ...gameState,
+        onPianoKeyClick: vi.fn(),
+        onSubmitClick: vi.fn()
+      };
+
+      expect(typeof withCallbacks.onPianoKeyClick).toBe('function');
+      expect(typeof withCallbacks.onSubmitClick).toBe('function');
+    });
+
+    it('should have correct type signature for onPianoKeyClick', () => {
+      const mockCallback = vi.fn();
+      const gameState = createGameState(
+        NOTE_TRAINING_SUB_MODES.SHOW_CHORD_GUESS_NOTES,
+        defaultModeSettings
+      );
+
+      // Create a modified version with the callback
+      const withCallback = {
+        ...gameState,
+        onPianoKeyClick: mockCallback
+      };
+
+      // Simulate callback invocation
+      const mockNote = 'C4' as any; // NoteWithOctave
+      const mockContext = {
+        startTime: Date.now(),
+        elapsedTime: 0,
+        note: 'C4' as any
+      } as any; // RoundContext
+
+      withCallback.onPianoKeyClick?.(mockNote, mockContext);
+
+      expect(mockCallback).toHaveBeenCalledWith(mockNote, mockContext);
+      expect(mockCallback).toHaveBeenCalledTimes(1);
+    });
+
+    it('should have correct type signature for onSubmitClick', () => {
+      const mockCallback = vi.fn();
+      const gameState = createGameState(
+        NOTE_TRAINING_SUB_MODES.SHOW_CHORD_GUESS_NOTES,
+        defaultModeSettings
+      );
+
+      // Create a modified version with the callback
+      const withCallback = {
+        ...gameState,
+        onSubmitClick: mockCallback
+      };
+
+      // Simulate callback invocation
+      const mockContext = {
+        startTime: Date.now(),
+        elapsedTime: 0,
+        chord: ['C4', 'E4', 'G4'] as any,
+        selectedNotes: ['C4', 'E4', 'G4'] as any
+      } as any; // RoundContext
+
+      withCallback.onSubmitClick?.(mockContext);
+
+      expect(mockCallback).toHaveBeenCalledWith(mockContext);
+      expect(mockCallback).toHaveBeenCalledTimes(1);
+    });
+
+    it('should safely check for callback existence before invocation', () => {
+      const gameState = createGameState(
+        EAR_TRAINING_SUB_MODES.SANDBOX,
+        defaultModeSettings
+      );
+
+      // Simulate safe invocation pattern
+      const mockNote = 'C4' as any;
+      const mockContext = {} as any;
+
+      // Should not throw when callback doesn't exist
+      expect(() => {
+        if (gameState.onPianoKeyClick) {
+          gameState.onPianoKeyClick(mockNote, mockContext);
+        }
+      }).not.toThrow();
+
+      expect(() => {
+        if (gameState.onSubmitClick) {
+          gameState.onSubmitClick(mockContext);
+        }
+      }).not.toThrow();
+    });
+  });
 });
