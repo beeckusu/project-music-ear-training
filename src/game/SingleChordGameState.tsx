@@ -63,6 +63,7 @@ export class SingleChordGameState implements IGameMode {
     return React.createElement(SingleChordModeDisplay, {
       ...props,
       gameState: this,
+      onPianoKeyClick: this.handleNoteSelection,
       onSubmitAnswer: this.handleSubmitAnswer,
       onClearSelection: this.clearSelection
     });

@@ -9,6 +9,7 @@ import './SingleChordModeDisplay.css';
 
 interface SingleChordModeDisplayProps extends CommonDisplayProps {
   gameState: SingleChordGameState;
+  onPianoKeyClick: (note: NoteWithOctave) => void;
   onSubmitAnswer: () => void;
   onClearSelection: () => void;
 }
@@ -16,6 +17,7 @@ interface SingleChordModeDisplayProps extends CommonDisplayProps {
 const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
   gameState,
   currentNote,
+  onPianoKeyClick,
   onSubmitAnswer,
   onClearSelection
 }) => {
@@ -30,7 +32,7 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
 
   // Handle note selection with re-render
   const handleNoteClick = (note: NoteWithOctave) => {
-    gameState.handleNoteSelection(note);
+    onPianoKeyClick(note);
     forceUpdate();
   };
 
