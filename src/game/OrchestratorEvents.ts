@@ -34,8 +34,19 @@ export interface RoundResult {
 export interface OrchestratorEvents {
   /**
    * Fired when a new round starts
-   * @param context - Round context containing challenge details (note or chord) - optional for backward compatibility
-   * @param note - The note to be played (deprecated - use context.note instead)
+   *
+   * This event supports both ear training and chord training modes through the context object.
+   *
+   * @param context - Mode-agnostic round context containing challenge details.
+   *   - For ear training: context.note contains the note to identify
+   *   - For chord training: context.chord and context.displayNotes contain the chord information
+   *   - All modes: context.startTime and context.elapsedTime track timing
+   *   - Currently optional for backward compatibility, but should always be populated by new code
+   *
+   * @param note - The note to be played (DEPRECATED: use context.note instead)
+   *   - Maintained for backward compatibility with existing consumers
+   *   - Will be removed in a future version
+   *
    * @param feedback - Initial feedback message for the round
    */
   roundStart: { context?: RoundContext; note?: NoteWithOctave; feedback: string };

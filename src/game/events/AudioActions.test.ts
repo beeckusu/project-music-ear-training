@@ -146,6 +146,10 @@ describe('Audio Actions: Events', () => {
         note: expect.any(String),
         octave: expect.any(Number),
       });
+
+      // THEN: context also populated
+      expect(roundStart.context).toBeDefined();
+      expect(roundStart.context.note).toEqual(roundStart.note);
     });
 
     it('plays audio for the generated note', async () => {
@@ -192,6 +196,11 @@ describe('Audio Actions: Events', () => {
       expect(roundStart.feedback).toBeDefined();
       expect(typeof roundStart.feedback).toBe('string');
       expect(roundStart.feedback.length).toBeGreaterThan(0);
+
+      // THEN: context also populated with proper structure
+      expect(roundStart.context).toBeDefined();
+      expect(roundStart.context.startTime).toBeInstanceOf(Date);
+      expect(roundStart.context.elapsedTime).toBe(0);
     });
 
     it('transitions to waiting_input state', async () => {

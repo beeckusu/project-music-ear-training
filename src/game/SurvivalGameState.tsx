@@ -11,6 +11,7 @@ import type {
 import type { CommonDisplayProps, GameActionResult } from './GameStateFactory';
 import type { IGameMode } from './IGameMode';
 import type { NoteWithOctave, NoteFilter } from '../types/music';
+import type { RoundContext } from '../types/orchestrator';
 import { AudioEngine } from '../utils/audioEngine';
 import { EAR_TRAINING_SUB_MODES } from '../constants';
 import SurvivalModeDisplay from '../components/modes/SurvivalModeDisplay';
@@ -329,6 +330,24 @@ export class SurvivalGameStateImpl implements SurvivalGameState, IGameMode {
 
   shouldShowHistory = (sessions: GameSession[]): boolean => {
     return sessions.length > 0;
+  };
+
+  // ========================================
+  // Optional Interaction Callbacks
+  // ========================================
+
+  /**
+   * Optional callback invoked when user clicks a piano key.
+   * Stores the clicked note in the context as the user's guess.
+   * Used by the strategy pattern for ear training validation.
+   *
+   * @param note - The note that was clicked
+   * @param context - Current round context
+   */
+  onPianoKeyClick = (note: NoteWithOctave, context: RoundContext): void => {
+    // Store the clicked note as the guessed note in the context
+    // The orchestrator will read this when validating via the strategy
+    (context as any).guessedNote = note;
   };
 
   // ========================================
