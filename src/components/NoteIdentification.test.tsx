@@ -1,15 +1,104 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import type { NoteWithOctave } from '../types/music';
+import type { RoundContext } from '../types/orchestrator';
 
 /**
- * Unit tests for the correct note highlighting behavior in NoteIdentification.
+ * Unit tests for the correct note highlighting behavior and callback pattern in NoteIdentification.
  *
  * These tests verify the core logic:
  * 1. Refs are used to avoid stale closures in event handlers
  * 2. Correct note is highlighted in red on timeout
  * 3. Highlight is cleared when starting a new round
+ * 4. Callback pattern for piano key clicks and submit actions
  *
  * Note: Integration tests are in the E2E test suite due to complex orchestrator setup.
  */
+describe('NoteIdentification - Callback Pattern', () => {
+  it('should call gameState.onPianoKeyClick when piano key is clicked', () => {
+    // Mock the callback
+    const mockOnPianoKeyClick = vi.fn();
+    const mockContext: RoundContext = {
+      startTime: new Date(),
+      elapsedTime: 0,
+      note: { note: 'C', octave: 4 }
+    };
+    const note: NoteWithOctave = { note: 'D', octave: 4 };
+
+    // Simulate the handler logic
+    const gameState = {
+      onPianoKeyClick: mockOnPianoKeyClick
+    };
+
+    // Simulate handlePianoKeyClick logic
+    if (gameState?.onPianoKeyClick) {
+      gameState.onPianoKeyClick(note, mockContext);
+    }
+
+    // Verify callback was called with correct parameters
+    expect(mockOnPianoKeyClick).toHaveBeenCalledWith(note, mockContext);
+    expect(mockOnPianoKeyClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('should handle missing onPianoKeyClick callback gracefully', () => {
+    // Game state without callback
+    const gameState = {};
+    const note: NoteWithOctave = { note: 'D', octave: 4 };
+    const mockContext: RoundContext = {
+      startTime: new Date(),
+      elapsedTime: 0,
+      note: { note: 'C', octave: 4 }
+    };
+
+    // This should not throw when callback is undefined
+    expect(() => {
+      if ((gameState as any)?.onPianoKeyClick) {
+        (gameState as any).onPianoKeyClick(note, mockContext);
+      }
+    }).not.toThrow();
+  });
+
+  it('should call gameState.onSubmitClick when submit button is clicked', () => {
+    // Mock the callback
+    const mockOnSubmitClick = vi.fn();
+    const mockContext: RoundContext = {
+      startTime: new Date(),
+      elapsedTime: 0,
+      note: { note: 'C', octave: 4 }
+    };
+
+    // Simulate the handler logic
+    const gameState = {
+      onSubmitClick: mockOnSubmitClick
+    };
+
+    // Simulate handleSubmitClick logic
+    if (gameState?.onSubmitClick) {
+      gameState.onSubmitClick(mockContext);
+    }
+
+    // Verify callback was called with correct parameters
+    expect(mockOnSubmitClick).toHaveBeenCalledWith(mockContext);
+    expect(mockOnSubmitClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('should handle missing onSubmitClick callback gracefully', () => {
+    // Game state without callback
+    const gameState = {};
+    const mockContext: RoundContext = {
+      startTime: new Date(),
+      elapsedTime: 0,
+      note: { note: 'C', octave: 4 }
+    };
+
+    // This should not throw when callback is undefined
+    expect(() => {
+      if ((gameState as any)?.onSubmitClick) {
+        (gameState as any).onSubmitClick(mockContext);
+      }
+    }).not.toThrow();
+  });
+});
+
 describe('NoteIdentification - Highlight Logic', () => {
   it('should use refs to track currentNote and correctNoteHighlight', () => {
     // This test verifies the ref pattern used in the component

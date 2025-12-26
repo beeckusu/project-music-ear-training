@@ -515,6 +515,19 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
   }
 
   /**
+   * Get the current round context for strategy callbacks
+   * Converts GameMachineContext to RoundContext format
+   */
+  getRoundContext(): import('../types/orchestrator').RoundContext {
+    const context = this.getContext();
+    return {
+      startTime: new Date(Date.now() - context.elapsedTime * 1000),
+      elapsedTime: context.elapsedTime,
+      note: this.currentNote || undefined,
+    };
+  }
+
+  /**
    * Get current note from context
    */
   getCurrentNote() {

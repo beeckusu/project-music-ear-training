@@ -325,6 +325,64 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
     setIsEndModalOpen(true);
   }, []);
 
+  /**
+   * Handle piano key click using callback pattern
+   * Calls gameState.onPianoKeyClick if available, making the component mode-agnostic
+   */
+  const handlePianoKeyClick = useCallback((note: NoteWithOctave) => {
+    if (LOGS_USER_ACTIONS_ENABLED) {
+      console.log('[NoteIdentification] Piano key clicked:', note.note);
+    }
+
+    // Get current round context from orchestrator
+    const context = orchestratorRef.current?.getRoundContext();
+
+    if (!context) {
+      console.warn('[NoteIdentification] No context available for piano key click');
+      return;
+    }
+
+    // Call gameState callback if available (strategy pattern)
+    if (gameState?.onPianoKeyClick) {
+      gameState.onPianoKeyClick(note, context);
+    }
+
+    // Update local UI state
+    setUserGuess(note);
+
+    // Submit guess to orchestrator (ear training modes submit immediately)
+    orchestratorRef.current?.submitGuess(note);
+  }, [gameState]);
+
+  /**
+   * Handle submit button click using callback pattern
+   * For chord training modes that need explicit submission
+   * NOTE: Currently unused - will be used when chord training modes are implemented
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleSubmitClick = useCallback(() => {
+    if (LOGS_USER_ACTIONS_ENABLED) {
+      console.log('[NoteIdentification] Submit button clicked');
+    }
+
+    // Get current round context from orchestrator
+    const context = orchestratorRef.current?.getRoundContext();
+
+    if (!context) {
+      console.warn('[NoteIdentification] No context available for submit click');
+      return;
+    }
+
+    // Call gameState callback if available (strategy pattern)
+    if (gameState?.onSubmitClick) {
+      gameState.onSubmitClick(context);
+    }
+
+    // For future chord training implementation:
+    // The submit callback will handle preparing the final answer in the context,
+    // then we'll submit it to the orchestrator
+  }, [gameState]);
+
   // Compute piano highlights from note identification state
   const pianoHighlights = useMemo((): NoteHighlight[] => {
     const highlights: NoteHighlight[] = [];
@@ -419,12 +477,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
 
         <div className={isPaused ? 'piano-container paused' : 'piano-container'}>
           <PianoKeyboard
-            onNoteClick={(guessedNote) => {
-              console.log('[NoteIdentification] Piano key clicked:', guessedNote);
-              setUserGuess(guessedNote);
-              console.log('[NoteIdentification] Calling submitGuess');
-              orchestratorRef.current?.submitGuess(guessedNote);
-            }}
+            onNoteClick={handlePianoKeyClick}
             highlights={pianoHighlights}
             disabled={!isWaitingInput}
             preventNoteRestart={true}
