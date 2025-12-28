@@ -1,0 +1,270 @@
+.chord-guess-history {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  height: 100px;
+  min-height: 100px;
+}
+
+.chord-guess-history-title {
+  margin: 0 0 0.4rem 0;
+  font-size: 0.8rem;
+  color: #495057;
+  font-weight: 600;
+}
+
+.chord-guess-history-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.chord-guess-history-list {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scroll-behavior: smooth;
+
+  /* Custom scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: #ced4da #f8f9fa;
+}
+
+.chord-guess-history-list::-webkit-scrollbar {
+  height: 6px;
+}
+
+.chord-guess-history-list::-webkit-scrollbar-track {
+  background: #f8f9fa;
+  border-radius: 3px;
+}
+
+.chord-guess-history-list::-webkit-scrollbar-thumb {
+  background: #ced4da;
+  border-radius: 3px;
+}
+
+.chord-guess-history-list::-webkit-scrollbar-thumb:hover {
+  background: #adb5bd;
+}
+
+.chord-guess-history-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.chord-guess-history-item.correct {
+  background-color: #d4edda;
+  border: 2px solid #28a745;
+  color: #155724;
+}
+
+.chord-guess-history-item.wrong {
+  background-color: #f8d7da;
+  border: 2px solid #dc3545;
+  color: #721c24;
+}
+
+.chord-guess-history-item.partial {
+  background-color: #fff3cd;
+  border: 2px solid #ffc107;
+  color: #856404;
+}
+
+.chord-guess-icon {
+  user-select: none;
+  line-height: 1;
+}
+
+.chord-guess-history-item:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+.chord-guess-history-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60px;
+  width: 100%;
+  color: #6c757d;
+  font-size: 0.75rem;
+  font-style: italic;
+  text-align: center;
+}
+
+/* Tooltip styles */
+.chord-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(33, 37, 41, 0.95);
+  color: white;
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  min-width: 200px;
+  max-width: 300px;
+  z-index: 1000;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.chord-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: rgba(33, 37, 41, 0.95);
+}
+
+.chord-tooltip-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chord-tooltip-header {
+  font-size: 0.85rem;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 0.25rem;
+}
+
+.chord-tooltip-accuracy {
+  font-size: 0.75rem;
+  font-weight: normal;
+  opacity: 0.9;
+}
+
+.chord-tooltip-section {
+  margin-top: 0.25rem;
+}
+
+.chord-tooltip-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
+  opacity: 0.8;
+}
+
+.chord-tooltip-label.correct {
+  color: #6fd98e;
+}
+
+.chord-tooltip-label.missed {
+  color: #ffd966;
+}
+
+.chord-tooltip-label.incorrect {
+  color: #ff8a80;
+}
+
+.chord-tooltip-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.chord-tooltip-note {
+  font-family: 'Courier New', monospace;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.35rem;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.chord-tooltip-note.correct {
+  background-color: rgba(111, 217, 142, 0.2);
+  color: #6fd98e;
+}
+
+.chord-tooltip-note.missed {
+  background-color: rgba(255, 217, 102, 0.2);
+  color: #ffd966;
+}
+
+.chord-tooltip-note.incorrect {
+  background-color: rgba(255, 138, 128, 0.2);
+  color: #ff8a80;
+}
+
+.chord-tooltip-detail {
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  margin-top: 0.15rem;
+}
+
+.chord-tooltip-detail.correct {
+  color: #6fd98e;
+}
+
+.chord-tooltip-detail.incorrect {
+  color: #ff8a80;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .chord-guess-history {
+    padding: 0.6rem;
+    height: 85px;
+    min-height: 85px;
+  }
+
+  .chord-guess-history-item {
+    width: 45px;
+    height: 45px;
+    font-size: 1.3rem;
+  }
+
+  .chord-tooltip {
+    min-width: 180px;
+    max-width: 250px;
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .chord-guess-history {
+    padding: 0.5rem;
+    height: 75px;
+    min-height: 75px;
+  }
+
+  .chord-guess-history-item {
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+  }
+
+  .chord-tooltip {
+    min-width: 160px;
+    max-width: 200px;
+    font-size: 0.65rem;
+  }
+
+  .chord-tooltip-note {
+    font-size: 0.65rem;
+  }
+}

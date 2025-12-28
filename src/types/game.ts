@@ -1,5 +1,5 @@
 import React from 'react';
-import type { NoteWithOctave, ChordFilter } from './music';
+import type { NoteWithOctave, ChordFilter, Chord } from './music';
 import { DEFAULT_CHORD_FILTER } from './music';
 import type { EarTrainingSubMode, NoteTrainingSubMode } from '../constants';
 import { NOTE_TRAINING_SUB_MODES } from '../constants';
@@ -11,6 +11,20 @@ export interface GuessAttempt {
   guessedNote: NoteWithOctave | null;
   isCorrect: boolean;
 }
+
+export interface ChordGuessAttempt {
+  id: string;
+  timestamp: Date;
+  actualChord: Chord;
+  isCorrect: boolean;
+  accuracy?: number; // For Chord Training mode (0-100%)
+  guessedChordName?: string; // For Chord Identification mode
+  correctNotes?: NoteWithOctave[]; // For Chord Training
+  missedNotes?: NoteWithOctave[]; // For Chord Training
+  incorrectNotes?: NoteWithOctave[]; // For Chord Training
+}
+
+export type GuessResult = 'correct' | 'wrong' | 'partial';
 
 export type ModeType = EarTrainingSubMode | NoteTrainingSubMode;
 

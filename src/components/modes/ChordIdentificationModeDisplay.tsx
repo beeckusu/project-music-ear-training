@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import type { ChordIdentificationGameState } from '../../game/ChordIdentificationGameState';
 import type { CommonDisplayProps } from '../../game/GameStateFactory';
 import TimerDigital from '../TimerDigital';
+import TimerCircular from '../TimerCircular';
 import PianoKeyboard from '../PianoKeyboard';
 import ChordDisplay from '../ChordDisplay';
 import ChordInput from '../ChordInput';
+import ChordGuessHistory from '../ChordGuessHistory';
 import './ChordIdentificationModeDisplay.css';
 
 interface ChordIdentificationModeDisplayProps extends CommonDisplayProps {
@@ -15,6 +17,10 @@ interface ChordIdentificationModeDisplayProps extends CommonDisplayProps {
 const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayProps> = ({
   gameState,
   currentNote,
+  sessionTimeRemaining,
+  timeRemaining,
+  responseTimeLimit,
+  isPaused,
   onSubmitGuess
 }) => {
   const { currentChord, correctChordsCount, currentStreak, totalAttempts, noteTrainingSettings } = gameState;
@@ -24,6 +30,12 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
 
   // Calculate accuracy
   const accuracy = totalAttempts > 0 ? Math.round((correctChordsCount / totalAttempts) * 100) : 0;
+
+  // Determine if timer is active
+  const isTimerActive = gameState.startTime !== undefined && !gameState.isCompleted && !isPaused;
+
+  // Determine if round timer is active
+  const isRoundTimerActive = currentNote && !gameState.isCompleted && !isPaused;
 
   // Handle guess submission with re-render
   const handleSubmitGuess = (guess: string) => {
@@ -67,12 +79,23 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
         </div>
       )}
 
+      {/* Round Timer */}
+      {currentNote && !gameState.isCompleted && responseTimeLimit && (
+        <div className="round-timer-container">
+          <TimerCircular
+            timeLimit={responseTimeLimit}
+            timeRemaining={timeRemaining ?? 0}
+            isActive={isRoundTimerActive}
+          />
+        </div>
+      )}
+
       {/* Progress Stats */}
       {(currentNote || gameState.isCompleted) && (
         <div className="chord-stats-section">
           <TimerDigital
-            elapsedTime={gameState.elapsedTime}
-            isActive={!gameState.isCompleted && gameState.startTime !== undefined}
+            elapsedTime={sessionTimeRemaining ?? 0}
+            isActive={isTimerActive}
           />
           <div className="chord-progress">
             {gameState.isCompleted ? (
@@ -95,6 +118,15 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
             )}
           </div>
         </div>
+      )}
+
+      {/* Guess History */}
+      {(currentNote || gameState.isCompleted) && (
+        <ChordGuessHistory
+          attempts={gameState.guessHistory}
+          mode="identification"
+          maxDisplay={10}
+        />
       )}
 
       {/* Chord Input Section */}

@@ -53,9 +53,11 @@ export class ChordTrainingStrategy implements ModeStrategy {
     const chord = (gameMode as any).currentChord;
 
     // Create and return round context
+    // Include 'note' for orchestrator timeout detection (uses firstNote as representative note)
     const context: RoundContext = {
       startTime: new Date(),
       elapsedTime: 0,
+      note: firstNote,
       chord,
       selectedNotes: new Set(),
       noteHighlights: []
