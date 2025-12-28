@@ -102,7 +102,7 @@ function createTimerService<TEvent>(
         sendBack({ type: eventTypes.update, elapsed: currentTime } as TEvent);
 
         // Check if countdown reached 0
-        if (direction === TIMER_DIRECTION.DOWN && currentTime === 0) {
+        if (direction === TIMER_DIRECTION.DOWN && currentTime <= 0) {
           stop();
           sendBack({ type: eventTypes.timeout } as TEvent);
         }
