@@ -119,7 +119,11 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
         // Force React re-render to update game state displays
         setGameState(prevState => {
           if (prevState) {
-            return Object.assign(Object.create(Object.getPrototypeOf(prevState)), prevState);
+            const newState = Object.assign(Object.create(Object.getPrototypeOf(prevState)), prevState);
+            console.log('[NoteIdentification] Forcing re-render with new game state', {
+              guessHistoryLength: (newState as any).guessHistory?.length
+            });
+            return newState;
           }
           return prevState;
         });

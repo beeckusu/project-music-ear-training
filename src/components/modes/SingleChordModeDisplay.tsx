@@ -3,8 +3,10 @@ import type { SingleChordGameState } from '../../game/SingleChordGameState';
 import type { CommonDisplayProps } from '../../game/GameStateFactory';
 import type { NoteWithOctave } from '../../types/music';
 import TimerDigital from '../TimerDigital';
+import TimerCircular from '../TimerCircular';
 import PianoKeyboard from '../PianoKeyboard';
 import ChordDisplay from '../ChordDisplay';
+import ChordGuessHistory from '../ChordGuessHistory';
 import './SingleChordModeDisplay.css';
 
 interface SingleChordModeDisplayProps extends CommonDisplayProps {
@@ -17,6 +19,10 @@ interface SingleChordModeDisplayProps extends CommonDisplayProps {
 const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
   gameState,
   currentNote,
+  sessionTimeRemaining,
+  timeRemaining,
+  responseTimeLimit,
+  isPaused,
   onPianoKeyClick,
   onSubmitAnswer,
   onClearSelection
@@ -26,6 +32,12 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
 
   // Calculate accuracy
   const accuracy = totalAttempts > 0 ? Math.round((correctChordsCount / totalAttempts) * 100) : 0;
+
+  // Determine if timer is active
+  const isTimerActive = gameState.startTime !== undefined && !gameState.isCompleted && !isPaused;
+
+  // Determine if round timer is active
+  const isRoundTimerActive = currentNote && !gameState.isCompleted && !isPaused;
 
   // Determine if submit button should be enabled
   const canSubmit = selectedNotes.size > 0 && currentChord !== null && !gameState.isCompleted;
@@ -42,6 +54,12 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
     forceUpdate();
   };
 
+  // Handle submit answer with re-render
+  const handleSubmitAnswer = () => {
+    onSubmitAnswer();
+    forceUpdate();
+  };
+
   return (
     <>
       {/* Chord Name Display */}
@@ -52,12 +70,23 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
         />
       )}
 
+      {/* Round Timer */}
+      {currentNote && !gameState.isCompleted && responseTimeLimit && (
+        <div className="round-timer-container">
+          <TimerCircular
+            timeLimit={responseTimeLimit}
+            timeRemaining={timeRemaining ?? 0}
+            isActive={isRoundTimerActive}
+          />
+        </div>
+      )}
+
       {/* Progress Stats */}
       {(currentNote || gameState.isCompleted) && (
         <div className="chord-stats-section">
           <TimerDigital
-            elapsedTime={gameState.elapsedTime}
-            isActive={!gameState.isCompleted && gameState.startTime !== undefined}
+            elapsedTime={sessionTimeRemaining ?? 0}
+            isActive={isTimerActive}
           />
           <div className="chord-progress">
             {gameState.isCompleted ? (
@@ -80,6 +109,15 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
             )}
           </div>
         </div>
+      )}
+
+      {/* Guess History */}
+      {(currentNote || gameState.isCompleted) && (
+        <ChordGuessHistory
+          attempts={gameState.guessHistory}
+          mode="training"
+          maxDisplay={10}
+        />
       )}
 
       {/* Note Selection Feedback */}
@@ -109,7 +147,7 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
             </button>
             <button
               className="submit-button"
-              onClick={onSubmitAnswer}
+              onClick={handleSubmitAnswer}
               disabled={!canSubmit}
             >
               Submit Answer

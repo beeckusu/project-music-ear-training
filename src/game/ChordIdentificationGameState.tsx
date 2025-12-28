@@ -5,7 +5,8 @@ import type {
   GameStats,
   StatItem,
   HistoryItem,
-  GameSession
+  GameSession,
+  ChordGuessAttempt
 } from '../types/game';
 import type { CommonDisplayProps, GameActionResult } from './GameStateFactory';
 import type { Chord, NoteWithOctave, NoteFilter } from '../types/music';
@@ -40,6 +41,7 @@ export class ChordIdentificationGameState implements IGameMode {
   userGuess: string | null = null;
   correctChordsCount: number = 0;
   noteTrainingSettings: NoteTrainingModeSettings;
+  guessHistory: ChordGuessAttempt[] = [];
 
   /**
    * Creates a new ChordIdentificationGameState instance.
@@ -103,6 +105,16 @@ export class ChordIdentificationGameState implements IGameMode {
     const newLongestStreak = Math.max(this.longestStreak, newCurrentStreak);
     const newTotalAttempts = this.totalAttempts + 1;
 
+    // Add to guess history
+    const guessAttempt: ChordGuessAttempt = {
+      id: `${Date.now()}-${Math.random()}`,
+      timestamp: new Date(),
+      actualChord: this.currentChord!,
+      isCorrect: true,
+      guessedChordName: this.userGuess || ''
+    };
+    this.guessHistory = [...this.guessHistory, guessAttempt];
+
     // Update state
     this.correctChordsCount = newCorrectCount;
     this.currentStreak = newCurrentStreak;
@@ -152,16 +164,37 @@ export class ChordIdentificationGameState implements IGameMode {
    * @returns GameActionResult indicating to stay on current chord
    */
   handleIncorrectGuess = (): GameActionResult => {
+    console.log('[ChordIdentificationGameState] handleIncorrectGuess called', {
+      currentChord: this.currentChord,
+      guessHistoryLength: this.guessHistory.length,
+      userGuess: this.userGuess
+    });
+
     this.currentStreak = 0;
     this.totalAttempts = this.totalAttempts + 1;
 
     if (!this.currentChord) {
+      console.log('[ChordIdentificationGameState] No current chord - returning early');
       return {
         gameCompleted: false,
         feedback: 'Not quite right. Try again!',
         shouldAdvance: false
       };
     }
+
+    // Add to guess history
+    const guessAttempt: ChordGuessAttempt = {
+      id: `${Date.now()}-${Math.random()}`,
+      timestamp: new Date(),
+      actualChord: this.currentChord,
+      isCorrect: false,
+      guessedChordName: this.userGuess || ''
+    };
+    this.guessHistory = [...this.guessHistory, guessAttempt];
+    console.log('[ChordIdentificationGameState] Added to guess history', {
+      newLength: this.guessHistory.length,
+      guessedName: this.userGuess || '(timeout - no guess)'
+    });
 
     const correctAnswer = this.currentChord.name;
     return {

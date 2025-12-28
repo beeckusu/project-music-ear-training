@@ -33,11 +33,17 @@ interface ModeSelectorProps {
 }
 
 const ModeSelector: React.FC<ModeSelectorProps> = ({ onRestartGame }) => {
-  const { settings, updateModeSettings, isFirstTimeSetup, hasCompletedModeSetup, completeModeSetup } = useSettings();
+  const { settings, updateModeSettings, updateTrainingType, isFirstTimeSetup, hasCompletedModeSetup, completeModeSetup } = useSettings();
   const selectedMode = settings.modes.selectedMode;
 
   const handleModeSelect = (mode: ModeType) => {
     updateModeSettings({ selectedMode: mode });
+
+    // Automatically update training type based on the selected mode
+    const modeMetadata = modeRegistry.get(mode);
+    if (modeMetadata) {
+      updateTrainingType(modeMetadata.type);
+    }
   };
 
   const handleRestartGame = () => {

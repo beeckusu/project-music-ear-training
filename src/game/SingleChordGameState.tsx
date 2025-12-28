@@ -5,7 +5,8 @@ import type {
   GameStats,
   StatItem,
   HistoryItem,
-  GameSession
+  GameSession,
+  ChordGuessAttempt
 } from '../types/game';
 import type { CommonDisplayProps, GameActionResult, GameStateWithDisplay } from './GameStateFactory';
 import type { Chord, NoteWithOctave, NoteFilter, NoteHighlight } from '../types/music';
@@ -42,6 +43,7 @@ export class SingleChordGameState implements IGameMode {
   totalNotesAttempted: number = 0;      // Sum of all notes across all attempts
   totalNotesCorrect: number = 0;         // Sum of correct notes across all attempts
   noteTrainingSettings: NoteTrainingModeSettings;
+  guessHistory: ChordGuessAttempt[] = [];
 
   /**
    * Creates a new ShowChordGuessNotesGameState instance.
@@ -118,6 +120,19 @@ export class SingleChordGameState implements IGameMode {
     this.totalNotesAttempted += notesInChord;
     this.totalNotesCorrect += notesInChord;
 
+    // Add to guess history
+    const guessAttempt: ChordGuessAttempt = {
+      id: `${Date.now()}-${Math.random()}`,
+      timestamp: new Date(),
+      actualChord: this.currentChord!,
+      isCorrect: true,
+      accuracy: 100,
+      correctNotes: [...this.currentChord!.notes],
+      missedNotes: [],
+      incorrectNotes: []
+    };
+    this.guessHistory = [...this.guessHistory, guessAttempt];
+
     // Update state
     this.correctChordsCount = newCorrectCount;
     this.currentStreak = newCurrentStreak;
@@ -167,10 +182,16 @@ export class SingleChordGameState implements IGameMode {
    * @returns GameActionResult indicating to stay on current chord
    */
   handleIncorrectGuess = (): GameActionResult => {
+    console.log('[SingleChordGameState] handleIncorrectGuess called', {
+      currentChord: this.currentChord,
+      guessHistoryLength: this.guessHistory.length
+    });
+
     this.currentStreak = 0;
     this.totalAttempts = this.totalAttempts + 1;
 
     if (!this.currentChord) {
+      console.log('[SingleChordGameState] No current chord - returning early');
       return {
         gameCompleted: false,
         feedback: 'Not quite right. Keep trying!',
@@ -189,6 +210,26 @@ export class SingleChordGameState implements IGameMode {
 
     // Calculate accuracy for this attempt
     const attemptAccuracy = totalNotes > 0 ? (correctCount / totalNotes) * 100 : 0;
+
+    // Add to guess history
+    const guessAttempt: ChordGuessAttempt = {
+      id: `${Date.now()}-${Math.random()}`,
+      timestamp: new Date(),
+      actualChord: this.currentChord,
+      isCorrect: false,
+      accuracy: attemptAccuracy,
+      correctNotes: [...this.correctNotes],
+      missedNotes: [...this.getMissingNotes()],
+      incorrectNotes: [...this.incorrectNotes]
+    };
+    this.guessHistory = [...this.guessHistory, guessAttempt];
+    console.log('[SingleChordGameState] Added to guess history', {
+      newLength: this.guessHistory.length,
+      accuracy: attemptAccuracy,
+      correctCount,
+      missingCount,
+      incorrectCount
+    });
 
     // Build detailed feedback message
     let feedback = '';

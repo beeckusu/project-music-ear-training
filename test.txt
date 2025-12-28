@@ -1,0 +1,38 @@
+Chord Training
+Guess History
+Like the Note guesses, shows the history of selected Chords + whether the guess was correct. Unlike the note guessing, you can only really show icons to see if you were right (checkmark), wrong (X), or partial (~). Hovering over each card representing a round shows you what notes you guessed and which notes you missed.
+
+Mode UI
+This is the part that varies per chord mode, but for the Chord Identification mode, there's a few components:
+    Timer - if a timer duration is set (>0sec), then a timer is shown.
+    Selected chord display - shows the chord name (Ex. C major)
+    Feedback text - like in other modes.
+    Round buttons - the play again button and next chord in a row (like other modes)
+    Submit button - under the above two buttons. The submit button should look different than the other two and is bigger, making it easier to press.
+
+Keyboard
+Like the note training keyboard, except when you click a key, it highlights gray. Clicking it again unhighlights it.
+When a guess is submitted, keys highlighted a colour when:
+    Green - The note is clicked and the note is in the chord
+    Yellow - The note is not clicked and the note is in the chord
+    Red - The note is clicked but the note is not in the chord
+
+
+
+Chord Identification
+Guess History
+Same as above showing right, wrong, or partial guesses. Hovering shows the real chord and the guessed chord.
+
+Mode UI
+    Timer - if a timer duration is set (>0sec), then a timer is shown.
+    Feedback text - like in other modes.
+    Round buttons - the play again button and next chord in a row (like other modes)
+
+Keyboard
+    The keys representing the chord are highlighted green. The keys cannot be clicked.
+
+NEW UI: Chord Selection
+    A row of base notes: C-B
+    A row of chord types (maj, min, dim, aug, etc)
+
+

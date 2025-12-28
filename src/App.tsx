@@ -6,16 +6,20 @@ import ScoreTracker from './components/ScoreTracker'
 import GuessHistory from './components/GuessHistory'
 import SettingsButton from './components/SettingsButton'
 import SettingsModal from './components/SettingsModal'
+import { TRAINING_MODES } from './constants'
 import type { GuessAttempt } from './types/game'
 import './App.css'
 
 // Main app content component that can access settings context
 function AppContent() {
-  const { isSettingsOpen, closeSettings } = useSettings()
+  const { isSettingsOpen, closeSettings, settings } = useSettings()
   const [score, setScore] = useState({ correct: 0, total: 0 })
   const [guessHistory, setGuessHistory] = useState<GuessAttempt[]>([])
   const [isPaused, setIsPaused] = useState(false)
   const [gameResetTrigger, setGameResetTrigger] = useState(0)
+
+  // Check if we're in ear training mode (show ScoreTracker and GuessHistory)
+  const isEarTrainingMode = settings.trainingType === TRAINING_MODES.EAR_TRAINING
 
   // Auto-pause when settings are open, unpause when closed
   useEffect(() => {
@@ -76,10 +80,12 @@ function AppContent() {
       </header>
 
       <main className="app-main">
-        <div className="score-section">
-          <ScoreTracker correct={score.correct} total={score.total} onReset={resetScore} />
-          <GuessHistory attempts={guessHistory} />
-        </div>
+        {isEarTrainingMode && (
+          <div className="score-section">
+            <ScoreTracker correct={score.correct} total={score.total} onReset={resetScore} />
+            <GuessHistory attempts={guessHistory} />
+          </div>
+        )}
 
         <NoteIdentification
           onGuessAttempt={handleGuessAttempt}
