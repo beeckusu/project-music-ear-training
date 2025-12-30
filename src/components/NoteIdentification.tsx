@@ -12,8 +12,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { NoteWithOctave, NoteHighlight } from '../types/music';
 import type { GuessAttempt, GameStats } from '../types/game';
-import type { GameStateWithDisplay } from '../game/GameStateFactory';
-import { createGameState } from '../game/GameStateFactory';
+import type { IGameMode } from '../game/IGameMode';
 import { useSettings } from '../hooks/useSettings';
 import { useGameHistory } from '../hooks/useGameHistory';
 import { SETTINGS_TABS } from '../constants';
@@ -58,11 +57,14 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
   // Game state and settings
   const { responseTimeLimit, autoAdvanceSpeed, noteDuration } = settings.timing;
   const { selectedMode } = settings.modes;
-  const [gameState, setGameState] = useState<GameStateWithDisplay | null>(null);
 
   // Orchestrator instance
   const orchestratorRef = useRef<GameOrchestrator | null>(null);
   const [, forceUpdate] = useState({});
+
+  // Get gameState directly from orchestrator instead of storing a copy
+  // This ensures we always have the latest state with currentChord, etc.
+  const gameState = orchestratorRef.current?.getGameMode() as IGameMode | null;
 
   // Derive state from orchestrator
   const isGameCompleted = orchestratorRef.current?.isCompleted() || false;
@@ -117,16 +119,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
         // This allows users to keep trying on incorrect guesses
 
         // Force React re-render to update game state displays
-        setGameState(prevState => {
-          if (prevState) {
-            const newState = Object.assign(Object.create(Object.getPrototypeOf(prevState)), prevState);
-            console.log('[NoteIdentification] Forcing re-render with new game state', {
-              guessHistoryLength: (newState as any).guessHistory?.length
-            });
-            return newState;
-          }
-          return prevState;
-        });
+        forceUpdate({});
       });
 
       orchestratorRef.current.on('sessionComplete', ({ session, stats }) => {
@@ -234,10 +227,6 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
   useEffect(() => {
     if (settings && selectedMode && orchestratorRef.current) {
       try {
-        // Create game state for UI displays
-        const newGameState = createGameState(selectedMode, settings.modes);
-        setGameState(newGameState);
-
         // Initialize session timer to the configured duration (for Sandbox mode)
         if (selectedMode === 'sandbox' && settings.modes.sandbox?.sessionDuration) {
           const sessionDurationSeconds = settings.modes.sandbox.sessionDuration * 60;
@@ -300,10 +289,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
       console.log('[NoteIdentification] Play Again clicked');
     }
 
-    // Create fresh game state for UI displays
-    const newGameState = createGameState(selectedMode, settings.modes);
-    setGameState(newGameState);
-
+    // Game state will be retrieved from orchestrator via getGameMode()
     currentNoteRef.current = null;
     setCurrentNote(null);
     setUserGuess(null);
@@ -349,21 +335,23 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
     // Call gameState callback if available (strategy pattern)
     if (gameState?.onPianoKeyClick) {
       gameState.onPianoKeyClick(note, context);
+      // For chord training modes, don't auto-submit - they use explicit Submit button
+      // Only update UI state and let the callback handle selection
+      setUserGuess(note);
+    } else {
+      // Ear training modes: submit immediately on key click
+      setUserGuess(note);
+      orchestratorRef.current?.submitGuess(note);
     }
-
-    // Update local UI state
-    setUserGuess(note);
-
-    // Submit guess to orchestrator (ear training modes submit immediately)
-    orchestratorRef.current?.submitGuess(note);
   }, [gameState]);
 
   /**
    * Handle submit button click using callback pattern
    * For chord training modes that need explicit submission
-   * NOTE: Currently unused - will be used when chord training modes are implemented
+   * NOTE: Currently unused - SingleChordModeDisplay handles its own submission
+   * Kept for potential future chord training modes
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  /*
   const handleSubmitClick = useCallback(() => {
     if (LOGS_USER_ACTIONS_ENABLED) {
       console.log('[NoteIdentification] Submit button clicked');
@@ -386,6 +374,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
     // The submit callback will handle preparing the final answer in the context,
     // then we'll submit it to the orchestrator
   }, [gameState]);
+  */
 
   // Compute piano highlights from note identification state
   const pianoHighlights = useMemo((): NoteHighlight[] => {
@@ -421,7 +410,10 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
           isPaused: !!isPaused,
           timeRemaining,
           sessionTimeRemaining,
-          onTimerUpdate: setTimeRemaining
+          onTimerUpdate: setTimeRemaining,
+          onAdvanceRound: (delayMs = 1000) => {
+            orchestratorRef.current?.handleAutoAdvance(delayMs);
+          }
         }) : <div>Loading game state...</div>}
 
         <div className="controls">
@@ -479,15 +471,19 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
           )}
         </div>
 
-        <div className={isPaused ? 'piano-container paused' : 'piano-container'}>
-          <PianoKeyboard
-            onNoteClick={handlePianoKeyClick}
-            highlights={pianoHighlights}
-            disabled={!isWaitingInput}
-            preventNoteRestart={true}
-            monoMode={true}
-          />
-        </div>
+        {/* Only render piano keyboard for ear training modes */}
+        {/* Chord training modes render their own piano in modeDisplay */}
+        {gameState && !gameState.getMode().includes('chord') && !gameState.getMode().includes('notes') && (
+          <div className={isPaused ? 'piano-container paused' : 'piano-container'}>
+            <PianoKeyboard
+              onNoteClick={handlePianoKeyClick}
+              highlights={pianoHighlights}
+              disabled={!isWaitingInput}
+              preventNoteRestart={true}
+              monoMode={true}
+            />
+          </div>
+        )}
       </div>
 
       {/* Game End Modal */}

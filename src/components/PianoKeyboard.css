@@ -159,31 +159,29 @@
   color: white;
 }
 
-/* Dimmed - Subdued/grayed out (e.g., missing notes) - Gray */
+/* Dimmed - Missing notes indicator - Yellow */
 .white-key.piano-key-dimmed {
-  background-color: #6c757d;
-  color: white;
-  border-color: #5a6268;
-  opacity: 0.6;
+  background-color: #ffc107;
+  color: #333;
+  border-color: #ff9800;
 }
 
 .black-key.piano-key-dimmed {
-  background-color: #495057;
-  color: white;
-  opacity: 0.6;
+  background-color: #ffa000;
+  color: #333;
 }
 
 .white-key.piano-key-dimmed .note-label,
 .black-key.piano-key-dimmed .note-label {
-  color: white;
+  color: #333;
 }
 
-/* Selected - User selection (before submission) - Subtle blue tint */
+/* Selected - User selection (before submission) - Gray tint */
 .white-key.piano-key-selected:not(.piano-key-success):not(.piano-key-error):not(.piano-key-dimmed) {
-  background-color: #e7f3ff;
-  border-color: #007bff;
+  background-color: #d3d3d3;
+  border-color: #808080;
 }
 
 .black-key.piano-key-selected:not(.piano-key-success):not(.piano-key-error):not(.piano-key-dimmed) {
-  background-color: #004085;
+  background-color: #606060;
 }

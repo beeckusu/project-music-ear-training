@@ -143,11 +143,11 @@ describe('SingleChordGameState - Callbacks', () => {
 
       gameState.onPianoKeyClick(TEST_NOTE_C4, context);
 
-      // Check that the highlight includes the correct note with success type
+      // Before submit, clicked notes should show as 'selected' (gray)
       const highlights = context.noteHighlights;
       const c4Highlight = highlights.find(h => h.note.note === 'C' && h.note.octave === 4);
       expect(c4Highlight).toBeDefined();
-      expect(c4Highlight?.type).toBe('success');
+      expect(c4Highlight?.type).toBe('selected');
     });
 
     it('should mark incorrect notes in highlights', () => {
@@ -161,11 +161,11 @@ describe('SingleChordGameState - Callbacks', () => {
       // Click a note that's not in the chord
       gameState.onPianoKeyClick(TEST_NOTE_A4, context);
 
-      // Check that the highlight includes the incorrect note with error type
+      // Before submit, clicked notes should show as 'selected' (gray)
       const highlights = context.noteHighlights;
       const a4Highlight = highlights.find(h => h.note.note === 'A' && h.note.octave === 4);
       expect(a4Highlight).toBeDefined();
-      expect(a4Highlight?.type).toBe('error');
+      expect(a4Highlight?.type).toBe('selected');
     });
   });
 

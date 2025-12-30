@@ -31,6 +31,8 @@ export interface CommonDisplayProps {
   // Callbacks for timer events
   onTimeUp?: () => void;
   onTimerUpdate?: (timeRemaining: number, isActive: boolean) => void;
+  // Callback to trigger round advancement (for modes with manual submission)
+  onAdvanceRound?: (delayMs?: number) => void;
 }
 
 
