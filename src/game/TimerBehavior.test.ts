@@ -223,20 +223,26 @@ describe('Timer Behavior', () => {
     // Wait while paused (timer should not advance)
     await wait(300);
 
+    // Record the number of updates before resume to avoid race condition
+    const updatesBeforeResume = timerUpdates.length;
+
     // Resume the game
     orchestrator.resumeGame();
 
-    // Clear old updates and wait for new ones after resume
-    timerUpdates.length = 0;
-    await wait(200);
+    // Wait for timer to start updating after resume
+    await wait(250);
+
+    // Get updates that occurred after resume
+    const updatesAfterResume = timerUpdates.slice(updatesBeforeResume);
+
+    // Should have received at least one update after resume
+    expect(updatesAfterResume.length).toBeGreaterThan(0);
 
     // First update after resume should be close to the value before pause
     // (allowing for some variance due to async delays)
-    if (timerUpdates.length > 0) {
-      const timeAfterResume = timerUpdates[0];
-      // Timer should have continued from approximately where it paused
-      // (within 1 second tolerance for async delays and floating point precision)
-      expect(Math.abs(timeAfterResume - timeBeforePause)).toBeLessThan(1.0);
-    }
+    const timeAfterResume = updatesAfterResume[0];
+    // Timer should have continued from approximately where it paused
+    // (within 1 second tolerance for async delays and floating point precision)
+    expect(Math.abs(timeAfterResume - timeBeforePause)).toBeLessThan(1.0);
   });
 });
