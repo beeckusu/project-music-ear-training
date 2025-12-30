@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import type { ChordIdentificationGameState } from '../../game/ChordIdentificationGameState';
 import type { CommonDisplayProps } from '../../game/GameStateFactory';
+import type { Note, ChordType } from '../../types/music';
 import TimerDigital from '../TimerDigital';
 import TimerCircular from '../TimerCircular';
 import PianoKeyboard from '../PianoKeyboard';
 import ChordDisplay from '../ChordDisplay';
 import ChordInput from '../ChordInput';
+import ChordSelection from '../ChordSelection';
 import ChordGuessHistory from '../ChordGuessHistory';
+import { formatChordName } from '../../constants/chords';
 import { getKeyboardOctaveForChord } from '../../utils/chordKeyboardPositioning';
 import './ChordIdentificationModeDisplay.css';
 
@@ -26,6 +29,8 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
 }) => {
   const { currentChord, correctChordsCount, currentStreak, totalAttempts, noteTrainingSettings } = gameState;
   const [guessInput, setGuessInput] = useState<string>('');
+  const [selectedBaseNote, setSelectedBaseNote] = useState<Note | null>(null);
+  const [selectedChordType, setSelectedChordType] = useState<ChordType | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string>('');
   const [, forceUpdate] = React.useReducer(x => x + 1, 0);
 
@@ -39,19 +44,51 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
   const isRoundTimerActive = currentNote && !gameState.isCompleted && !isPaused;
 
   // Handle guess submission with re-render
-  const handleSubmitGuess = (guess: string) => {
-    if (!guess.trim() || !currentChord || gameState.isCompleted) return;
+  const handleSubmitGuess = () => {
+    if (!currentChord || gameState.isCompleted) return;
 
-    const result = onSubmitGuess(guess);
+    // Use manual input if provided, otherwise use button selections
+    let chordName: string;
+    if (guessInput.trim()) {
+      chordName = guessInput.trim();
+    } else if (selectedBaseNote && selectedChordType) {
+      chordName = formatChordName(selectedBaseNote, selectedChordType);
+    } else {
+      return; // No input provided
+    }
+
+    const result = onSubmitGuess(chordName);
     setFeedbackMessage(result.feedback);
 
-    // Clear input on correct guess (when should advance)
+    // Clear input/selection on correct guess (when should advance)
     if (result.shouldAdvance) {
       setGuessInput('');
+      setSelectedBaseNote(null);
+      setSelectedChordType(null);
     }
 
     // Force re-render to update progress stats
     forceUpdate();
+  };
+
+  // Handle button selection - clear manual input when buttons are used
+  const handleBaseNoteSelect = (note: Note) => {
+    setSelectedBaseNote(note);
+    setGuessInput(''); // Clear manual input
+  };
+
+  const handleChordTypeSelect = (type: ChordType) => {
+    setSelectedChordType(type);
+    setGuessInput(''); // Clear manual input
+  };
+
+  // Handle manual input change - clear button selections when typing
+  const handleInputChange = (value: string) => {
+    setGuessInput(value);
+    if (value.trim()) {
+      setSelectedBaseNote(null);
+      setSelectedChordType(null);
+    }
   };
 
   // Get note highlights for the piano keyboard
@@ -139,16 +176,33 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
       {currentChord && currentNote && !gameState.isCompleted && (
         <div className="chord-input-section">
           <label className="input-label">
-            Enter the chord name:
+            Type chord name or use buttons:
           </label>
 
           <ChordInput
             value={guessInput}
-            onChange={setGuessInput}
+            onChange={handleInputChange}
             onSubmit={handleSubmitGuess}
             disabled={gameState.isCompleted}
             placeholder="e.g., C, Dm, Gmaj7, F#m"
           />
+
+          <ChordSelection
+            selectedBaseNote={selectedBaseNote}
+            selectedChordType={selectedChordType}
+            onBaseNoteSelect={handleBaseNoteSelect}
+            onChordTypeSelect={handleChordTypeSelect}
+            disabled={gameState.isCompleted}
+          />
+
+          {/* Submit Button */}
+          <button
+            className="submit-guess-button"
+            onClick={handleSubmitGuess}
+            disabled={(!guessInput.trim() && (!selectedBaseNote || !selectedChordType)) || gameState.isCompleted}
+          >
+            Submit Guess
+          </button>
 
           {/* Feedback Message */}
           {feedbackMessage && (
