@@ -10,6 +10,7 @@ import ChordInput from '../ChordInput';
 import ChordSelection from '../ChordSelection';
 import ChordGuessHistory from '../ChordGuessHistory';
 import { formatChordName } from '../../constants/chords';
+import { getKeyboardOctaveForChord } from '../../utils/chordKeyboardPositioning';
 import './ChordIdentificationModeDisplay.css';
 
 interface ChordIdentificationModeDisplayProps extends CommonDisplayProps {
@@ -96,26 +97,18 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
 
     if (currentChord && gameState.displayedNotes.length > 0) {
       for (const note of gameState.displayedNotes) {
-        highlights.push({ note, type: 'highlighted' as const });
+        highlights.push({ note, type: 'success' as const });
       }
     }
 
     return highlights;
   };
 
+  // Calculate the keyboard's base octave to show the chord at its lowest position
+  const keyboardOctave = getKeyboardOctaveForChord(gameState.displayedNotes);
+
   return (
     <>
-      {/* Piano Keyboard with Highlighted Notes */}
-      {currentChord && currentNote && !gameState.isCompleted && (
-        <div className="piano-container">
-          <PianoKeyboard
-            onNoteClick={() => {}} // Read-only keyboard
-            highlights={getNoteHighlights()}
-            disabled={true} // Keyboard is display-only in this mode
-          />
-        </div>
-      )}
-
       {/* Round Timer */}
       {currentNote && !gameState.isCompleted && responseTimeLimit && (
         <div className="round-timer-container">
@@ -164,6 +157,19 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
           mode="identification"
           maxDisplay={10}
         />
+      )}
+
+      {/* Piano Keyboard with Highlighted Notes */}
+      {currentChord && currentNote && !gameState.isCompleted && (
+        <div className="piano-container">
+          <PianoKeyboard
+            onNoteClick={() => {}} // Read-only keyboard
+            highlights={getNoteHighlights()}
+            octave={keyboardOctave} // Position keyboard to show chord at lowest position
+            numOctaves={2} // Use 2-octave keyboard for chord display
+            disabled={true} // Keyboard is display-only in this mode
+          />
+        </div>
       )}
 
       {/* Chord Input Section */}
