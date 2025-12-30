@@ -1,0 +1,240 @@
+/* ChordSelection Component Styles */
+
+.chord-selection {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chord-selection.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Base Notes Grid */
+.base-notes-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 4px;
+  width: 100%;
+}
+
+.base-note-button {
+  padding: 8px 4px;
+  border: 2px solid #ced4da;
+  border-radius: 6px;
+  background: white;
+  font-size: 12px;
+  font-weight: 600;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.base-note-button:hover:not(:disabled) {
+  border-color: #6a11cb;
+  background: #f8f9fa;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(106, 17, 203, 0.15);
+}
+
+.base-note-button.selected {
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  border-color: #6a11cb;
+  color: white;
+  box-shadow: 0 4px 12px rgba(106, 17, 203, 0.3);
+}
+
+.base-note-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+.base-note-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.base-note-button:focus-visible {
+  outline: 3px solid rgba(106, 17, 203, 0.4);
+  outline-offset: 2px;
+}
+
+/* Chord Types Grid */
+.chord-types-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+  gap: 4px;
+  width: 100%;
+}
+
+.chord-type-button {
+  padding: 8px 4px;
+  border: 2px solid #ced4da;
+  border-radius: 6px;
+  background: white;
+  font-size: 11px;
+  font-weight: 600;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chord-type-button:hover:not(:disabled) {
+  border-color: #6a11cb;
+  background: #f8f9fa;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(106, 17, 203, 0.15);
+}
+
+.chord-type-button.selected {
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  border-color: #6a11cb;
+  color: white;
+  box-shadow: 0 4px 12px rgba(106, 17, 203, 0.3);
+}
+
+.chord-type-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+.chord-type-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.chord-type-button:focus-visible {
+  outline: 3px solid rgba(106, 17, 203, 0.4);
+  outline-offset: 2px;
+}
+
+/* Selected Chord Display */
+.selected-chord-display {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+  box-shadow: 0 2px 8px rgba(106, 17, 203, 0.25);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.selected-chord-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.5px;
+}
+
+/* Responsive Design */
+
+/* Tablet and smaller */
+@media (max-width: 1024px) {
+  .base-notes-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .chord-types-grid {
+    grid-template-columns: repeat(auto-fit, minmax(45px, 1fr));
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .chord-selection {
+    gap: 6px;
+  }
+
+  .base-notes-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 3px;
+  }
+
+  .base-note-button {
+    font-size: 11px;
+    padding: 6px 2px;
+    min-height: 32px;
+  }
+
+  .chord-types-grid {
+    grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+    gap: 3px;
+  }
+
+  .chord-type-button {
+    font-size: 10px;
+    padding: 6px 2px;
+    min-height: 32px;
+  }
+
+  .selected-chord-display {
+    padding: 6px 12px;
+  }
+
+  .selected-chord-name {
+    font-size: 16px;
+  }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+  .base-notes-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .chord-types-grid {
+    grid-template-columns: repeat(auto-fit, minmax(35px, 1fr));
+  }
+
+  .selected-chord-name {
+    font-size: 14px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .base-note-button,
+  .chord-type-button {
+    border-width: 3px;
+  }
+
+  .base-note-button.selected,
+  .chord-type-button.selected {
+    border-color: #000;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .base-note-button,
+  .chord-type-button,
+  .selected-chord-display {
+    transition: none;
+    animation: none;
+  }
+
+  .base-note-button:hover:not(:disabled),
+  .chord-type-button:hover:not(:disabled) {
+    transform: none;
+  }
+}
