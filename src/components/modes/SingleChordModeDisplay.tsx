@@ -7,6 +7,7 @@ import TimerCircular from '../TimerCircular';
 import PianoKeyboard from '../PianoKeyboard';
 import ChordDisplay from '../ChordDisplay';
 import ChordGuessHistory from '../ChordGuessHistory';
+import { getKeyboardOctaveForChord } from '../../utils/chordKeyboardPositioning';
 import './SingleChordModeDisplay.css';
 
 interface SingleChordModeDisplayProps extends CommonDisplayProps {
@@ -65,6 +66,11 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
       onAdvanceRound(1000); // 1 second delay before next round
     }
   };
+
+  // Calculate the keyboard's base octave to show the chord at its lowest position
+  const keyboardOctave = currentChord
+    ? getKeyboardOctaveForChord(currentChord.notes)
+    : 4;
 
   return (
     <>
@@ -169,6 +175,8 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
         <PianoKeyboard
           onNoteClick={handleNoteClick}
           highlights={gameState.getNoteHighlights()}
+          octave={keyboardOctave}
+          numOctaves={2}
           disabled={gameState.isCompleted || !currentChord}
         />
       </div>
