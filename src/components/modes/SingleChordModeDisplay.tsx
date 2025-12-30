@@ -12,7 +12,7 @@ import './SingleChordModeDisplay.css';
 interface SingleChordModeDisplayProps extends CommonDisplayProps {
   gameState: SingleChordGameState;
   onPianoKeyClick: (note: NoteWithOctave) => void;
-  onSubmitAnswer: () => void;
+  onSubmitAnswer: () => { gameCompleted: boolean; feedback: string; shouldAdvance: boolean };
   onClearSelection: () => void;
 }
 
@@ -25,7 +25,8 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
   isPaused,
   onPianoKeyClick,
   onSubmitAnswer,
-  onClearSelection
+  onClearSelection,
+  onAdvanceRound
 }) => {
   const { currentChord, correctNotes, incorrectNotes, selectedNotes, correctChordsCount, currentStreak, totalAttempts, noteTrainingSettings } = gameState;
   const [, forceUpdate] = React.useReducer(x => x + 1, 0);
@@ -56,8 +57,13 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
 
   // Handle submit answer with re-render
   const handleSubmitAnswer = () => {
-    onSubmitAnswer();
+    const result = onSubmitAnswer();
     forceUpdate();
+
+    // If the answer was correct, trigger round advancement
+    if (result.shouldAdvance && !result.gameCompleted && onAdvanceRound) {
+      onAdvanceRound(1000); // 1 second delay before next round
+    }
   };
 
   return (
@@ -157,16 +163,15 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
       )}
 
       {/* Piano Keyboard with Multi-Note Highlighting */}
-      {currentChord && currentNote && !gameState.isCompleted && (
-        <div className="piano-container">
-          <PianoKeyboard
-            selectionMode="multi"
-            onNoteClick={handleNoteClick}
-            highlights={gameState.getNoteHighlights()}
-            disabled={gameState.isCompleted}
-          />
-        </div>
-      )}
+      {/* Always show piano in Chord Training mode */}
+      {/* Use single mode with highlights - gameState tracks selection */}
+      <div className="piano-container">
+        <PianoKeyboard
+          onNoteClick={handleNoteClick}
+          highlights={gameState.getNoteHighlights()}
+          disabled={gameState.isCompleted || !currentChord}
+        />
+      </div>
     </>
   );
 };

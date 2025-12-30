@@ -273,6 +273,24 @@ export class SingleChordGameState implements IGameMode {
       };
     }
 
+    // Validate selected notes against current chord (octave-agnostic)
+    // We only care about note names (G, A#, D), not octaves, since the piano
+    // may not show all octaves and users are learning chord composition, not voicing
+    this.correctNotes.clear();
+    this.incorrectNotes.clear();
+
+    for (const selectedNote of this.selectedNotes) {
+      const isInChord = this.currentChord.notes.some(
+        chordNote => chordNote.note === selectedNote.note
+      );
+
+      if (isInChord) {
+        this.correctNotes.add(selectedNote);
+      } else {
+        this.incorrectNotes.add(selectedNote);
+      }
+    }
+
     // Check if user selected any incorrect notes
     if (this.incorrectNotes.size > 0) {
       return this.handleIncorrectGuess();
@@ -651,7 +669,7 @@ export class SingleChordGameState implements IGameMode {
     );
 
     if (alreadySelected) {
-      // Deselect the note
+      // Deselect the note - remove from all sets
       this.selectedNotes = new Set(
         Array.from(this.selectedNotes).filter(n => this.getNoteKey(n) !== noteKey)
       );
@@ -663,37 +681,28 @@ export class SingleChordGameState implements IGameMode {
       );
       return false;
     } else {
-      // Select the note
+      // Select the note - only add to selectedNotes
+      // Do NOT validate yet - that happens on submit
       this.selectedNotes.add(note);
-
-      // Check if the note is in the current chord
-      const isCorrect = this.currentChord.notes.some(
-        chordNote => this.getNoteKey(chordNote) === noteKey
-      );
-
-      if (isCorrect) {
-        this.correctNotes.add(note);
-      } else {
-        this.incorrectNotes.add(note);
-      }
-
       return true;
     }
   };
 
   /**
    * Checks if all notes in the current chord have been correctly identified.
+   * Uses octave-agnostic comparison (only note names, not octaves).
    *
    * @returns True if all chord notes are in correctNotes set
    */
   isChordComplete = (): boolean => {
     if (!this.currentChord) return false;
 
-    const chordNoteKeys = this.currentChord.notes.map(n => this.getNoteKey(n));
-    const correctNoteKeys = Array.from(this.correctNotes).map(n => this.getNoteKey(n));
+    // Compare note names only, not octaves
+    const chordNoteNames = this.currentChord.notes.map(n => n.note);
+    const correctNoteNames = Array.from(this.correctNotes).map(n => n.note);
 
-    return chordNoteKeys.every(key => correctNoteKeys.includes(key)) &&
-           chordNoteKeys.length === correctNoteKeys.length;
+    return chordNoteNames.every(name => correctNoteNames.includes(name)) &&
+           chordNoteNames.length === correctNoteNames.length;
   };
 
   /**
@@ -709,6 +718,7 @@ export class SingleChordGameState implements IGameMode {
   /**
    * Gets the notes that are required but not selected.
    * These are notes in the current chord that the user hasn't selected yet.
+   * Uses octave-agnostic comparison (only note names).
    *
    * @returns Set of notes that are missing from the user's selection
    */
@@ -716,11 +726,10 @@ export class SingleChordGameState implements IGameMode {
     if (!this.currentChord) return new Set();
 
     const missingNotes = new Set<NoteWithOctave>();
-    const selectedNoteKeys = Array.from(this.selectedNotes).map(n => this.getNoteKey(n));
+    const selectedNoteNames = Array.from(this.selectedNotes).map(n => n.note);
 
     for (const chordNote of this.currentChord.notes) {
-      const chordNoteKey = this.getNoteKey(chordNote);
-      if (!selectedNoteKeys.includes(chordNoteKey)) {
+      if (!selectedNoteNames.includes(chordNote.note)) {
         missingNotes.add(chordNote);
       }
     }
@@ -736,7 +745,7 @@ export class SingleChordGameState implements IGameMode {
    * The highlight priority is:
    * 1. Correct notes (success) - highest priority
    * 2. Incorrect notes (error)
-   * 3. Missing notes (dimmed)
+   * 3. Missing notes (dimmed) - only shown AFTER submission
    * 4. Selected notes (selected) - lowest priority, only shown if not already marked
    *
    * @returns Array of note highlights to display on the piano
@@ -755,9 +764,15 @@ export class SingleChordGameState implements IGameMode {
     }
 
     // Missing notes (after submission) - show dimmed
-    const missingNotes = this.getMissingNotes();
-    for (const note of missingNotes) {
-      highlights.push({ note, type: 'dimmed' });
+    // Only show missing notes if the user has submitted at least once
+    // (i.e., correctNotes or incorrectNotes have values)
+    // This prevents pre-highlighting chord notes before the user interacts
+    const hasSubmitted = this.correctNotes.size > 0 || this.incorrectNotes.size > 0;
+    if (hasSubmitted) {
+      const missingNotes = this.getMissingNotes();
+      for (const note of missingNotes) {
+        highlights.push({ note, type: 'dimmed' });
+      }
     }
 
     // Selected notes (before submission) - show selection

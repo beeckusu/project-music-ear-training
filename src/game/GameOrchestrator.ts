@@ -1389,7 +1389,8 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
     };
 
     const roundTimerConfig = {
-      initialTime: responseTimeLimit ?? 3,
+      // When responseTimeLimit is null (unlimited), use a very large number so timer never expires
+      initialTime: responseTimeLimit ?? Number.MAX_SAFE_INTEGER,
       direction: 'down' as const,
     };
 
