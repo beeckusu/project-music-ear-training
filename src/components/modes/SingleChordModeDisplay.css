@@ -116,8 +116,7 @@
   gap: 12px;
 }
 
-.clear-button,
-.submit-button {
+.clear-button {
   padding: 10px 24px;
   border: none;
   border-radius: 8px;
@@ -131,30 +130,54 @@
 .clear-button {
   background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
   color: white;
+  transition: all 0.25s ease;
 }
 
 .clear-button:hover:not(:disabled) {
   background: linear-gradient(135deg, #5a6268 0%, #545b62 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+.clear-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 .submit-button {
   background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
   color: white;
+  padding: 16px 32px;
+  font-size: 18px;
+  font-weight: 700;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(40, 167, 69, 0.3);
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
 }
 
 .submit-button:hover:not(:disabled) {
   background: linear-gradient(135deg, #218838 0%, #1e7e6a 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+}
+
+.submit-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
 }
 
 .clear-button:disabled,
 .submit-button:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
+}
+
+.submit-button:focus-visible {
+  outline: 3px solid rgba(40, 167, 69, 0.5);
+  outline-offset: 3px;
 }
 
 /* Audio Control Buttons */
@@ -169,12 +192,12 @@
 .audio-controls .secondary-button {
   padding: 12px 24px;
   border: none;
-  border-radius: 8px;
+  border-radius: 20px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
 .audio-controls .primary-button {
@@ -184,8 +207,13 @@
 
 .audio-controls .primary-button:hover:not(:disabled) {
   background: linear-gradient(135deg, #5a0ebf 0%, #1e62e0 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(106, 17, 203, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(106, 17, 203, 0.35);
+}
+
+.audio-controls .primary-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(106, 17, 203, 0.25);
 }
 
 .audio-controls .secondary-button {
@@ -195,8 +223,13 @@
 
 .audio-controls .secondary-button:hover:not(:disabled) {
   background: linear-gradient(135deg, #5a6268 0%, #545b62 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.audio-controls .secondary-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .audio-controls .primary-button:disabled,
@@ -204,6 +237,30 @@
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .clear-button,
+  .submit-button,
+  .audio-controls .primary-button,
+  .audio-controls .secondary-button {
+    transition: none;
+  }
+
+  .clear-button:hover:not(:disabled),
+  .submit-button:hover:not(:disabled),
+  .audio-controls .primary-button:hover:not(:disabled),
+  .audio-controls .secondary-button:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .clear-button:active:not(:disabled),
+  .submit-button:active:not(:disabled),
+  .audio-controls .primary-button:active:not(:disabled),
+  .audio-controls .secondary-button:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 /* Responsive adjustments */
@@ -229,9 +286,14 @@
     gap: 8px;
   }
 
-  .clear-button,
+  .clear-button {
+    width: 100%;
+  }
+
   .submit-button {
     width: 100%;
+    padding: 14px 24px;
+    font-size: 16px;
   }
 
   .audio-controls {
