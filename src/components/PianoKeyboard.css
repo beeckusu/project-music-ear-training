@@ -3,7 +3,16 @@
   display: inline-block;
   margin: 20px 0;
   user-select: none;
-  width: 480px; /* Fixed width: 8 keys × 60px each */
+}
+
+/* 1 octave keyboard (default) */
+.piano-keyboard-1-octave {
+  width: 480px; /* 8 keys × 60px each */
+}
+
+/* 2 octave keyboard (for chord identification) */
+.piano-keyboard-2-octave {
+  width: 900px; /* 15 keys × 60px each */
 }
 
 .white-keys {

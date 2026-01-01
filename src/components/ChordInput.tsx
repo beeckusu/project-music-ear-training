@@ -152,7 +152,8 @@ const ChordInput: React.FC<ChordInputProps> = ({
     onChange(suggestion);
     setShowSuggestions(false);
     setSelectedSuggestionIndex(-1);
-    inputRef.current?.focus();
+    // Small delay to allow state to update before refocusing
+    setTimeout(() => inputRef.current?.focus(), 0);
   };
 
   // Close suggestions when clicking outside
@@ -216,7 +217,10 @@ const ChordInput: React.FC<ChordInputProps> = ({
             <div
               key={suggestion}
               className={`chord-suggestion-item ${index === selectedSuggestionIndex ? 'selected' : ''}`}
-              onClick={() => handleSuggestionClick(suggestion)}
+              onMouseDown={(e) => {
+                e.preventDefault(); // Prevent input blur
+                handleSuggestionClick(suggestion);
+              }}
               role="option"
               aria-selected={index === selectedSuggestionIndex}
             >

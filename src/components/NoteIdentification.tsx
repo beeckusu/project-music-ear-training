@@ -405,7 +405,8 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
   return (
     <div className="note-identification">
       <div className="game-area">
-        {!isGameCompleted && (
+        {/* Only show feedback for ear training modes - chord modes have their own */}
+        {!isGameCompleted && gameState && !gameState.getMode().includes('chord') && !gameState.getMode().includes('notes') && (
           <div className="feedback">
             {feedback && <p className="feedback-text">{feedback}</p>}
           </div>
@@ -424,60 +425,64 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
           }
         }) : <div>Loading game state...</div>}
 
-        <div className="controls">
-          {isGameCompleted ? (
-            <div className="completion-controls">
-              <p className="completion-message">
-                {gameState?.getCompletionMessage() || "🎉 Game Complete! Piano is now in free play mode."}
-              </p>
-              <div className="completion-actions">
-                <button onClick={handleShowScores} className="primary-button">
-                  📊 View Scores
-                </button>
-                <button onClick={handlePlayAgain} className="secondary-button">
-                  🔄 Play Again
-                </button>
-                <button onClick={handleChangeSettings} className="secondary-button">
-                  ⚙️ Change Settings
-                </button>
+        {/* Only render controls for ear training modes */}
+        {/* Chord training modes have their own controls in modeDisplay */}
+        {gameState && !gameState.getMode().includes('chord') && !gameState.getMode().includes('notes') && (
+          <div className="controls">
+            {isGameCompleted ? (
+              <div className="completion-controls">
+                <p className="completion-message">
+                  {gameState?.getCompletionMessage() || "🎉 Game Complete! Piano is now in free play mode."}
+                </p>
+                <div className="completion-actions">
+                  <button onClick={handleShowScores} className="primary-button">
+                    📊 View Scores
+                  </button>
+                  <button onClick={handlePlayAgain} className="secondary-button">
+                    🔄 Play Again
+                  </button>
+                  <button onClick={handleChangeSettings} className="secondary-button">
+                    ⚙️ Change Settings
+                  </button>
+                </div>
               </div>
-            </div>
-          ) : (
-            <>
-              <button
-                onClick={() => {
-                  if (currentNote) {
-                    if (LOGS_USER_ACTIONS_ENABLED) {
-                      console.log('[NoteIdentification] User clicked Play Note Again');
-                    }
-                    orchestratorRef.current?.replayNoteAction();
-                  } else {
-                    // Start practice - orchestrator will emit requestFirstTimeSetup if needed
-                    orchestratorRef.current?.startPractice(hasCompletedModeSetup, !!isPaused);
-                  }
-                }}
-                disabled={isPaused}
-                className="primary-button"
-              >
-                {isPaused ? 'Paused' : currentNote ? 'Play Note Again' : 'Start Practice'}
-              </button>
-
-              {currentNote && !isPaused && (
+            ) : (
+              <>
                 <button
                   onClick={() => {
-                    if (LOGS_USER_ACTIONS_ENABLED) {
-                      console.log('[NoteIdentification] User clicked Next Note - counting as skip/fail');
+                    if (currentNote) {
+                      if (LOGS_USER_ACTIONS_ENABLED) {
+                        console.log('[NoteIdentification] User clicked Play Note Again');
+                      }
+                      orchestratorRef.current?.replayNoteAction();
+                    } else {
+                      // Start practice - orchestrator will emit requestFirstTimeSetup if needed
+                      orchestratorRef.current?.startPractice(hasCompletedModeSetup, !!isPaused);
                     }
-                    orchestratorRef.current?.skipNote();
                   }}
-                  className="secondary-button"
+                  disabled={isPaused}
+                  className="primary-button"
                 >
-                  Next Note
+                  {isPaused ? 'Paused' : currentNote ? 'Play Note Again' : 'Start Practice'}
                 </button>
-              )}
-            </>
-          )}
-        </div>
+
+                {currentNote && !isPaused && (
+                  <button
+                    onClick={() => {
+                      if (LOGS_USER_ACTIONS_ENABLED) {
+                        console.log('[NoteIdentification] User clicked Next Note - counting as skip/fail');
+                      }
+                      orchestratorRef.current?.skipNote();
+                    }}
+                    className="secondary-button"
+                  >
+                    Next Note
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
         {/* Only render piano keyboard for ear training modes */}
         {/* Chord training modes render their own piano in modeDisplay */}

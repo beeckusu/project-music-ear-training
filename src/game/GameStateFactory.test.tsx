@@ -262,8 +262,8 @@ describe('GameStateFactory', () => {
         expect(typeof gameState.handleCorrectGuess).toBe('function');
         expect(typeof gameState.handleIncorrectGuess).toBe('function');
 
-        // Ear training modes implement onPianoKeyClick (META-207)
-        expect(typeof gameState.onPianoKeyClick).toBe('function');
+        // Ear training modes don't implement onPianoKeyClick (auto-submit on piano click)
+        expect(gameState.onPianoKeyClick).toBeUndefined();
 
         // Ear training modes don't need onSubmitClick (auto-submit on piano click)
         expect(gameState.onSubmitClick).toBeUndefined();

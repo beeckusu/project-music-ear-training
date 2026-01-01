@@ -78,33 +78,127 @@
   margin-bottom: 4px;
 }
 
-/* Feedback Message */
-.feedback-message {
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  text-align: center;
-  background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
-  color: #0c5460;
-  border: 1px solid #17a2b8;
-  animation: slideIn 0.3s ease;
+/* Submit Button */
+.submit-guess-button {
+  width: 100%;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(106, 17, 203, 0.3);
+  letter-spacing: 0.5px;
 }
 
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.submit-guess-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(106, 17, 203, 0.4);
+}
+
+.submit-guess-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(106, 17, 203, 0.3);
+}
+
+.submit-guess-button:disabled {
+  background: linear-gradient(135deg, #adb5bd 0%, #6c757d 100%);
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+.submit-guess-button:focus-visible {
+  outline: 3px solid rgba(106, 17, 203, 0.5);
+  outline-offset: 3px;
 }
 
 /* Piano Container */
 .piano-container {
   margin: 16px 0;
+}
+
+/* Audio Control Buttons */
+.audio-controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.audio-controls .primary-button,
+.audio-controls .secondary-button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.audio-controls .primary-button {
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  color: white;
+}
+
+.audio-controls .primary-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5a0ebf 0%, #1e62e0 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(106, 17, 203, 0.35);
+}
+
+.audio-controls .primary-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(106, 17, 203, 0.25);
+}
+
+.audio-controls .secondary-button {
+  background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+  color: white;
+}
+
+.audio-controls .secondary-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5a6268 0%, #545b62 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.audio-controls .secondary-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.audio-controls .primary-button:disabled,
+.audio-controls .secondary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .submit-guess-button,
+  .audio-controls .primary-button,
+  .audio-controls .secondary-button {
+    transition: none;
+  }
+
+  .submit-guess-button:hover:not(:disabled),
+  .audio-controls .primary-button:hover:not(:disabled),
+  .audio-controls .secondary-button:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .submit-guess-button:active:not(:disabled),
+  .audio-controls .primary-button:active:not(:disabled),
+  .audio-controls .secondary-button:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 /* Responsive adjustments */
@@ -122,5 +216,15 @@
 
   .chord-input-section {
     padding: 12px;
+  }
+
+  .audio-controls {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .audio-controls .primary-button,
+  .audio-controls .secondary-button {
+    width: 100%;
   }
 }

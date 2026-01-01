@@ -183,6 +183,19 @@ export const gameStateMachine = createMachine({
                 userGuess: null, // Clear user guess on timeout
               }),
             },
+            // Handle manual round advancement (for chord training modes)
+            [GameAction.ADVANCE_ROUND]: {
+              target: RoundState.WAITING_INPUT,
+              reenter: true, // Force entry actions to fire on self-transition
+              actions: [
+                sendTo('roundTimer', { type: 'RESET' }),
+                assign({
+                  currentNote: null,
+                  userGuess: null,
+                  feedbackMessage: '',
+                }),
+              ],
+            },
           },
         },
 

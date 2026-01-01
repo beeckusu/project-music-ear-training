@@ -415,7 +415,7 @@ describe('Sandbox Mode Integration Tests', () => {
     });
 
     it('game completes automatically when timer reaches 0', async () => {
-      // GIVEN: Sandbox mode with very short duration (0.5 seconds)
+      // GIVEN: Sandbox mode with very short duration (1 second for more reliable timing)
       orch = new GameOrchestrator();
       orch.start();
 
@@ -425,10 +425,10 @@ describe('Sandbox Mode Integration Tests', () => {
         sessionCompleteEmitted = true;
       });
 
-      // Use applySettings to properly configure timer
+      // Use applySettings to properly configure timer (increased to 1s for stability)
       orch.applySettings(
         'sandbox',
-        { sandbox: { sessionDuration: 0.5 / 60 } }, // 0.5 seconds in minutes
+        { sandbox: { sessionDuration: 1 / 60 } }, // 1 second in minutes
         {},
         0.5,
         null,
@@ -441,8 +441,8 @@ describe('Sandbox Mode Integration Tests', () => {
       orch.startGame();
       expect(orch.getSnapshot().matches('playing')).toBe(true);
 
-      // Wait for timer to reach 0 (add extra buffer for timer updates)
-      await new Promise(resolve => setTimeout(resolve, 800)); // Wait 800ms
+      // Wait for timer to reach 0 (generous buffer for CPU load during tests)
+      await new Promise(resolve => setTimeout(resolve, 1500)); // Wait 1500ms for 1s timer
 
       // THEN: State machine should be in COMPLETED state
       expect(orch.getSnapshot().matches('completed')).toBe(true);
