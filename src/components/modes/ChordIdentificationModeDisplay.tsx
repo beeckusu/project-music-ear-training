@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { ChordIdentificationGameState } from '../../game/ChordIdentificationGameState';
 import type { CommonDisplayProps } from '../../game/GameStateFactory';
 import type { Note, ChordType } from '../../types/music';
+import type { FeedbackType } from '../FeedbackMessage';
 import TimerDigital from '../TimerDigital';
 import TimerCircular from '../TimerCircular';
 import PianoKeyboard from '../PianoKeyboard';
@@ -9,8 +10,10 @@ import ChordDisplay from '../ChordDisplay';
 import ChordInput from '../ChordInput';
 import ChordSelection from '../ChordSelection';
 import ChordGuessHistory from '../ChordGuessHistory';
+import FeedbackMessage from '../FeedbackMessage';
 import { formatChordName } from '../../constants/chords';
 import { getKeyboardOctaveForChord } from '../../utils/chordKeyboardPositioning';
+import { audioEngine } from '../../utils/audioEngine';
 import './ChordIdentificationModeDisplay.css';
 
 interface ChordIdentificationModeDisplayProps extends CommonDisplayProps {
@@ -25,13 +28,15 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
   timeRemaining,
   responseTimeLimit,
   isPaused,
-  onSubmitGuess
+  onSubmitGuess,
+  onAdvanceRound,
+  onPlayAgain
 }) => {
   const { currentChord, correctChordsCount, currentStreak, totalAttempts, noteTrainingSettings } = gameState;
   const [guessInput, setGuessInput] = useState<string>('');
   const [selectedBaseNote, setSelectedBaseNote] = useState<Note | null>(null);
   const [selectedChordType, setSelectedChordType] = useState<ChordType | null>(null);
-  const [feedbackMessage, setFeedbackMessage] = useState<string>('');
+  const [feedback, setFeedback] = useState<{ message: string; type: FeedbackType } | null>(null);
   const [, forceUpdate] = React.useReducer(x => x + 1, 0);
 
   // Calculate accuracy
@@ -58,17 +63,50 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
     }
 
     const result = onSubmitGuess(chordName);
-    setFeedbackMessage(result.feedback);
+
+    // Set feedback based on result
+    setFeedback({
+      message: result.feedback,
+      type: result.shouldAdvance ? 'success' : 'error'
+    });
 
     // Clear input/selection on correct guess (when should advance)
     if (result.shouldAdvance) {
       setGuessInput('');
       setSelectedBaseNote(null);
       setSelectedChordType(null);
+
+      // Clear feedback after delay, then advance if not game completed
+      if (!result.gameCompleted && onAdvanceRound) {
+        setTimeout(() => setFeedback(null), 800);
+        onAdvanceRound(1000); // 1 second delay before next round
+      }
     }
 
     // Force re-render to update progress stats
     forceUpdate();
+  };
+
+  // Handle playing the current chord
+  const handlePlayChord = () => {
+    if (currentChord) {
+      try {
+        audioEngine.playChord(currentChord, '2n');
+      } catch (error) {
+        console.error('Failed to play chord:', error);
+      }
+    }
+  };
+
+  // Handle next chord button
+  const handleNextChord = () => {
+    setFeedback(null);
+    setGuessInput('');
+    setSelectedBaseNote(null);
+    setSelectedChordType(null);
+    if (onAdvanceRound) {
+      onAdvanceRound(0); // Advance immediately
+    }
   };
 
   // Handle button selection - clear manual input when buttons are used
@@ -109,18 +147,7 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
 
   return (
     <>
-      {/* Round Timer */}
-      {currentNote && !gameState.isCompleted && responseTimeLimit && (
-        <div className="round-timer-container">
-          <TimerCircular
-            timeLimit={responseTimeLimit}
-            timeRemaining={timeRemaining ?? 0}
-            isActive={isRoundTimerActive}
-          />
-        </div>
-      )}
-
-      {/* Progress Stats */}
+      {/* 1. Game Stats */}
       {(currentNote || gameState.isCompleted) && (
         <div className="chord-stats-section">
           <TimerDigital
@@ -150,13 +177,81 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
         </div>
       )}
 
-      {/* Guess History */}
+      {/* 2. Guess History */}
       {(currentNote || gameState.isCompleted) && (
         <ChordGuessHistory
           attempts={gameState.guessHistory}
           mode="identification"
           maxDisplay={10}
         />
+      )}
+
+      {/* 3. Timer */}
+      {currentNote && !gameState.isCompleted && responseTimeLimit && (
+        <div className="round-timer-container">
+          <TimerCircular
+            timeLimit={responseTimeLimit}
+            timeRemaining={timeRemaining ?? 0}
+            isActive={isRoundTimerActive}
+          />
+        </div>
+      )}
+
+      {/* 4. Feedback */}
+      {feedback && (
+        <FeedbackMessage
+          message={feedback.message}
+          type={feedback.type}
+        />
+      )}
+
+      {/* 5. Chord Buttons */}
+      {!currentChord && !gameState.isCompleted && (
+        <div className="audio-controls">
+          <button
+            onClick={() => onAdvanceRound && onAdvanceRound(0)}
+            disabled={isPaused}
+            className="primary-button"
+          >
+            Start Practice
+          </button>
+        </div>
+      )}
+
+      {currentChord && !gameState.isCompleted && (
+        <div className="audio-controls">
+          <button
+            onClick={handlePlayChord}
+            disabled={isPaused}
+            className="primary-button"
+          >
+            Play Chord Again
+          </button>
+          <button
+            onClick={handleNextChord}
+            disabled={isPaused}
+            className="secondary-button"
+          >
+            Next Chord
+          </button>
+        </div>
+      )}
+
+      {gameState.isCompleted && onPlayAgain && (
+        <div className="audio-controls">
+          <button
+            onClick={() => {
+              setFeedback(null);
+              setGuessInput('');
+              setSelectedBaseNote(null);
+              setSelectedChordType(null);
+              onPlayAgain();
+            }}
+            className="primary-button"
+          >
+            Play Again
+          </button>
+        </div>
       )}
 
       {/* Piano Keyboard with Highlighted Notes */}
@@ -203,13 +298,6 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
           >
             Submit Guess
           </button>
-
-          {/* Feedback Message */}
-          {feedbackMessage && (
-            <div className="feedback-message">
-              {feedbackMessage}
-            </div>
-          )}
         </div>
       )}
 

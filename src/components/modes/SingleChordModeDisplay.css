@@ -157,6 +157,55 @@
   transform: none;
 }
 
+/* Audio Control Buttons */
+.audio-controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.audio-controls .primary-button,
+.audio-controls .secondary-button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.audio-controls .primary-button {
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  color: white;
+}
+
+.audio-controls .primary-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5a0ebf 0%, #1e62e0 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(106, 17, 203, 0.3);
+}
+
+.audio-controls .secondary-button {
+  background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+  color: white;
+}
+
+.audio-controls .secondary-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5a6268 0%, #545b62 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.audio-controls .primary-button:disabled,
+.audio-controls .secondary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .progress-stats {
@@ -182,6 +231,16 @@
 
   .clear-button,
   .submit-button {
+    width: 100%;
+  }
+
+  .audio-controls {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .audio-controls .primary-button,
+  .audio-controls .secondary-button {
     width: 100%;
   }
 }

@@ -340,24 +340,6 @@ export class SandboxGameStateImpl implements SandboxGameState, IGameMode {
   };
 
   // ========================================
-  // Optional Interaction Callbacks
-  // ========================================
-
-  /**
-   * Optional callback invoked when user clicks a piano key.
-   * Stores the clicked note in the context as the user's guess.
-   * Used by the strategy pattern for ear training validation.
-   *
-   * @param note - The note that was clicked
-   * @param context - Current round context
-   */
-  onPianoKeyClick = (note: NoteWithOctave, context: RoundContext): void => {
-    // Store the clicked note as the guessed note in the context
-    // The orchestrator will read this when validating via the strategy
-    (context as any).guessedNote = note;
-  };
-
-  // ========================================
   // IGameMode Implementation
   // ========================================
 
