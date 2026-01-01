@@ -15,6 +15,7 @@ import { createGameState } from './GameStateFactory';
 import { modeRegistry } from './ModeRegistry';
 import type { ModeStrategy } from './strategies/ModeStrategy';
 import { EarTrainingStrategy } from './strategies/EarTrainingStrategy';
+import { ChordTrainingStrategy } from './strategies/ChordTrainingStrategy';
 
 /**
  * GameOrchestrator
@@ -35,9 +36,10 @@ import { EarTrainingStrategy } from './strategies/EarTrainingStrategy';
  * - Named timer keys prevent conflicts ('advance-after-correct', 'audio-resume', etc.)
  * - All timing logic lives here, NOT in components
  *
- * ### Game Flow Coordination
- * - Generates notes using game mode + note filter
- * - Validates guesses and updates game state
+ * ### Game Flow Coordination (via Strategy Pattern)
+ * - Delegates to mode-specific strategies for round management
+ * - Strategies handle note generation, audio playback, and guess validation
+ * - Validates guesses and updates game state through strategies
  * - Handles timeouts (treats as incorrect guess)
  * - Manages auto-advance logic after correct guesses
  * - Handles game completion and session creation
@@ -60,9 +62,11 @@ import { EarTrainingStrategy } from './strategies/EarTrainingStrategy';
  * ```
  * Component (UI) → Orchestrator (Logic) → State Machine (State)
  *                       ↓
+ *                   Strategies (EarTraining/ChordTraining)
+ *                       ↓
  *               Game State Classes (Rush/Survival/Sandbox)
  *                       ↓
- *               Audio Engine
+ *               Audio Engine (ear-training modes only)
  * ```
  *
  * ## Usage Pattern
@@ -85,8 +89,9 @@ import { EarTrainingStrategy } from './strategies/EarTrainingStrategy';
  * // 4. Start a round
  * await orchestrator.startNewRound();
  *
- * // 5. Handle user actions
- * orchestrator.submitGuess(guessedNote);
+ * // 5. Handle user actions (requires round context)
+ * orchestrator.handleUserAction({ type: 'piano_click', note: guessedNote }, context);
+ * orchestrator.handleUserAction({ type: 'submit' }, context);
  * orchestrator.pause();
  * orchestrator.resume();
  * ```
@@ -122,7 +127,7 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
   private modeSettings: any = null;
 
   // Strategy pattern for mode-specific logic
-  private currentStrategy: ModeStrategy | null = null;
+  private currentStrategy: ModeStrategy | null = null; // Null only during initialization
 
   // Pause state tracking
   private wasInIntermissionWhenPaused: boolean = false;
@@ -844,11 +849,6 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
     // Initialize strategy based on mode type
     this.currentStrategy = this.createStrategy(mode);
 
-    // Log deprecation warning if no strategy available
-    if (!this.currentStrategy) {
-      console.warn('[Orchestrator] DEPRECATION: Using legacy code path for mode', mode.getMode(), '- strategy not yet implemented');
-    }
-
     // Set completion callback for modes that need it (e.g., Sandbox mode timer expiration)
     if (mode.setCompletionCallback) {
       mode.setCompletionCallback(() => {
@@ -861,15 +861,15 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
    * Create a strategy instance based on the game mode's strategy type
    *
    * @param mode - The game mode to create a strategy for
-   * @returns Strategy instance or null if not yet implemented
+   * @returns Strategy instance
+   * @throws Error if mode metadata not found or strategy type unknown
    */
-  private createStrategy(mode: IGameMode): ModeStrategy | null {
+  private createStrategy(mode: IGameMode): ModeStrategy {
     const modeType = mode.getMode() as import('../types/game').ModeType;
     const metadata = modeRegistry.get(modeType);
 
     if (!metadata) {
-      console.warn('[Orchestrator] Mode metadata not found for:', modeType);
-      return null;
+      throw new Error(`[Orchestrator] Mode metadata not found for: ${modeType}`);
     }
 
     const strategyType = metadata.strategyType;
@@ -878,11 +878,9 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
       case 'ear-training':
         return new EarTrainingStrategy(audioEngine, this.noteDuration);
       case 'chord-training':
-        // TODO: Implement ChordTrainingStrategy
-        return null;
+        return new ChordTrainingStrategy();
       default:
-        console.warn('[Orchestrator] Unknown strategy type:', strategyType);
-        return null;
+        throw new Error(`[Orchestrator] Unknown strategy type: ${strategyType}`);
     }
   }
 
@@ -896,11 +894,6 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
 
     // Initialize strategy based on mode type
     this.currentStrategy = this.createStrategy(mode);
-
-    // Log deprecation warning if no strategy available
-    if (!this.currentStrategy) {
-      console.warn('[Orchestrator] DEPRECATION: Using legacy code path for mode', mode.getMode(), '- strategy not yet implemented');
-    }
 
     // Set completion callback for modes that need it
     if (mode.setCompletionCallback) {
@@ -991,21 +984,22 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
 
   /**
    * Start a new round
-   * Generates a note, updates game state, plays audio, and emits events
+   * Delegates to strategy to generate note, update game state, and handle audio
    *
    * Flow:
-   * 1. Generate new note using game mode + note filter
-   * 2. Update game state (onStartNewRound)
-   * 3. Emit roundStart event with note and feedback
-   * 4. Transition to PLAYING.WAITING_INPUT if in IDLE
-   * 5. Play the note audio
+   * 1. Delegate to strategy's startNewRound method
+   * 2. Update current note from strategy context
+   * 3. Get feedback from game mode
+   * 4. Emit roundStart event with context and feedback
+   * 5. Transition to PLAYING.WAITING_INPUT if in IDLE
    *
    * The component should:
    * - Listen to roundStart event to update UI (setCurrentNote, setFeedback)
    * - Initialize round timer with handleTimeUp callback
    * - Enable piano keyboard for input
    *
-   * @returns Promise that resolves when audio playback starts
+   * @returns Promise that resolves when round setup is complete
+   * @throws Error if no strategy available or note filter not set
    */
   async startNewRound(): Promise<void> {
     if (!this.gameMode) {
@@ -1013,60 +1007,29 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
       return;
     }
 
-    // Use strategy if available
-    if (this.currentStrategy && this.noteFilter) {
-      const context = await this.currentStrategy.startNewRound(this.gameMode, this.noteFilter);
-
-      // Update current note from context
-      this.currentNote = context.note || null;
-
-      // Get feedback from game mode
-      const feedback = this.gameMode.getFeedbackMessage(true);
-
-      // Emit roundStart event with both context (new) and note (backward compatibility)
-      this.emit('roundStart', { context, note: context.note, feedback });
-
-      // Transition to WAITING_INPUT if in IDLE
-      if (this.isIdle()) {
-        this.startGame();
-      }
-
-      return;
+    if (!this.currentStrategy) {
+      throw new Error('[Orchestrator] No strategy available for starting round');
     }
 
-    // Fallback to legacy code path
-    console.warn('[Orchestrator] DEPRECATION: Using legacy startNewRound code path');
-
-    // Generate new note
-    const newNote = this.generateNote();
-    if (!newNote) {
-      console.warn('[Orchestrator] Failed to generate note');
-      return;
+    if (!this.noteFilter) {
+      throw new Error('[Orchestrator] Cannot start round: note filter not set');
     }
 
-    // Update game state
-    this.gameMode.onStartNewRound();
-    this.currentNote = newNote;
+    const context = await this.currentStrategy.startNewRound(this.gameMode, this.noteFilter);
 
-    // Create round context for mode-agnostic event handling
-    const context: RoundContext = {
-      startTime: new Date(),
-      elapsedTime: 0,
-      note: newNote,
-      noteHighlights: []
-    };
+    // Update current note from context
+    this.currentNote = context.note || null;
+
+    // Get feedback from game mode
+    const feedback = this.gameMode.getFeedbackMessage(true);
 
     // Emit roundStart event with both context (new) and note (backward compatibility)
-    const feedback = this.gameMode.getFeedbackMessage(true);
-    this.emit('roundStart', { context, note: newNote, feedback });
+    this.emit('roundStart', { context, note: context.note, feedback });
 
-    // Transition to WAITING_INPUT (which will trigger note playback)
+    // Transition to WAITING_INPUT if in IDLE
     if (this.isIdle()) {
       this.startGame();
     }
-
-    // Play the note
-    await this.playCurrentNote(newNote);
   }
 
   // ========================================
@@ -1075,19 +1038,26 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
 
   /**
    * Unified entry point for handling user actions
-   * Delegates to strategy if available, otherwise falls back to legacy code
+   * Delegates to the current strategy for processing
    *
    * @param action - The user action to handle
-   * @param context - Current round context (optional, for strategy-based flow)
+   * @param context - Current round context (required for strategy-based flow)
+   * @throws Error if no strategy available or context not provided
    */
   handleUserAction(action: UserAction, context?: RoundContext): void {
     if (LOGS_USER_ACTIONS_ENABLED) {
       console.log('[Orchestrator] handleUserAction:', action.type);
     }
 
-    // Delegate to strategy if available
-    if (this.currentStrategy && context) {
-      switch (action.type) {
+    if (!this.currentStrategy) {
+      throw new Error('[Orchestrator] No strategy available for handling user action');
+    }
+
+    if (!context) {
+      throw new Error('[Orchestrator] Round context required for handling user action');
+    }
+
+    switch (action.type) {
         case 'piano_click':
           if (this.currentStrategy.handlePianoKeyClick) {
             this.currentStrategy.handlePianoKeyClick(action.note, context);
@@ -1149,51 +1119,21 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
             }
           }
           break;
-      }
-      return;
-    }
-
-    // Fallback to legacy code path
-    console.warn('[Orchestrator] DEPRECATION: Using legacy submitGuess for action:', action.type);
-    if (action.type === 'piano_click') {
-      this.submitGuess(action.note);
     }
   }
 
   /**
-   * Submit a guess for the current note
-   * Validates the guess, updates game state, and emits events
+   * Submit a guess for the current note (backward compatibility wrapper)
    *
-   * Flow:
-   * 1. Validate the guess against current note
-   * 2. Create attempt record
-   * 3. Emit guessAttempt event
-   * 4. Send MAKE_GUESS event to state machine
-   * 5. Handle guess result through game mode
-   * 6. Send CORRECT_GUESS or INCORRECT_GUESS to state machine
-   * 7. Emit guessResult event with feedback
-   * 8. If correct and should advance: schedule auto-advance
-   * 9. If game complete: transition to COMPLETED and emit sessionComplete
-   *
-   * The component should:
-   * - Listen to guessResult event to update feedback and highlights
-   * - Not manage any game state or logic
+   * This is a convenience method that wraps handleUserAction() for backward compatibility
+   * with existing tests and components. New code should use handleUserAction() directly.
    *
    * @param guessedNote - The note the user guessed
+   * @deprecated Use handleUserAction() with proper context instead
    */
   submitGuess(guessedNote: NoteWithOctave): void {
-    console.log('[Orchestrator] submitGuess called:', guessedNote?.note ?? 'null');
-    if (LOGS_USER_ACTIONS_ENABLED) {
-      console.log('[Orchestrator] User submitted guess:', guessedNote?.note ?? 'null');
-    }
-
     if (!guessedNote) {
       console.warn('[Orchestrator] Cannot submit guess: guessedNote is null');
-      return;
-    }
-
-    if (!this.gameMode) {
-      console.warn('[Orchestrator] Cannot submit guess: game mode not set');
       return;
     }
 
@@ -1202,11 +1142,15 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
       return;
     }
 
+    if (!this.gameMode) {
+      console.warn('[Orchestrator] Cannot submit guess: game mode not set');
+      return;
+    }
+
     // Validate the guess
     const isCorrect = this.gameMode.validateGuess(guessedNote, this.currentNote);
-    console.log('[Orchestrator] Guess validation:', { guessed: guessedNote.note, actual: this.currentNote.note, isCorrect });
 
-    // Create attempt record
+    // Create attempt record and emit guessAttempt event (for backward compatibility)
     const attempt: GuessAttempt = {
       id: `${Date.now()}-${Math.random()}`,
       timestamp: new Date(),
@@ -1215,52 +1159,20 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
       isCorrect: isCorrect,
     };
 
-    // Emit guess attempt event
     this.emit('guessAttempt', attempt);
 
-    // Send guess to state machine
-    console.log('[Orchestrator] Sending MAKE_GUESS to state machine');
-    this.send({ type: GameAction.MAKE_GUESS, guessedNote: guessedNote.note });
+    // Create a minimal context for backward compatibility
+    const context: RoundContext = {
+      startTime: new Date(),
+      elapsedTime: this.getContext().elapsedTime || 0,
+      note: this.currentNote,
+      noteHighlights: []
+    };
 
-    // Handle the guess result through game state
-    const result = isCorrect
-      ? this.gameMode.handleCorrectGuess()
-      : this.gameMode.handleIncorrectGuess();
-
-    // Send result to state machine
-    const action = isCorrect ? GameAction.CORRECT_GUESS : GameAction.INCORRECT_GUESS;
-    console.log('[Orchestrator] Sending', action, 'to state machine');
-    this.send({
-      type: action,
-    });
-
-    // Emit guess result event
-    this.emit('guessResult', {
-      isCorrect,
-      feedback: result.feedback,
-      shouldAdvance: result.shouldAdvance,
-      gameCompleted: result.gameCompleted,
-      stats: result.stats,
-    });
-
-    // Handle auto-advance if needed
-    if (result.shouldAdvance && !result.gameCompleted) {
-      // Calculate advance time based on game mode settings
-      // For now, use a default of 1 second
-      this.handleAutoAdvance(1000);
-    }
-
-    // Handle game completion
-    if (result.gameCompleted && result.stats) {
-      // Transition state machine to COMPLETED
-      this.complete();
-
-      this.emit('sessionComplete', {
-        session: this.createGameSession(result.stats),
-        stats: result.stats,
-      });
-    }
+    // Delegate to handleUserAction
+    this.handleUserAction({ type: 'piano_click', note: guessedNote }, context);
   }
+
 
   /**
    * Create a game session record

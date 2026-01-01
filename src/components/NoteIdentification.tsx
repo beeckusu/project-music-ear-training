@@ -335,11 +335,19 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
     // Call gameState callback if available (strategy pattern)
     if (gameState?.onPianoKeyClick) {
       gameState.onPianoKeyClick(note, context);
-      // For chord training modes, don't auto-submit - they use explicit Submit button
-      // Only update UI state and let the callback handle selection
       setUserGuess(note);
+
+      // For ear training modes: auto-submit after storing note in context
+      // For chord training modes: wait for explicit Submit button
+      // Determine mode type by checking if it's a chord training mode
+      const isChordMode = gameState.getMode?.().includes('chord');
+
+      if (!isChordMode) {
+        // Ear training modes: trigger validation via orchestrator
+        orchestratorRef.current?.handleUserAction({ type: 'piano_click', note }, context);
+      }
     } else {
-      // Ear training modes: submit immediately on key click
+      // Fallback: submit immediately on key click (legacy path)
       setUserGuess(note);
       orchestratorRef.current?.submitGuess(note);
     }
