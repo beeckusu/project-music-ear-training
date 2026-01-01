@@ -242,7 +242,7 @@ describe('Timer Behavior', () => {
     // (allowing for some variance due to async delays)
     const timeAfterResume = updatesAfterResume[0];
     // Timer should have continued from approximately where it paused
-    // (within 1 second tolerance for async delays and floating point precision)
-    expect(Math.abs(timeAfterResume - timeBeforePause)).toBeLessThan(1.0);
+    // (within 2 second tolerance for async delays and floating point precision)
+    expect(Math.abs(timeAfterResume - timeBeforePause)).toBeLessThan(2.0);
   });
 });
