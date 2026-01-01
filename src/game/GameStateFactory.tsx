@@ -33,6 +33,8 @@ export interface CommonDisplayProps {
   onTimerUpdate?: (timeRemaining: number, isActive: boolean) => void;
   // Callback to trigger round advancement (for modes with manual submission)
   onAdvanceRound?: (delayMs?: number) => void;
+  // Callback to restart the current session (for Play Again functionality)
+  onPlayAgain?: () => void;
 }
 
 

@@ -2,11 +2,14 @@ import React from 'react';
 import type { SingleChordGameState } from '../../game/SingleChordGameState';
 import type { CommonDisplayProps } from '../../game/GameStateFactory';
 import type { NoteWithOctave } from '../../types/music';
+import type { FeedbackType } from '../FeedbackMessage';
 import TimerDigital from '../TimerDigital';
 import TimerCircular from '../TimerCircular';
 import PianoKeyboard from '../PianoKeyboard';
 import ChordDisplay from '../ChordDisplay';
 import ChordGuessHistory from '../ChordGuessHistory';
+import FeedbackMessage from '../FeedbackMessage';
+import { audioEngine } from '../../utils/audioEngine';
 import './SingleChordModeDisplay.css';
 
 interface SingleChordModeDisplayProps extends CommonDisplayProps {
@@ -26,10 +29,12 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
   onPianoKeyClick,
   onSubmitAnswer,
   onClearSelection,
-  onAdvanceRound
+  onAdvanceRound,
+  onPlayAgain
 }) => {
   const { currentChord, correctNotes, incorrectNotes, selectedNotes, correctChordsCount, currentStreak, totalAttempts, noteTrainingSettings } = gameState;
   const [, forceUpdate] = React.useReducer(x => x + 1, 0);
+  const [feedback, setFeedback] = React.useState<{ message: string; type: FeedbackType } | null>(null);
 
   // Calculate accuracy
   const accuracy = totalAttempts > 0 ? Math.round((correctChordsCount / totalAttempts) * 100) : 0;
@@ -58,36 +63,45 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
   // Handle submit answer with re-render
   const handleSubmitAnswer = () => {
     const result = onSubmitAnswer();
+
+    // Set feedback based on result
+    setFeedback({
+      message: result.feedback,
+      type: result.shouldAdvance ? 'success' : 'error'
+    });
+
     forceUpdate();
 
     // If the answer was correct, trigger round advancement
     if (result.shouldAdvance && !result.gameCompleted && onAdvanceRound) {
+      // Clear feedback after delay, then advance
+      setTimeout(() => setFeedback(null), 800);
       onAdvanceRound(1000); // 1 second delay before next round
+    }
+  };
+
+  // Handle playing the current chord
+  const handlePlayChord = () => {
+    if (currentChord) {
+      try {
+        audioEngine.playChord(currentChord, '2n');
+      } catch (error) {
+        console.error('Failed to play chord:', error);
+      }
+    }
+  };
+
+  // Handle next chord button
+  const handleNextChord = () => {
+    setFeedback(null);
+    if (onAdvanceRound) {
+      onAdvanceRound(0); // Advance immediately
     }
   };
 
   return (
     <>
-      {/* Chord Name Display */}
-      {(currentNote || gameState.isCompleted) && (
-        <ChordDisplay
-          chord={currentChord}
-          showInstructions={!gameState.isCompleted}
-        />
-      )}
-
-      {/* Round Timer */}
-      {currentNote && !gameState.isCompleted && responseTimeLimit && (
-        <div className="round-timer-container">
-          <TimerCircular
-            timeLimit={responseTimeLimit}
-            timeRemaining={timeRemaining ?? 0}
-            isActive={isRoundTimerActive}
-          />
-        </div>
-      )}
-
-      {/* Progress Stats */}
+      {/* 1. Game Stats */}
       {(currentNote || gameState.isCompleted) && (
         <div className="chord-stats-section">
           <TimerDigital
@@ -117,7 +131,7 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
         </div>
       )}
 
-      {/* Guess History */}
+      {/* 2. Guess History */}
       {(currentNote || gameState.isCompleted) && (
         <ChordGuessHistory
           attempts={gameState.guessHistory}
@@ -126,7 +140,80 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
         />
       )}
 
-      {/* Note Selection Feedback */}
+      {/* 3. Timer */}
+      {currentNote && !gameState.isCompleted && responseTimeLimit && (
+        <div className="round-timer-container">
+          <TimerCircular
+            timeLimit={responseTimeLimit}
+            timeRemaining={timeRemaining ?? 0}
+            isActive={isRoundTimerActive}
+          />
+        </div>
+      )}
+
+      {/* 4. Feedback */}
+      {feedback && (
+        <FeedbackMessage
+          message={feedback.message}
+          type={feedback.type}
+        />
+      )}
+
+      {/* 5. Chord Buttons */}
+      {!currentChord && !gameState.isCompleted && (
+        <div className="audio-controls">
+          <button
+            onClick={() => onAdvanceRound && onAdvanceRound(0)}
+            disabled={isPaused}
+            className="primary-button"
+          >
+            Start Practice
+          </button>
+        </div>
+      )}
+
+      {currentChord && !gameState.isCompleted && (
+        <div className="audio-controls">
+          <button
+            onClick={handlePlayChord}
+            disabled={isPaused}
+            className="primary-button"
+          >
+            Play Chord Again
+          </button>
+          <button
+            onClick={handleNextChord}
+            disabled={isPaused}
+            className="secondary-button"
+          >
+            Next Chord
+          </button>
+        </div>
+      )}
+
+      {gameState.isCompleted && onPlayAgain && (
+        <div className="audio-controls">
+          <button
+            onClick={() => {
+              setFeedback(null);
+              onPlayAgain();
+            }}
+            className="primary-button"
+          >
+            Play Again
+          </button>
+        </div>
+      )}
+
+      {/* 6. Chord Name Display */}
+      {(currentNote || gameState.isCompleted) && (
+        <ChordDisplay
+          chord={currentChord}
+          showInstructions={!gameState.isCompleted}
+        />
+      )}
+
+      {/* 7. Action Buttons */}
       {currentChord && currentNote && !gameState.isCompleted && (
         <div className="note-selection-section">
           <div className="selection-status">
@@ -142,7 +229,6 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
             )}
           </div>
 
-          {/* Action Buttons */}
           <div className="chord-actions">
             <button
               className="clear-button"
@@ -162,9 +248,7 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
         </div>
       )}
 
-      {/* Piano Keyboard with Multi-Note Highlighting */}
-      {/* Always show piano in Chord Training mode */}
-      {/* Use single mode with highlights - gameState tracks selection */}
+      {/* 8. Keyboard */}
       <div className="piano-container">
         <PianoKeyboard
           onNoteClick={handleNoteClick}
