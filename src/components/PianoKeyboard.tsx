@@ -14,6 +14,9 @@ interface PianoKeyboardProps {
   /** Base octave for the piano keyboard (default: 4) */
   octave?: number;
 
+  /** Number of octaves to display (default: 1) */
+  numOctaves?: 1 | 2;
+
   /** Whether the piano is disabled for interaction */
   disabled?: boolean;
 
@@ -56,6 +59,7 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
   onNoteClick,
   highlights,
   octave = 4,
+  numOctaves = 1,
   disabled = false,
   preventNoteRestart = false,
   monoMode = false,
@@ -76,16 +80,36 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
   // Determine which selection state to use (controlled vs uncontrolled)
   const selectedNotes = controlledSelectedNotes ?? internalSelectedNotes;
   const setSelectedNotes = controlledSelectedNotes ? undefined : setInternalSelectedNotes;
-  const whiteKeys: Note[] = ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C'];
+
+  // Generate keys dynamically based on numOctaves
+  const whiteKeys: Note[] = numOctaves === 1
+    ? ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C']  // 1 octave: 8 keys
+    : ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'A', 'B', 'C'];  // 2 octaves: 15 keys
+
   // Black keys positioned between specific white keys
-  // C# between C and D, D# between D and E, F# between F and G, G# between G and A, A# between A and B
-  const blackKeys: { note: Note; leftOffset: number }[] = [
-    { note: 'C#', leftOffset: 60 },   // Between C(0) and D(1)
-    { note: 'D#', leftOffset: 120 },  // Between D(1) and E(2)
-    { note: 'F#', leftOffset: 240 },  // Between F(3) and G(4)
-    { note: 'G#', leftOffset: 300 },  // Between G(4) and A(5)
-    { note: 'A#', leftOffset: 360 },  // Between A(5) and B(6)
-  ];
+  const blackKeys: { note: Note; leftOffset: number; octaveOffset: number }[] = numOctaves === 1
+    ? [
+        // Single octave
+        { note: 'C#', leftOffset: 60, octaveOffset: 0 },
+        { note: 'D#', leftOffset: 120, octaveOffset: 0 },
+        { note: 'F#', leftOffset: 240, octaveOffset: 0 },
+        { note: 'G#', leftOffset: 300, octaveOffset: 0 },
+        { note: 'A#', leftOffset: 360, octaveOffset: 0 },
+      ]
+    : [
+        // First octave
+        { note: 'C#', leftOffset: 60, octaveOffset: 0 },
+        { note: 'D#', leftOffset: 120, octaveOffset: 0 },
+        { note: 'F#', leftOffset: 240, octaveOffset: 0 },
+        { note: 'G#', leftOffset: 300, octaveOffset: 0 },
+        { note: 'A#', leftOffset: 360, octaveOffset: 0 },
+        // Second octave
+        { note: 'C#', leftOffset: 480, octaveOffset: 1 },
+        { note: 'D#', leftOffset: 540, octaveOffset: 1 },
+        { note: 'F#', leftOffset: 660, octaveOffset: 1 },
+        { note: 'G#', leftOffset: 720, octaveOffset: 1 },
+        { note: 'A#', leftOffset: 780, octaveOffset: 1 },
+      ];
 
   /**
    * Mapping from highlight type to CSS class name.
@@ -129,14 +153,29 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
   const highlightMap = React.useMemo(() => buildHighlightMap(highlights), [highlights]);
 
   /**
+   * Determines the octave for a white key based on its index
+   */
+  const getWhiteKeyOctave = (keyIndex: number): Octave => {
+    if (numOctaves === 1) {
+      // 1 octave keyboard: 8 keys (C-C)
+      return (keyIndex === 7 ? octave + 1 : octave) as Octave;
+    } else {
+      // 2 octave keyboard: 15 keys (C-C)
+      if (keyIndex <= 6) return octave as Octave;        // First octave: C(0) to B(6)
+      if (keyIndex === 7) return (octave + 1) as Octave; // Second octave start: C(7)
+      if (keyIndex <= 13) return (octave + 1) as Octave; // Second octave: D(8) to B(13)
+      return (octave + 2) as Octave;                     // Final C(14)
+    }
+  };
+
+  /**
    * Handles a piano key click.
    */
-  const handleKeyClick = async (note: Note, keyIndex?: number) => {
+  const handleKeyClick = async (note: Note, keyIndex?: number, explicitOctave?: Octave) => {
     // Don't handle clicks if disabled
     if (disabled) return;
 
-    // For the second C key (index 7), use the next octave
-    const actualOctave = (note === 'C' && keyIndex === 7) ? (octave + 1) as Octave : octave as Octave;
+    const actualOctave = explicitOctave ?? (keyIndex !== undefined ? getWhiteKeyOctave(keyIndex) : octave as Octave);
     const noteWithOctave = { note, octave: actualOctave };
     const noteKey = getNoteKey(noteWithOctave);
 
@@ -239,8 +278,8 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
   /**
    * Gets the CSS class for a piano key based on its highlight state.
    */
-  const getHighlightClass = (note: Note, keyIndex: number): string => {
-    const keyOctave = ((note === 'C' && keyIndex === 7) ? octave + 1 : octave) as Octave;
+  const getHighlightClass = (note: Note, keyIndex: number, octaveOffset: number = 0): string => {
+    const keyOctave = keyIndex >= 0 ? getWhiteKeyOctave(keyIndex) : (octave + octaveOffset) as Octave;
     const noteKey = getNoteKey({ note, octave: keyOctave });
 
     const highlight = highlightMap.get(noteKey);
@@ -261,7 +300,7 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
   };
 
   return (
-    <div className="piano-keyboard">
+    <div className={`piano-keyboard piano-keyboard-${numOctaves}-octave`}>
       <div className="white-keys">
         {whiteKeys.map((note, index) => {
           const highlightClass = getHighlightClass(note, index);
@@ -280,16 +319,17 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
         })}
       </div>
       <div className="black-keys">
-        {blackKeys.map(({ note, leftOffset }) => {
-          const highlightClass = getHighlightClass(note, -1);
+        {blackKeys.map(({ note, leftOffset, octaveOffset }, index) => {
+          const highlightClass = getHighlightClass(note, -1, octaveOffset);
           const className = `black-key ${highlightClass}`.trim();
+          const blackKeyOctave = (octave + octaveOffset) as Octave;
 
           return (
             <button
-              key={note}
+              key={`${note}-${octaveOffset}-${index}`}
               className={className}
               style={{ left: `${leftOffset}px` }}
-              onClick={() => handleKeyClick(note)}
+              onClick={() => handleKeyClick(note, undefined, blackKeyOctave)}
               disabled={disabled}
             >
               {showNoteLabels && <span className="note-label">{note}</span>}
