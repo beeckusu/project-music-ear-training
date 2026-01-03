@@ -436,7 +436,20 @@ export function normalizeChordName(chordName: string): string {
 
 /**
  * Checks if a chord name contains flat notation (either 'b' or '♭')
- * Used to detect when users enter enharmonic equivalents
+ *
+ * This function is used to detect when users enter enharmonic equivalents
+ * using flat notation instead of sharp notation. It checks for both ASCII 'b'
+ * and Unicode '♭' flat symbols following a note letter (A-G).
+ *
+ * @param chordName - The chord name to check
+ * @returns true if the chord name contains flat notation (e.g., "Db", "E♭maj7"), false otherwise
+ *
+ * @example
+ * containsFlatNotation('Dbmaj7') // true
+ * containsFlatNotation('E♭m') // true
+ * containsFlatNotation('C#m7') // false (uses sharp)
+ * containsFlatNotation('Cmaj') // false (no accidentals)
+ * containsFlatNotation('above') // false ('b' not following a note letter)
  */
 function containsFlatNotation(chordName: string): boolean {
   return /[b♭]/.test(chordName) && /[A-G][b♭]/.test(chordName);
