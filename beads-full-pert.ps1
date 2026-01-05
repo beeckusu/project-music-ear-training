@@ -40,6 +40,24 @@ function Get-BeadsReady {
     return $output | ConvertFrom-Json
 }
 
+function Test-IsEpic {
+    param([object]$Issue)
+
+    # Check if issue type is Epic (case-insensitive)
+    if ($Issue.issue_type -ieq "Epic") {
+        return $true
+    }
+    if ($Issue.type -ieq "Epic") {
+        return $true
+    }
+    # Check if the issue has the epic flag
+    if ($Issue.is_epic -eq $true) {
+        return $true
+    }
+
+    return $false
+}
+
 function Get-IssueDependencies {
     param([string]$IssueId)
 
@@ -487,6 +505,14 @@ Write-Host ""
 Write-Host "Fetching all bead issues..." -ForegroundColor Cyan
 $allIssues = Get-BeadsIssues
 
+# Filter out epics (they're containers, not tasks)
+$originalCount = $allIssues.Count
+$allIssues = @($allIssues | Where-Object { -not (Test-IsEpic -Issue $_) })
+$epicCount = $originalCount - $allIssues.Count
+if ($epicCount -gt 0) {
+    Write-Host "  Filtered out $epicCount epic(s) (epics are containers, not tasks)" -ForegroundColor Gray
+}
+
 # Filter out completed if requested
 if (-not $IncludeCompleted) {
     $originalCount = $allIssues.Count
@@ -498,18 +524,46 @@ if (-not $IncludeCompleted) {
     }
 }
 
-Write-Host "  Found $($allIssues.Count) issues" -ForegroundColor Green
+Write-Host "  Found $($allIssues.Count) task(s)" -ForegroundColor Green
 Write-Host ""
 
 # Get ready issues
 Write-Host "Fetching ready issues..." -ForegroundColor Cyan
 $readyIssues = Get-BeadsReady
+# Filter out epics from ready list too
+$readyIssues = @($readyIssues | Where-Object { -not (Test-IsEpic -Issue $_) })
 $readyIds = $readyIssues | ForEach-Object { $_.id }
-Write-Host "  Found $($readyIds.Count) ready issues" -ForegroundColor Green
+Write-Host "  Found $($readyIds.Count) ready task(s) from 'bd ready'" -ForegroundColor Green
 Write-Host ""
 
 # Build dependency graph
 $graph = Build-FullDependencyGraph -AllIssues $allIssues -ReadyIds $readyIds
+
+# Calculate actual readiness from dependency graph
+Write-Host "Calculating readiness from dependency graph..." -ForegroundColor Cyan
+$actualReadyIds = @()
+foreach ($issueId in $graph.Keys) {
+    $node = $graph[$issueId]
+    # A task is ready if it has no incomplete blockers
+    $hasIncompleteBlockers = $false
+    foreach ($blockerId in $node.blocked_by) {
+        if ($graph.ContainsKey($blockerId)) {
+            $blockerTask = $graph[$blockerId].task
+            if ($blockerTask.status -notin @("done", "closed")) {
+                $hasIncompleteBlockers = $true
+                break
+            }
+        }
+    }
+
+    # Add to ready list if no incomplete blockers and not done/in_progress
+    if (-not $hasIncompleteBlockers -and $node.task.status -notin @("done", "closed", "in_progress")) {
+        $actualReadyIds += $issueId
+    }
+}
+$readyIds = $actualReadyIds
+Write-Host "  Calculated $($readyIds.Count) actually ready task(s) from dependencies" -ForegroundColor Green
+Write-Host ""
 
 # Calculate critical path
 Write-Host "Calculating critical path..." -ForegroundColor Cyan
