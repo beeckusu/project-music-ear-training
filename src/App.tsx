@@ -12,7 +12,7 @@ import './App.css'
 
 // Main app content component that can access settings context
 function AppContent() {
-  const { isSettingsOpen, closeSettings, settings } = useSettings()
+  const { isSettingsOpen, closeSettings, settings, commitPendingSettings } = useSettings()
   const [score, setScore] = useState({ correct: 0, total: 0 })
   const [guessHistory, setGuessHistory] = useState<GuessAttempt[]>([])
   const [isPaused, setIsPaused] = useState(false)
@@ -48,6 +48,7 @@ function AppContent() {
   }
 
   const resetGame = () => {
+    commitPendingSettings() // Apply staged settings
     resetScore()
     setIsPaused(false)
     setGameResetTrigger(prev => prev + 1) // Trigger game reset

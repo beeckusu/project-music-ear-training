@@ -4,8 +4,8 @@ import type { NoteDuration } from '../../types/music';
 import { DEFAULT_TIMING_SETTINGS } from '../../types/music';
 
 const TimingSettings: React.FC = () => {
-  const { settings, updateTimingSettings } = useSettings();
-  const { timing } = settings;
+  const { pendingSettings, updateTimingSettings } = useSettings();
+  const { timing } = pendingSettings;
   
   const [responseTimeLimit, setResponseTimeLimit] = useState<number | null>(timing.responseTimeLimit);
   const [autoAdvanceSpeed, setAutoAdvanceSpeed] = useState<number>(timing.autoAdvanceSpeed);

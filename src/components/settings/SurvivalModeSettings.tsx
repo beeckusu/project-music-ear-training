@@ -2,8 +2,8 @@ import React from 'react';
 import { useSettings } from '../../hooks/useSettings';
 
 const SurvivalModeSettings: React.FC = () => {
-  const { settings, updateModeSettings } = useSettings();
-  const survivalSettings = settings.modes.survival;
+  const { pendingSettings, updateModeSettings } = useSettings();
+  const survivalSettings = pendingSettings.modes.survival;
 
   const handleDurationChange = (sessionDuration: number) => {
     updateModeSettings({
