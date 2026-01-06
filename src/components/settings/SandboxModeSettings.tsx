@@ -2,8 +2,8 @@ import React from 'react';
 import { useSettings } from '../../hooks/useSettings';
 
 const SandboxModeSettings: React.FC = () => {
-  const { settings, updateModeSettings } = useSettings();
-  const sandboxSettings = settings.modes.sandbox;
+  const { pendingSettings, updateModeSettings } = useSettings();
+  const sandboxSettings = pendingSettings.modes.sandbox;
 
   const handleDurationChange = (sessionDuration: number) => {
     updateModeSettings({

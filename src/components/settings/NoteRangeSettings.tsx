@@ -4,8 +4,8 @@ import type { Note, KeyType, Octave } from '../../types/music';
 import { ALL_NOTES, WHITE_KEYS, BLACK_KEYS } from '../../types/music';
 
 const NoteRangeSettings: React.FC = () => {
-  const { settings, updateNoteFilter, updateShowNoteLabels } = useSettings();
-  const { noteFilter, showNoteLabels } = settings;
+  const { pendingSettings, updateNoteFilter, updateShowNoteLabels } = useSettings();
+  const { noteFilter, showNoteLabels } = pendingSettings;
   
   const [minOctave, setMinOctave] = useState<number>(noteFilter.octaveRange.min);
   const [maxOctave, setMaxOctave] = useState<number>(noteFilter.octaveRange.max);

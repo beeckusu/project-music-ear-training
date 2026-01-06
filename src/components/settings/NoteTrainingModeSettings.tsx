@@ -3,8 +3,8 @@ import { useSettings } from '../../hooks/useSettings';
 import { CHORD_FILTER_PRESETS } from '../../constants/chordPresets';
 
 const NoteTrainingModeSettings: React.FC = () => {
-  const { settings, updateModeSettings } = useSettings();
-  const noteTrainingSettings = settings.modes.noteTraining;
+  const { pendingSettings, updateModeSettings } = useSettings();
+  const noteTrainingSettings = pendingSettings.modes.noteTraining;
 
   const handleTargetChordsChange = (targetChords: number | undefined) => {
     updateModeSettings({

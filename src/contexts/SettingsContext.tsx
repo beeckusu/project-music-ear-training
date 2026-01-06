@@ -10,7 +10,8 @@ import type { TrainingType } from '../constants';
 import { DEFAULT_MODE_SETTINGS } from '../types/game';
 
 export interface SettingsContextType {
-  settings: AppSettings;
+  settings: AppSettings; // Current active settings used by the game
+  pendingSettings: AppSettings; // Staged settings shown in UI
   updateNoteFilter: (filter: Partial<NoteFilter>) => void;
   updateTimingSettings: (timing: Partial<TimingSettings>) => void;
   updateAudioSettings: (audio: Partial<AudioSettings>) => void;
@@ -18,6 +19,8 @@ export interface SettingsContextType {
   updateShowNoteLabels: (show: boolean) => void;
   updateTrainingType: (type: TrainingType) => void;
   resetToDefaults: () => void;
+  commitPendingSettings: () => void; // Apply pending settings to current
+  revertPendingSettings: () => void; // Discard pending changes
   isSettingsOpen: boolean;
   openSettings: (tab?: string) => void;
   closeSettings: () => void;
@@ -44,14 +47,15 @@ interface SettingsProviderProps {
 }
 
 export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) => {
-  const [settings, setSettings] = useState<AppSettings>(defaultSettings);
+  const [settings, setSettings] = useState<AppSettings>(defaultSettings); // Current active settings
+  const [pendingSettings, setPendingSettings] = useState<AppSettings>(defaultSettings); // Staged settings
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isFirstTimeSetup, setIsFirstTimeSetup] = useState(false);
   const [hasCompletedModeSetup, setHasCompletedModeSetup] = useState(false);
   const [defaultTab, setDefaultTab] = useState<string>(SETTINGS_TABS.MODES);
 
   const updateNoteFilter = (filterUpdates: Partial<NoteFilter>) => {
-    setSettings(prevSettings => ({
+    setPendingSettings(prevSettings => ({
       ...prevSettings,
       noteFilter: {
         ...prevSettings.noteFilter,
@@ -61,7 +65,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   };
 
   const updateTimingSettings = (timingUpdates: Partial<TimingSettings>) => {
-    setSettings(prevSettings => ({
+    setPendingSettings(prevSettings => ({
       ...prevSettings,
       timing: {
         ...prevSettings.timing,
@@ -71,7 +75,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   };
 
   const updateAudioSettings = (audioUpdates: Partial<AudioSettings>) => {
-    setSettings(prevSettings => ({
+    setPendingSettings(prevSettings => ({
       ...prevSettings,
       audio: {
         ...prevSettings.audio,
@@ -81,7 +85,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   };
 
   const updateModeSettings = (modeUpdates: Partial<ModeSettings>) => {
-    setSettings(prevSettings => ({
+    setPendingSettings(prevSettings => ({
       ...prevSettings,
       modes: {
         ...prevSettings.modes,
@@ -91,25 +95,34 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   };
 
   const updateShowNoteLabels = (show: boolean) => {
-    setSettings(prevSettings => ({
+    setPendingSettings(prevSettings => ({
       ...prevSettings,
       showNoteLabels: show
     }));
   };
 
   const updateTrainingType = (type: TrainingType) => {
-    setSettings(prevSettings => ({
+    setPendingSettings(prevSettings => ({
       ...prevSettings,
       trainingType: type
     }));
   };
 
   const resetToDefaults = () => {
-    setSettings(defaultSettings);
+    setPendingSettings(defaultSettings);
+  };
+
+  const commitPendingSettings = () => {
+    setSettings(pendingSettings);
+  };
+
+  const revertPendingSettings = () => {
+    setPendingSettings(settings);
   };
 
   const openSettings = (tab: string = SETTINGS_TABS.MODES) => {
     setDefaultTab(tab);
+    setPendingSettings(settings); // Initialize pending with current settings
     setIsSettingsOpen(true);
   };
 
@@ -117,6 +130,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     if (isFirstTimeSetup) {
       return; // Prevent closing during first-time setup
     }
+    revertPendingSettings(); // Discard pending changes
     setIsSettingsOpen(false);
   };
 
@@ -134,6 +148,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
 
   const value: SettingsContextType = {
     settings,
+    pendingSettings,
     updateNoteFilter,
     updateTimingSettings,
     updateAudioSettings,
@@ -141,6 +156,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     updateShowNoteLabels,
     updateTrainingType,
     resetToDefaults,
+    commitPendingSettings,
+    revertPendingSettings,
     isSettingsOpen,
     openSettings,
     closeSettings,

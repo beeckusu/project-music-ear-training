@@ -4,13 +4,14 @@ import { audioEngine } from '../../utils/audioEngine';
 import { InstrumentType } from '../../types/music';
 
 const AudioSettings: React.FC = () => {
-  const { settings, updateAudioSettings } = useSettings();
-  const { volume, instrument } = settings.audio;
+  const { settings, pendingSettings, updateAudioSettings } = useSettings();
+  const { volume, instrument } = pendingSettings.audio;
 
+  // Apply audio changes from current settings (not pending) to the audio engine
   useEffect(() => {
-    audioEngine.setVolume(volume);
-    audioEngine.setInstrument(instrument);
-  }, [volume, instrument]);
+    audioEngine.setVolume(settings.audio.volume);
+    audioEngine.setInstrument(settings.audio.instrument);
+  }, [settings.audio.volume, settings.audio.instrument]);
 
   const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseInt(event.target.value);

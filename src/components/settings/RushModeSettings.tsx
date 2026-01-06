@@ -2,8 +2,8 @@ import React from 'react';
 import { useSettings } from '../../hooks/useSettings';
 
 const RushModeSettings: React.FC = () => {
-  const { settings, updateModeSettings } = useSettings();
-  const rushSettings = settings.modes.rush;
+  const { pendingSettings, updateModeSettings } = useSettings();
+  const rushSettings = pendingSettings.modes.rush;
 
   const handleTargetNotesChange = (targetNotes: number) => {
     updateModeSettings({
