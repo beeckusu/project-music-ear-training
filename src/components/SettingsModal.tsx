@@ -5,7 +5,7 @@ import NoteRangeSettings from './settings/NoteRangeSettings';
 import TimingSettings from './settings/TimingSettings';
 import ModeSelector from './settings/ModeSelector';
 import AudioSettings from './settings/AudioSettings';
-import NoteTrainingModeSettings from './settings/NoteTrainingModeSettings';
+import ChordFilterSettings from './settings/ChordFilterSettings';
 import './Settings.css';
 
 interface SettingsModalProps {
@@ -78,7 +78,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onRestartGame }) => {
       case SETTINGS_TABS.NOTES:
         return <NoteRangeSettings />;
       case SETTINGS_TABS.CHORDS:
-        return <NoteTrainingModeSettings />;
+        return <ChordFilterSettings />;
       case SETTINGS_TABS.TIMING:
         return <TimingSettings />;
       case SETTINGS_TABS.AUDIO:
