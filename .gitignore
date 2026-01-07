@@ -1,8 +1,12 @@
 .claude
 
+# Environment variables (contains secrets!)
+.env
+
 # Logs
 logs
 *.log
+*.log.gz
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -13,6 +17,15 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# Temporary files
+temp-*.json
+test-output.txt
+test-results.txt
+nul
+
+# Benchmarks
+**/__benchmarks__/
 
 # Editor directories and files
 .vscode/*
