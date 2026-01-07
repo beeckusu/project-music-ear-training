@@ -23,18 +23,18 @@ $colors = @{
 }
 
 function Get-BeadsIssues {
-    $output = bd list --json 2>&1
+    $output = bd list --json
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "Error running 'bd list': $output" -ForegroundColor Red
+        Write-Host "Error running 'bd list'" -ForegroundColor Red
         exit 1
     }
     return $output | ConvertFrom-Json
 }
 
 function Get-BeadsReady {
-    $output = bd ready --json --limit 1000 2>&1
+    $output = bd ready --json --limit 1000
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "Error running 'bd ready': $output" -ForegroundColor Red
+        Write-Host "Error running 'bd ready'" -ForegroundColor Red
         exit 1
     }
     return $output | ConvertFrom-Json
@@ -61,7 +61,7 @@ function Test-IsEpic {
 function Get-IssueDependencies {
     param([string]$IssueId)
 
-    $output = bd show $IssueId --json 2>&1
+    $output = bd show $IssueId --json
     if ($LASTEXITCODE -ne 0) {
         return @{
             blocks = @()
@@ -91,6 +91,27 @@ function Get-IssueDependencies {
             # So the dependency ID goes in blocks
             elseif ($dep.dependency_type -eq "blocked-by") {
                 $blocks += $dep.id
+            }
+        }
+    }
+
+    # Also parse the dependents array
+    if ($issue.dependents) {
+        foreach ($dep in $issue.dependents) {
+            # Skip parent-child relationships (epic relationships)
+            if ($dep.dependency_type -eq "parent-child") {
+                continue
+            }
+
+            # If dependency_type is "blocks", it means the current issue blocks this dependent
+            # So the dependent ID goes in blocks
+            if ($dep.dependency_type -eq "blocks") {
+                $blocks += $dep.id
+            }
+            # If dependency_type is "blocked-by", it means this dependent blocks the current issue
+            # So the dependent ID goes in blocked_by
+            elseif ($dep.dependency_type -eq "blocked-by") {
+                $blocked_by += $dep.id
             }
         }
     }
@@ -131,14 +152,19 @@ function Build-FullDependencyGraph {
 }
 
 function Get-TaskStatus {
-    param([object]$Task, [array]$ReadyIds)
+    param([object]$Task, [array]$ReadyIds, [int]$BlockerCount = -1)
 
     switch ($Task.status) {
         "done" { return @{ Symbol = "[DONE]"; Color = $colors.Done } }
         "closed" { return @{ Symbol = "[DONE]"; Color = $colors.Done } }
         "in_progress" { return @{ Symbol = "[PROG]"; Color = $colors.InProgress } }
         default {
-            if ($ReadyIds -contains $Task.id) {
+            # If blocker count is provided and is 0, task should be ready
+            if ($BlockerCount -eq 0) {
+                return @{ Symbol = "[READY]"; Color = $colors.Ready }
+            }
+            # Otherwise check bd ready list
+            elseif ($ReadyIds -contains $Task.id) {
                 return @{ Symbol = "[READY]"; Color = $colors.Ready }
             } else {
                 return @{ Symbol = "[BLCK]"; Color = $colors.Blocked }
@@ -303,9 +329,9 @@ function Show-FullPertDiagram {
         # Group by status
         $doneAtLevel = @($tasksAtLevel | Where-Object { $Graph[$_].task.status -eq "done" -or $Graph[$_].task.status -eq "closed" })
         $progAtLevel = @($tasksAtLevel | Where-Object { $Graph[$_].task.status -eq "in_progress" })
-        $readyAtLevel = @($tasksAtLevel | Where-Object { $ReadyIds -contains $_ -and $Graph[$_].task.status -notin @("done", "closed", "in_progress") })
+        $readyAtLevel = @($tasksAtLevel | Where-Object { $Graph[$_].blocked_by.Count -eq 0 -and $Graph[$_].task.status -notin @("done", "closed", "in_progress") })
         $blockedAtLevel = @($tasksAtLevel | Where-Object {
-            $ReadyIds -notcontains $_ -and $Graph[$_].task.status -notin @("done", "closed", "in_progress")
+            $Graph[$_].blocked_by.Count -gt 0 -and $Graph[$_].task.status -notin @("done", "closed", "in_progress")
         })
 
         # Show summary
@@ -328,7 +354,8 @@ function Show-FullPertDiagram {
             Write-Host "  |   ** CRITICAL PATH: $($criticalAtLevel.Count) tasks **" -ForegroundColor $colors.Critical
             foreach ($taskId in $criticalAtLevel | Select-Object -First 3) {
                 $task = $Graph[$taskId].task
-                $status = Get-TaskStatus -Task $task -ReadyIds $ReadyIds
+                $blockerCount = $Graph[$taskId].blocked_by.Count
+                $status = Get-TaskStatus -Task $task -ReadyIds $ReadyIds -BlockerCount $blockerCount
                 Write-Host "  |      $($status.Symbol) ${taskId}: $($task.title)" -ForegroundColor $colors.Critical
             }
             if ($criticalAtLevel.Count -gt 3) {
@@ -340,7 +367,8 @@ function Show-FullPertDiagram {
         if ($tasksAtLevel.Count -le 10) {
             foreach ($taskId in $tasksAtLevel) {
                 $task = $Graph[$taskId].task
-                $status = Get-TaskStatus -Task $task -ReadyIds $ReadyIds
+                $blockerCount = $Graph[$taskId].blocked_by.Count
+                $status = Get-TaskStatus -Task $task -ReadyIds $ReadyIds -BlockerCount $blockerCount
                 $isCritical = $criticalPathNodes -contains $taskId
                 $criticalMarker = if ($isCritical) { " *CRITICAL*" } else { "" }
                 Write-Host "  |   $($status.Symbol) ${taskId}: $($task.title)$criticalMarker" -ForegroundColor $status.Color
@@ -364,7 +392,7 @@ function Show-FullPertDiagram {
     $totalTasks = $AllIssues.Count
     $doneTasks = ($AllIssues | Where-Object { $_.status -eq "done" -or $_.status -eq "closed" }).Count
     $inProgressTasks = ($AllIssues | Where-Object { $_.status -eq "in_progress" }).Count
-    $readyTasks = ($AllIssues | Where-Object { $ReadyIds -contains $_.id -and $_.status -notin @("done", "closed", "in_progress") }).Count
+    $readyTasks = ($Graph.Keys | Where-Object { $Graph[$_].blocked_by.Count -eq 0 -and $Graph[$_].task.status -notin @("done", "closed", "in_progress") }).Count
     $blockedTasks = $totalTasks - $doneTasks - $inProgressTasks - $readyTasks
     $percentage = if ($totalTasks -gt 0) { [math]::Round(($doneTasks / $totalTasks) * 100) } else { 0 }
 
@@ -411,7 +439,8 @@ function Show-CriticalPathDetails {
     } else {
         foreach ($taskId in $incompleteCritical) {
             $task = $Graph[$taskId].task
-            $status = Get-TaskStatus -Task $task -ReadyIds $ReadyIds
+            $blockerCount = $Graph[$taskId].blocked_by.Count
+            $status = Get-TaskStatus -Task $task -ReadyIds $ReadyIds -BlockerCount $blockerCount
 
             Write-Host "  $($status.Symbol) ${taskId}: $($task.title)" -ForegroundColor $status.Color
 
@@ -443,8 +472,10 @@ function Show-ReadyTasks {
 
     $singleLine = "-" * 100
 
-    $readyTasks = @($ReadyIds | Where-Object {
-        $Graph[$_].task.status -notin @("done", "closed")
+    # Find all tasks with no blockers (truly ready to start)
+    $readyTasks = @($Graph.Keys | Where-Object {
+        $Graph[$_].blocked_by.Count -eq 0 -and
+        $Graph[$_].task.status -notin @("done", "closed", "in_progress")
     })
 
     if ($readyTasks.Count -eq 0) {
@@ -465,7 +496,8 @@ function Show-ReadyTasks {
         Write-Host "  ** HIGH PRIORITY - CRITICAL PATH **" -ForegroundColor $colors.Critical
         foreach ($taskId in $readyCritical) {
             $task = $Graph[$taskId].task
-            $status = Get-TaskStatus -Task $task -ReadyIds $ReadyIds
+            $blockerCount = $Graph[$taskId].blocked_by.Count
+            $status = Get-TaskStatus -Task $task -ReadyIds $ReadyIds -BlockerCount $blockerCount
             Write-Host "  $($status.Symbol) ${taskId}: $($task.title)" -ForegroundColor $colors.Critical
             if ($Graph[$taskId].blocks.Count -gt 0) {
                 Write-Host "      |-> Blocks $($Graph[$taskId].blocks.Count) task(s)" -ForegroundColor Gray
@@ -479,7 +511,8 @@ function Show-ReadyTasks {
         $counter = 1
         foreach ($taskId in $readyNonCritical | Select-Object -First 20) {
             $task = $Graph[$taskId].task
-            $status = Get-TaskStatus -Task $task -ReadyIds $ReadyIds
+            $blockerCount = $Graph[$taskId].blocked_by.Count
+            $status = Get-TaskStatus -Task $task -ReadyIds $ReadyIds -BlockerCount $blockerCount
             Write-Host "  $counter. $($status.Symbol) ${taskId}: $($task.title)" -ForegroundColor $colors.Ready
             if ($Graph[$taskId].blocks.Count -gt 0) {
                 Write-Host "      |-> Blocks $($Graph[$taskId].blocks.Count) task(s)" -ForegroundColor Gray
@@ -587,9 +620,11 @@ Write-Host " RECOMMENDATIONS" -ForegroundColor Cyan
 Write-Host "=" * 100 -ForegroundColor Cyan
 Write-Host ""
 
-$readyCount = @($readyIds | Where-Object { $graph[$_].task.status -notin @("done", "closed") }).Count
+$readyCount = @($graph.Keys | Where-Object {
+    $graph[$_].blocked_by.Count -eq 0 -and $graph[$_].task.status -notin @("done", "closed", "in_progress")
+}).Count
 $readyCriticalCount = @($criticalPathInfo.Path | Where-Object {
-    $readyIds -contains $_ -and $graph[$_].task.status -notin @("done", "closed")
+    $graph[$_].blocked_by.Count -eq 0 -and $graph[$_].task.status -notin @("done", "closed", "in_progress")
 }).Count
 
 if ($readyCount -gt 0) {
