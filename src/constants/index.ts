@@ -4,6 +4,7 @@
 export const SETTINGS_TABS = {
   MODES: 'modes',
   NOTES: 'notes',
+  CHORDS: 'chords',
   TIMING: 'timing',
   AUDIO: 'audio'
 } as const;
