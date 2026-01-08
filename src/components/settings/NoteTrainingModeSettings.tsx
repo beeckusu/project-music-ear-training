@@ -1,6 +1,11 @@
 import React from 'react';
 import { useSettings } from '../../hooks/useSettings';
 import { CHORD_FILTER_PRESETS } from '../../constants/chordPresets';
+import ChordPresetSelector from './ChordPresetSelector';
+import RootNoteSelector from './RootNoteSelector';
+import KeyFilterSelector from './KeyFilterSelector';
+import ChordTypeSelector from './ChordTypeSelector';
+import type { ChordType, Note, ChordFilter } from '../../types/music';
 
 const NoteTrainingModeSettings: React.FC = () => {
   const { pendingSettings, updateModeSettings } = useSettings();
@@ -15,8 +20,8 @@ const NoteTrainingModeSettings: React.FC = () => {
     });
   };
 
-  const handleChordPresetChange = (presetName: string) => {
-    const preset = CHORD_FILTER_PRESETS[presetName as keyof typeof CHORD_FILTER_PRESETS];
+  const handleChordPresetChange = (presetKey: string) => {
+    const preset = CHORD_FILTER_PRESETS[presetKey as keyof typeof CHORD_FILTER_PRESETS];
     if (preset) {
       updateModeSettings({
         noteTraining: {
@@ -27,6 +32,30 @@ const NoteTrainingModeSettings: React.FC = () => {
     }
   };
 
+  const updateChordFilter = (updates: Partial<ChordFilter>) => {
+    updateModeSettings({
+      noteTraining: {
+        ...noteTrainingSettings,
+        chordFilter: {
+          ...noteTrainingSettings.chordFilter,
+          ...updates
+        }
+      }
+    });
+  };
+
+  const handleChordTypesChange = (chordTypes: ChordType[]) => {
+    updateChordFilter({ allowedChordTypes: chordTypes });
+  };
+
+  const handleRootNotesChange = (rootNotes: Note[] | null) => {
+    updateChordFilter({ allowedRootNotes: rootNotes });
+  };
+
+  const handleKeyFilterChange = (keyFilter?: { key: Note; scale: 'major' | 'minor' }) => {
+    updateChordFilter({ keyFilter });
+  };
+
   return (
     <div className="mode-settings-container">
       <div className="mode-info">
@@ -34,22 +63,25 @@ const NoteTrainingModeSettings: React.FC = () => {
         <p>Listen to chords and identify individual notes. Perfect for developing your ear for harmony and chord structure!</p>
       </div>
 
-      <div className="setting-group">
-        <label>Chord Type</label>
-        <select
-          value={Object.keys(CHORD_FILTER_PRESETS).find(key =>
-            JSON.stringify(CHORD_FILTER_PRESETS[key as keyof typeof CHORD_FILTER_PRESETS].filter) === JSON.stringify(noteTrainingSettings.chordFilter)
-          ) || 'BASIC_TRIADS'}
-          onChange={(e) => handleChordPresetChange(e.target.value)}
-        >
-          <option value="BASIC_TRIADS">Basic Triads (Beginner)</option>
-          <option value="ALL_MAJOR_MINOR_TRIADS">All Major & Minor Triads</option>
-          <option value="ALL_7TH_CHORDS">All 7th Chords</option>
-          <option value="JAZZ_CHORDS">Jazz Chords</option>
-          <option value="ALL_CHORDS_C_MAJOR">All Chords in C Major</option>
-        </select>
-        <small>Choose which types of chords to practice</small>
-      </div>
+      <ChordPresetSelector
+        currentFilter={noteTrainingSettings.chordFilter}
+        onPresetSelect={handleChordPresetChange}
+      />
+
+      <ChordTypeSelector
+        selectedChordTypes={noteTrainingSettings.chordFilter.allowedChordTypes}
+        onChange={handleChordTypesChange}
+      />
+
+      <RootNoteSelector
+        selectedRootNotes={noteTrainingSettings.chordFilter.allowedRootNotes}
+        onChange={handleRootNotesChange}
+      />
+
+      <KeyFilterSelector
+        keyFilter={noteTrainingSettings.chordFilter.keyFilter}
+        onChange={handleKeyFilterChange}
+      />
 
       <div className="setting-group">
         <label className="checkbox-label">

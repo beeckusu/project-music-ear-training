@@ -70,3 +70,88 @@ export function getChordFilterPreset(presetKey: string): ChordFilterPreset | und
 export function getChordFilterPresetByName(name: string): ChordFilterPreset | undefined {
   return Object.values(CHORD_FILTER_PRESETS).find(preset => preset.name === name);
 }
+
+/**
+ * Detect which preset (if any) matches the current chord filter configuration.
+ * Returns 'CUSTOM' if the filter doesn't match any preset exactly.
+ *
+ * @param filter - The current chord filter to check
+ * @returns The preset key that matches, or 'CUSTOM' if no match
+ *
+ * @example
+ * const currentPreset = detectCurrentPreset(chordFilter);
+ * if (currentPreset === 'CUSTOM') {
+ *   console.log('User has customized their filter');
+ * }
+ */
+export function detectCurrentPreset(filter: ChordFilter): string {
+  // Try to find a matching preset by deep comparison
+  for (const [key, preset] of Object.entries(CHORD_FILTER_PRESETS)) {
+    if (filtersAreEqual(filter, preset.filter)) {
+      return key;
+    }
+  }
+  return 'CUSTOM';
+}
+
+/**
+ * Deep equality comparison for chord filters.
+ * Compares all properties including arrays and nested objects.
+ *
+ * @param filter1 - First filter to compare
+ * @param filter2 - Second filter to compare
+ * @returns True if filters are identical, false otherwise
+ */
+function filtersAreEqual(filter1: ChordFilter, filter2: ChordFilter): boolean {
+  // Compare allowedChordTypes arrays
+  if (!arraysAreEqual(filter1.allowedChordTypes, filter2.allowedChordTypes)) {
+    return false;
+  }
+
+  // Compare allowedRootNotes (can be null or array)
+  if (filter1.allowedRootNotes === null && filter2.allowedRootNotes === null) {
+    // Both null, continue
+  } else if (filter1.allowedRootNotes === null || filter2.allowedRootNotes === null) {
+    // One is null, other isn't
+    return false;
+  } else if (!arraysAreEqual(filter1.allowedRootNotes, filter2.allowedRootNotes)) {
+    return false;
+  }
+
+  // Compare allowedOctaves arrays
+  if (!arraysAreEqual(filter1.allowedOctaves, filter2.allowedOctaves)) {
+    return false;
+  }
+
+  // Compare includeInversions
+  if (filter1.includeInversions !== filter2.includeInversions) {
+    return false;
+  }
+
+  // Compare keyFilter (can be undefined or object)
+  if (filter1.keyFilter === undefined && filter2.keyFilter === undefined) {
+    // Both undefined, continue
+  } else if (filter1.keyFilter === undefined || filter2.keyFilter === undefined) {
+    // One is undefined, other isn't
+    return false;
+  } else {
+    // Both defined, compare properties
+    if (filter1.keyFilter.key !== filter2.keyFilter.key ||
+        filter1.keyFilter.scale !== filter2.keyFilter.scale) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Helper function to compare arrays for equality.
+ * Order matters - arrays must have same elements in same order.
+ */
+function arraysAreEqual<T>(arr1: T[], arr2: T[]): boolean {
+  if (arr1.length !== arr2.length) {
+    return false;
+  }
+  return arr1.every((val, index) => val === arr2[index]);
+}
