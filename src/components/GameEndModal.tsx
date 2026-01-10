@@ -13,6 +13,7 @@ interface GameEndModalProps {
   sessionResults?: Record<string, any>;
   onPlayAgain: () => void;
   onChangeSettings: () => void;
+  onViewScores: () => void;
 }
 
 const GameEndModal: React.FC<GameEndModalProps> = ({
@@ -24,7 +25,8 @@ const GameEndModal: React.FC<GameEndModalProps> = ({
   settings,
   sessionResults = {},
   onPlayAgain,
-  onChangeSettings
+  onChangeSettings,
+  onViewScores
 }) => {
   const { getSessionHistory } = useGameHistory();
 
@@ -112,6 +114,9 @@ const GameEndModal: React.FC<GameEndModalProps> = ({
           <div className="actions-section">
             <button className="action-button primary" onClick={onPlayAgain}>
               🔄 Play Again
+            </button>
+            <button className="action-button secondary" onClick={onViewScores}>
+              📊 View Scores
             </button>
             <button className="action-button secondary" onClick={onChangeSettings}>
               ⚙️ Change Settings

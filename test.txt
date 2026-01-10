@@ -1,0 +1,75 @@
+[SingleChordModeDisplay] handleSubmitAnswer called
+SingleChordModeDisplay.tsx:69 [SingleChordModeDisplay] Result from handleSubmitAnswer: {gameCompleted: true, feedback: '🎉 Note Training Complete! 5/5 chords identified', shouldAdvance: false, stats: {…}}
+SingleChordModeDisplay.tsx:81 [SingleChordModeDisplay] onSubmitClick available? true
+SingleChordModeDisplay.tsx:83 [SingleChordModeDisplay] Calling onSubmitClick
+NoteIdentification.tsx:364 [NoteIdentification] handleSubmitClick called
+NoteIdentification.tsx:368 [NoteIdentification] Context: {startTime: Thu Jan 08 2026 19:13:16 GMT-0500 (Eastern Standard Time), elapsedTime: 11.005, note: {…}}
+NoteIdentification.tsx:376 [NoteIdentification] Calling orchestrator.handleUserAction with type: submit
+GameOrchestrator.ts:1049 [Orchestrator] handleUserAction: submit
+GameOrchestrator.ts:1094 [Orchestrator] Submit action received
+GameOrchestrator.ts:1096 [Orchestrator] Calling strategy.handleSubmitClick
+GameOrchestrator.ts:1100 [Orchestrator] Calling strategy.validateAndAdvance
+ChordTrainingStrategy.ts:130 Uncaught Error: No chord in context. Call startNewRound first.
+    at ChordTrainingStrategy.validateAndAdvance (ChordTrainingStrategy.ts:130:13)
+    at GameOrchestrator.handleUserAction (GameOrchestrator.ts:1101:49)
+    at NoteIdentification.tsx:377:30
+    at handleSubmitAnswer (SingleChordModeDisplay.tsx:84:7)
+    at executeDispatch (react-dom_client.js?v=777317da:11736:11)
+    at runWithFiberInDEV (react-dom_client.js?v=777317da:1485:72)
+    at processDispatchQueue (react-dom_client.js?v=777317da:11772:37)
+    at react-dom_client.js?v=777317da:12182:11
+    at batchedUpdates$1 (react-dom_client.js?v=777317da:2628:42)
+    at dispatchEventForPluginEventSystem (react-dom_client.js?v=777317da:11877:9)
+validateAndAdvance @ ChordTrainingStrategy.ts:130
+handleUserAction @ GameOrchestrator.ts:1101
+(anonymous) @ NoteIdentification.tsx:377
+handleSubmitAnswer @ SingleChordModeDisplay.tsx:84
+executeDispatch @ react-dom_client.js?v=777317da:11736
+runWithFiberInDEV @ react-dom_client.js?v=777317da:1485
+processDispatchQueue @ react-dom_client.js?v=777317da:11772
+(anonymous) @ react-dom_client.js?v=777317da:12182
+batchedUpdates$1 @ react-dom_client.js?v=777317da:2628
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=777317da:11877
+dispatchEvent @ react-dom_client.js?v=777317da:14792
+dispatchDiscreteEvent @ react-dom_client.js?v=777317da:14773
+GameOrchestrator.ts:168 [Orchestrator] Emitting event: guessAttempt {id: '1767917608494-0.8992401325165079', timestamp: Thu Jan 08 2026 19:13:28 GMT-0500 (Eastern Standard Time), actualNote: {…}, guessedNote: null, isCorrect: false}
+NoteIdentification.tsx:105 [NoteIdentification] Event received: guessAttempt {id: '1767917608494-0.8992401325165079', timestamp: Thu Jan 08 2026 19:13:28 GMT-0500 (Eastern Standard Time), actualNote: {…}, guessedNote: null, isCorrect: false}
+SingleChordGameState.tsx:184 [SingleChordGameState] handleIncorrectGuess called {currentChord: {…}, guessHistoryLength: 7}
+SingleChordGameState.tsx:225 [SingleChordGameState] Added to guess history {newLength: 8, accuracy: 100, correctCount: 3, missingCount: 0, incorrectCount: 0}
+GameOrchestrator.ts:168 [Orchestrator] Emitting event: guessResult {isCorrect: false, feedback: "Time's up! The correct answer was C. 100.0% - 3 out of 3 notes correct. ✓ 3 correct. Try again!", shouldAdvance: false, gameCompleted: false, stats: undefined}
+NoteIdentification.tsx:114 [NoteIdentification] Event received: guessResult {isCorrect: false, feedback: "Time's up! The correct answer was C. 100.0% - 3 out of 3 notes correct. ✓ 3 correct. Try again!", shouldAdvance: false, gameCompleted: false, stats: undefined}
+GameOrchestrator.ts:311 [Orchestrator] Scheduling timer: advance-after-timeout delay: 1500 ms
+GameOrchestrator.ts:1390 [Orchestrator] State changed (applySettings subscription): {sessionState: 'playing', roundState: 'timeout_intermission', previousState: '{"playing":"waiting_input"}', currentState: '{"playing":"timeout_intermission"}'}
+GameOrchestrator.ts:168 [Orchestrator] Emitting event: stateChange {sessionState: 'playing', roundState: 'timeout_intermission'}
+NoteIdentification.tsx:186 [NoteIdentification] stateChange received: {sessionState: 'playing', roundState: 'timeout_intermission'}
+NoteIdentification.tsx:187 [NoteIdentification] RoundState.TIMEOUT_INTERMISSION: timeout_intermission
+NoteIdentification.tsx:188 [NoteIdentification] roundState === TIMEOUT_INTERMISSION? true
+NoteIdentification.tsx:193 [NoteIdentification] TIMEOUT_INTERMISSION detected! currentNote: {note: 'C', octave: 4}
+NoteIdentification.tsx:195 [NoteIdentification] Setting correct note highlight to: {note: 'C', octave: 4}
+GameOrchestrator.ts:320 [Orchestrator] Timer fired: advance-after-timeout
+GameOrchestrator.ts:417 [Orchestrator] Sending event: advance_round {type: 'advance_round'}
+GameOrchestrator.ts:1390 [Orchestrator] State changed (applySettings subscription): {sessionState: 'playing', roundState: 'waiting_input', previousState: '{"playing":"timeout_intermission"}', currentState: '{"playing":"waiting_input"}'}
+GameOrchestrator.ts:168 [Orchestrator] Emitting event: stateChange {sessionState: 'playing', roundState: 'waiting_input'}
+NoteIdentification.tsx:186 [NoteIdentification] stateChange received: {sessionState: 'playing', roundState: 'waiting_input'}
+NoteIdentification.tsx:187 [NoteIdentification] RoundState.TIMEOUT_INTERMISSION: timeout_intermission
+NoteIdentification.tsx:188 [NoteIdentification] roundState === TIMEOUT_INTERMISSION? false
+NoteIdentification.tsx:205 [NoteIdentification] WAITING_INPUT detected, hiding correct note
+GameOrchestrator.ts:421 [Orchestrator] After send, state is: {playing: 'waiting_input'} matches: ƒ matches(testValue) {
+  return matchesState(testValue, this.value);
+}
+GameOrchestrator.ts:168 [Orchestrator] Emitting event: advanceToNextRound undefined
+NoteIdentification.tsx:148 [NoteIdentification] Event received: advanceToNextRound
+GameOrchestrator.ts:168 [Orchestrator] Emitting event: roundStart {context: {…}, note: {…}, feedback: 'Select all notes in the chord (0/3 identified)'}
+NoteIdentification.tsx:90 [NoteIdentification] Event received: roundStart {context: {…}, note: {…}, feedback: 'Select all notes in the chord (0/3 identified)'}
+GameOrchestrator.ts:1422 [Orchestrator] User pressed pause
+GameOrchestrator.ts:417 [Orchestrator] Sending event: pause {type: 'pause'}
+GameOrchestrator.ts:1390 [Orchestrator] State changed (applySettings subscription): {sessionState: '0', roundState: undefined, previousState: '{"playing":"waiting_input"}', currentState: '"paused"'}
+GameOrchestrator.ts:168 [Orchestrator] Emitting event: stateChange {sessionState: '0', roundState: undefined}
+NoteIdentification.tsx:186 [NoteIdentification] stateChange received: {sessionState: '0', roundState: undefined}
+NoteIdentification.tsx:187 [NoteIdentification] RoundState.TIMEOUT_INTERMISSION: timeout_intermission
+NoteIdentification.tsx:188 [NoteIdentification] roundState === TIMEOUT_INTERMISSION? false
+GameOrchestrator.ts:421 [Orchestrator] After send, state is: paused matches: ƒ matches(testValue) {
+  return matchesState(testValue, this.value);
+}
+GameOrchestrator.ts:168 [Orchestrator] Emitting event: gamePaused undefined
+NoteIdentification.tsx:171 [NoteIdentification] Event received: gamePaused

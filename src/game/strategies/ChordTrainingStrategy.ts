@@ -126,9 +126,9 @@ export class ChordTrainingStrategy implements ModeStrategy {
       throw new Error('Game mode not initialized. Call startNewRound first.');
     }
 
-    if (!context.chord) {
-      throw new Error('No chord in context. Call startNewRound first.');
-    }
+    // Note: We don't check context.chord here because chord training modes
+    // manage their state internally in the game mode, not in the context.
+    // The game mode's handleSubmitAnswer has all the information it needs.
 
     // Call handleSubmitAnswer to get validation result
     const result = (this.gameMode as any).handleSubmitAnswer?.();

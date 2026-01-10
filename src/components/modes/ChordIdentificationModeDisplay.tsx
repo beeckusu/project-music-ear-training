@@ -18,7 +18,6 @@ import './ChordIdentificationModeDisplay.css';
 
 interface ChordIdentificationModeDisplayProps extends CommonDisplayProps {
   gameState: ChordIdentificationGameState;
-  onSubmitGuess: (guess: string) => { gameCompleted: boolean; feedback: string; shouldAdvance: boolean };
 }
 
 const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayProps> = ({
@@ -28,9 +27,10 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
   timeRemaining,
   responseTimeLimit,
   isPaused,
-  onSubmitGuess,
   onAdvanceRound,
-  onPlayAgain
+  onPlayAgain,
+  onSubmitClick,
+  completionControls
 }) => {
   const { currentChord, correctChordsCount, currentStreak, totalAttempts, noteTrainingSettings } = gameState;
   const [guessInput, setGuessInput] = useState<string>('');
@@ -62,13 +62,23 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
       return; // No input provided
     }
 
-    const result = onSubmitGuess(chordName);
+    // Store the guess in the game state (needed for validation)
+    gameState.guessedChordName = chordName;
+
+    // Call the game state's handleSubmitGuess for immediate feedback
+    const result = gameState.handleSubmitGuess();
 
     // Set feedback based on result
     setFeedback({
       message: result.feedback,
       type: result.shouldAdvance ? 'success' : 'error'
     });
+
+    // Notify orchestrator of the submission for proper event handling
+    // This ensures sessionComplete event is emitted when game finishes
+    if (onSubmitClick) {
+      onSubmitClick();
+    }
 
     // Clear input/selection on correct guess (when should advance)
     if (result.shouldAdvance) {
@@ -186,6 +196,9 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
         />
       )}
 
+      {/* 2.5. Completion Controls (when game is completed) */}
+      {completionControls}
+
       {/* 3. Timer */}
       {currentNote && !gameState.isCompleted && responseTimeLimit && (
         <div className="round-timer-container">
@@ -237,22 +250,7 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
         </div>
       )}
 
-      {gameState.isCompleted && onPlayAgain && (
-        <div className="audio-controls">
-          <button
-            onClick={() => {
-              setFeedback(null);
-              setGuessInput('');
-              setSelectedBaseNote(null);
-              setSelectedChordType(null);
-              onPlayAgain();
-            }}
-            className="primary-button"
-          >
-            Play Again
-          </button>
-        </div>
-      )}
+      {/* Play Again button removed - now handled by completion controls in NoteIdentification */}
 
       {/* Piano Keyboard with Highlighted Notes */}
       {currentChord && currentNote && !gameState.isCompleted && (
