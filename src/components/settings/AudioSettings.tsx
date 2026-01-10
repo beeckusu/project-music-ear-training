@@ -2,10 +2,11 @@ import React, { useEffect } from 'react';
 import { useSettings } from '../../hooks/useSettings';
 import { audioEngine } from '../../utils/audioEngine';
 import { InstrumentType } from '../../types/music';
+import { MidiDeviceSelector } from './MidiDeviceSelector';
 
 const AudioSettings: React.FC = () => {
   const { settings, pendingSettings, updateAudioSettings } = useSettings();
-  const { volume, instrument } = pendingSettings.audio;
+  const { volume, instrument, midiDeviceId } = pendingSettings.audio;
 
   // Apply audio changes from current settings (not pending) to the audio engine
   useEffect(() => {
@@ -16,6 +17,10 @@ const AudioSettings: React.FC = () => {
   const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseInt(event.target.value);
     updateAudioSettings({ volume: newVolume });
+  };
+
+  const handleMidiDeviceChange = (deviceId: string | undefined) => {
+    updateAudioSettings({ midiDeviceId: deviceId });
   };
 
   const instrumentOptions = [
@@ -51,6 +56,13 @@ const AudioSettings: React.FC = () => {
             </button>
           ))}
         </div>
+      </div>
+      <div className="setting-group">
+        <label>MIDI Input Device</label>
+        <MidiDeviceSelector
+          selectedDeviceId={midiDeviceId}
+          onDeviceChange={handleMidiDeviceChange}
+        />
       </div>
     </div>
   );
