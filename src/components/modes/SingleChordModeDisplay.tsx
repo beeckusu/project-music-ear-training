@@ -16,7 +16,6 @@ import './SingleChordModeDisplay.css';
 interface SingleChordModeDisplayProps extends CommonDisplayProps {
   gameState: SingleChordGameState;
   onPianoKeyClick: (note: NoteWithOctave) => void;
-  onSubmitAnswer: () => { gameCompleted: boolean; feedback: string; shouldAdvance: boolean };
   onClearSelection: () => void;
 }
 
@@ -28,10 +27,11 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
   responseTimeLimit,
   isPaused,
   onPianoKeyClick,
-  onSubmitAnswer,
   onClearSelection,
   onAdvanceRound,
-  onPlayAgain
+  onPlayAgain,
+  onSubmitClick,
+  completionControls
 }) => {
   const { currentChord, correctNotes, incorrectNotes, selectedNotes, correctChordsCount, currentStreak, totalAttempts, noteTrainingSettings } = gameState;
   const [, forceUpdate] = React.useReducer(x => x + 1, 0);
@@ -63,7 +63,11 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
 
   // Handle submit answer with re-render
   const handleSubmitAnswer = () => {
-    const result = onSubmitAnswer();
+    console.log('[SingleChordModeDisplay] handleSubmitAnswer called');
+
+    // Call the game state's handleSubmitAnswer for immediate feedback
+    const result = gameState.handleSubmitAnswer();
+    console.log('[SingleChordModeDisplay] Result from handleSubmitAnswer:', result);
 
     // Set feedback based on result
     setFeedback({
@@ -72,6 +76,16 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
     });
 
     forceUpdate();
+
+    // Notify orchestrator of the submission for proper event handling
+    // This ensures sessionComplete event is emitted when game finishes
+    console.log('[SingleChordModeDisplay] onSubmitClick available?', !!onSubmitClick);
+    if (onSubmitClick) {
+      console.log('[SingleChordModeDisplay] Calling onSubmitClick');
+      onSubmitClick();
+    } else {
+      console.warn('[SingleChordModeDisplay] onSubmitClick is not available!');
+    }
 
     // If the answer was correct, trigger round advancement
     if (result.shouldAdvance && !result.gameCompleted && onAdvanceRound) {
@@ -146,6 +160,9 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
         />
       )}
 
+      {/* 2.5. Completion Controls (when game is completed) */}
+      {completionControls}
+
       {/* 3. Timer */}
       {currentNote && !gameState.isCompleted && responseTimeLimit && (
         <div className="round-timer-container">
@@ -197,19 +214,7 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
         </div>
       )}
 
-      {gameState.isCompleted && onPlayAgain && (
-        <div className="audio-controls">
-          <button
-            onClick={() => {
-              setFeedback(null);
-              onPlayAgain();
-            }}
-            className="primary-button"
-          >
-            Play Again
-          </button>
-        </div>
-      )}
+      {/* Play Again button removed - now handled by completion controls in NoteIdentification */}
 
       {/* 6. Chord Name Display */}
       {(currentNote || gameState.isCompleted) && (
