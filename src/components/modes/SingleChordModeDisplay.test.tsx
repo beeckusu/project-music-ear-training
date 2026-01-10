@@ -57,8 +57,7 @@ describe('SingleChordModeDisplay', () => {
     gameState.currentChord = {
       name: 'C major',
       notes: [TEST_NOTE_C4, TEST_NOTE_E4, TEST_NOTE_G4],
-      quality: 'major',
-      rootNote: 'C',
+      root: 'C',
       inversion: 0,
       type: 'major' as any
     };
@@ -172,7 +171,7 @@ describe('SingleChordModeDisplay', () => {
       const submitButton = screen.getByText('Submit Answer');
       fireEvent.click(submitButton);
 
-      expect(mockOnSubmitAnswer).toHaveBeenCalled();
+      expect(mockOnSubmitClick).toHaveBeenCalled();
     });
 
     it('should display feedback message after submit', () => {
@@ -195,16 +194,10 @@ describe('SingleChordModeDisplay', () => {
       const submitButton = screen.getByText('Submit Answer');
       fireEvent.click(submitButton);
 
-      expect(screen.getByText('Correct!')).toBeInTheDocument();
+      expect(screen.getByText('Perfect! 100% - 1/10 chords identified')).toBeInTheDocument();
     });
 
     it('should show error feedback for wrong answer', () => {
-      mockOnSubmitAnswer.mockReturnValue({
-        gameCompleted: false,
-        feedback: 'Incorrect. Try again!',
-        shouldAdvance: false
-      });
-
       gameState.selectedNotes.add(TEST_NOTE_A4);
 
       renderWithSettings(
@@ -222,7 +215,7 @@ describe('SingleChordModeDisplay', () => {
       const submitButton = screen.getByText('Submit Answer');
       fireEvent.click(submitButton);
 
-      expect(screen.getByText('Incorrect. Try again!')).toBeInTheDocument();
+      expect(screen.getByText(/Try again!/i)).toBeInTheDocument();
     });
 
     it('should display selection status', () => {
@@ -377,6 +370,10 @@ describe('SingleChordModeDisplay', () => {
     it('should show Play Again button when game is completed', () => {
       gameState.isCompleted = true;
 
+      const completionControls = (
+        <button onClick={mockOnPlayAgain}>Play Again</button>
+      );
+
       renderWithSettings(
         <SingleChordModeDisplay
           gameState={gameState}
@@ -386,6 +383,7 @@ describe('SingleChordModeDisplay', () => {
           onClearSelection={mockOnClearSelection}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
+          completionControls={completionControls}
         />
       );
 
@@ -395,6 +393,10 @@ describe('SingleChordModeDisplay', () => {
     it('should call onPlayAgain when Play Again is clicked', () => {
       gameState.isCompleted = true;
 
+      const completionControls = (
+        <button onClick={mockOnPlayAgain}>Play Again</button>
+      );
+
       renderWithSettings(
         <SingleChordModeDisplay
           gameState={gameState}
@@ -404,6 +406,7 @@ describe('SingleChordModeDisplay', () => {
           onClearSelection={mockOnClearSelection}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
+          completionControls={completionControls}
         />
       );
 

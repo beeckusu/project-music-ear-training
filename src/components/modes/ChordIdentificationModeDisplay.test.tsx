@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, fireEvent, screen } from '@testing-library/react';
+import { render, fireEvent, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import ChordIdentificationModeDisplay from './ChordIdentificationModeDisplay';
 import { ChordIdentificationGameState } from '../../game/ChordIdentificationGameState';
@@ -28,7 +28,7 @@ const renderWithSettings = (ui: React.ReactElement) => {
 describe('ChordIdentificationModeDisplay', () => {
   let gameState: ChordIdentificationGameState;
   let noteTrainingSettings: NoteTrainingModeSettings;
-  let mockOnSubmitGuess: ReturnType<typeof vi.fn>;
+  let mockOnSubmitClick: ReturnType<typeof vi.fn>;
   let mockOnAdvanceRound: ReturnType<typeof vi.fn>;
   let mockOnPlayAgain: ReturnType<typeof vi.fn>;
 
@@ -54,19 +54,14 @@ describe('ChordIdentificationModeDisplay', () => {
     gameState.currentChord = {
       name: 'C major',
       notes: [TEST_NOTE_C4, TEST_NOTE_E4, TEST_NOTE_G4],
-      quality: 'major',
-      rootNote: 'C',
+      root: 'C',
       inversion: 0,
       type: 'major' as any
     };
     gameState.displayedNotes = [TEST_NOTE_C4, TEST_NOTE_E4, TEST_NOTE_G4];
 
     // Setup mocks
-    mockOnSubmitGuess = vi.fn(() => ({
-      gameCompleted: false,
-      feedback: 'Correct!',
-      shouldAdvance: true
-    }));
+    mockOnSubmitClick = vi.fn();
     mockOnAdvanceRound = vi.fn();
     mockOnPlayAgain = vi.fn();
 
@@ -83,7 +78,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -98,7 +93,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -115,7 +110,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -132,7 +127,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -147,7 +142,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -162,7 +157,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -177,7 +172,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -194,7 +189,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -209,7 +204,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -226,7 +221,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -243,7 +238,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -258,7 +253,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -276,7 +271,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -288,7 +283,7 @@ describe('ChordIdentificationModeDisplay', () => {
       const submitButton = screen.getByText('Submit Guess');
       fireEvent.click(submitButton);
 
-      expect(mockOnSubmitGuess).toHaveBeenCalledWith('C');
+      expect(mockOnSubmitClick).toHaveBeenCalled();
     });
 
     it('should display feedback after submit', () => {
@@ -296,7 +291,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -308,21 +303,15 @@ describe('ChordIdentificationModeDisplay', () => {
       const submitButton = screen.getByText('Submit Guess');
       fireEvent.click(submitButton);
 
-      expect(screen.getByText('Correct!')).toBeInTheDocument();
+      expect(screen.getByText('Correct! 1/10 chords identified')).toBeInTheDocument();
     });
 
     it('should show error feedback for wrong answer', () => {
-      mockOnSubmitGuess.mockReturnValue({
-        gameCompleted: false,
-        feedback: 'Incorrect. Try again!',
-        shouldAdvance: false
-      });
-
       const { container } = renderWithSettings(
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -334,7 +323,7 @@ describe('ChordIdentificationModeDisplay', () => {
       const submitButton = screen.getByText('Submit Guess');
       fireEvent.click(submitButton);
 
-      expect(screen.getByText('Incorrect. Try again!')).toBeInTheDocument();
+      expect(screen.getByText('Incorrect. The correct answer is C major. Try again!')).toBeInTheDocument();
     });
   });
 
@@ -344,7 +333,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -358,7 +347,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -372,7 +361,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -387,13 +376,18 @@ describe('ChordIdentificationModeDisplay', () => {
     it('should show Play Again button when game is completed', () => {
       gameState.isCompleted = true;
 
+      const completionControls = (
+        <button onClick={mockOnPlayAgain}>Play Again</button>
+      );
+
       renderWithSettings(
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
+          completionControls={completionControls}
         />
       );
 
@@ -403,13 +397,18 @@ describe('ChordIdentificationModeDisplay', () => {
     it('should call onPlayAgain when Play Again is clicked', () => {
       gameState.isCompleted = true;
 
+      const completionControls = (
+        <button onClick={mockOnPlayAgain}>Play Again</button>
+      );
+
       renderWithSettings(
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
+          completionControls={completionControls}
         />
       );
 
@@ -426,7 +425,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={null}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -443,7 +442,7 @@ describe('ChordIdentificationModeDisplay', () => {
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
           sessionTimeRemaining={120}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -460,7 +459,7 @@ describe('ChordIdentificationModeDisplay', () => {
           currentNote={TEST_NOTE_C4}
           responseTimeLimit={30}
           timeRemaining={25}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -479,7 +478,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -496,7 +495,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -514,7 +513,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -532,7 +531,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -549,7 +548,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -566,7 +565,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -577,12 +576,12 @@ describe('ChordIdentificationModeDisplay', () => {
   });
 
   describe('Input Clearing', () => {
-    it('should clear input after correct guess', () => {
+    it('should clear input after correct guess', async () => {
       const { container } = renderWithSettings(
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -595,7 +594,9 @@ describe('ChordIdentificationModeDisplay', () => {
       fireEvent.click(submitButton);
 
       // Input should be cleared after submission (when shouldAdvance is true)
-      expect(input.value).toBe('');
+      await waitFor(() => {
+        expect(input.value).toBe('');
+      });
     });
 
     it('should clear input when Next Chord is clicked', () => {
@@ -603,7 +604,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -627,7 +628,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
@@ -644,7 +645,7 @@ describe('ChordIdentificationModeDisplay', () => {
         <ChordIdentificationModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
-          onSubmitGuess={mockOnSubmitGuess}
+          onSubmitClick={mockOnSubmitClick}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
         />
