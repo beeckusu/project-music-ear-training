@@ -24,8 +24,7 @@ const TEST_CHORD_C_MAJOR: Chord = {
     { note: 'E', octave: 4 },
     { note: 'G', octave: 4 }
   ],
-  quality: 'major',
-  rootNote: 'C',
+  root: 'C',
   inversion: 0,
   type: 'major' as any
 };
@@ -37,8 +36,7 @@ const TEST_CHORD_D_MINOR: Chord = {
     { note: 'F', octave: 4 },
     { note: 'A', octave: 4 }
   ],
-  quality: 'minor',
-  rootNote: 'D',
+  root: 'D',
   inversion: 0,
   type: 'minor' as any
 };
@@ -129,15 +127,20 @@ describe('ShowChordGuessNotes Integration Test', () => {
       gameState.currentChord = TEST_CHORD_C_MAJOR;
       gameState.startTime = new Date();
 
+      const completionControls = (
+        <button onClick={mockOnPlayAgain}>Play Again</button>
+      );
+
       const renderComponent = () => renderWithSettings(
         <SingleChordModeDisplay
           gameState={gameState}
           currentNote={gameState.currentChord?.notes[0] || null}
           onPianoKeyClick={(note) => gameState.handleNoteSelection(note)}
-          onSubmitAnswer={() => gameState.handleSubmitAnswer()}
+          onSubmitClick={() => {}}
           onClearSelection={() => gameState.clearSelection()}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
+          completionControls={completionControls}
         />
       );
 
@@ -159,10 +162,11 @@ describe('ShowChordGuessNotes Integration Test', () => {
             gameState={gameState}
             currentNote={TEST_CHORD_C_MAJOR.notes[0]}
             onPianoKeyClick={(note) => gameState.handleNoteSelection(note)}
-            onSubmitAnswer={() => gameState.handleSubmitAnswer()}
+            onSubmitClick={() => {}}
             onClearSelection={() => gameState.clearSelection()}
             onAdvanceRound={mockOnAdvanceRound}
             onPlayAgain={mockOnPlayAgain}
+            completionControls={completionControls}
           />
         </SettingsProvider>
       );
@@ -189,10 +193,11 @@ describe('ShowChordGuessNotes Integration Test', () => {
             gameState={gameState}
             currentNote={TEST_CHORD_D_MINOR.notes[0]}
             onPianoKeyClick={(note) => gameState.handleNoteSelection(note)}
-            onSubmitAnswer={() => gameState.handleSubmitAnswer()}
+            onSubmitClick={() => {}}
             onClearSelection={() => gameState.clearSelection()}
             onAdvanceRound={mockOnAdvanceRound}
             onPlayAgain={mockOnPlayAgain}
+            completionControls={completionControls}
           />
         </SettingsProvider>
       );
@@ -217,10 +222,11 @@ describe('ShowChordGuessNotes Integration Test', () => {
             gameState={gameState}
             currentNote={TEST_CHORD_E_MAJOR.notes[0]}
             onPianoKeyClick={(note) => gameState.handleNoteSelection(note)}
-            onSubmitAnswer={() => gameState.handleSubmitAnswer()}
+            onSubmitClick={() => {}}
             onClearSelection={() => gameState.clearSelection()}
             onAdvanceRound={mockOnAdvanceRound}
             onPlayAgain={mockOnPlayAgain}
+            completionControls={completionControls}
           />
         </SettingsProvider>
       );
@@ -242,10 +248,11 @@ describe('ShowChordGuessNotes Integration Test', () => {
             gameState={gameState}
             currentNote={TEST_CHORD_E_MAJOR.notes[0]}
             onPianoKeyClick={(note) => gameState.handleNoteSelection(note)}
-            onSubmitAnswer={() => gameState.handleSubmitAnswer()}
+            onSubmitClick={() => {}}
             onClearSelection={() => gameState.clearSelection()}
             onAdvanceRound={mockOnAdvanceRound}
             onPlayAgain={mockOnPlayAgain}
+            completionControls={completionControls}
           />
         </SettingsProvider>
       );
@@ -263,15 +270,20 @@ describe('ShowChordGuessNotes Integration Test', () => {
       gameState.currentChord = TEST_CHORD_C_MAJOR;
       gameState.startTime = new Date();
 
+      const completionControls = (
+        <button onClick={mockOnPlayAgain}>Play Again</button>
+      );
+
       const { rerender } = renderWithSettings(
         <SingleChordModeDisplay
           gameState={gameState}
           currentNote={TEST_CHORD_C_MAJOR.notes[0]}
           onPianoKeyClick={(note) => gameState.handleNoteSelection(note)}
-          onSubmitAnswer={() => gameState.handleSubmitAnswer()}
+          onSubmitClick={() => {}}
           onClearSelection={() => gameState.clearSelection()}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
+          completionControls={completionControls}
         />
       );
 
@@ -332,7 +344,7 @@ describe('ShowChordGuessNotes Integration Test', () => {
           gameState={gameState}
           currentNote={TEST_CHORD_C_MAJOR.notes[0]}
           onPianoKeyClick={(note) => gameState.handleNoteSelection(note)}
-          onSubmitAnswer={() => gameState.handleSubmitAnswer()}
+          onSubmitClick={() => {}}
           onClearSelection={() => gameState.clearSelection()}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
@@ -386,15 +398,20 @@ describe('ShowChordGuessNotes Integration Test', () => {
       gameState.currentChord = TEST_CHORD_C_MAJOR;
       gameState.startTime = new Date();
 
+      const completionControls = (
+        <button onClick={mockOnPlayAgain}>Play Again</button>
+      );
+
       const { rerender } = renderWithSettings(
         <SingleChordModeDisplay
           gameState={gameState}
           currentNote={TEST_CHORD_C_MAJOR.notes[0]}
           onPianoKeyClick={(note) => gameState.handleNoteSelection(note)}
-          onSubmitAnswer={() => gameState.handleSubmitAnswer()}
+          onSubmitClick={() => {}}
           onClearSelection={() => gameState.clearSelection()}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
+          completionControls={completionControls}
         />
       );
 
@@ -433,10 +450,11 @@ describe('ShowChordGuessNotes Integration Test', () => {
             gameState={gameState}
             currentNote={TEST_CHORD_D_MINOR.notes[0]}
             onPianoKeyClick={(note) => gameState.handleNoteSelection(note)}
-            onSubmitAnswer={() => gameState.handleSubmitAnswer()}
+            onSubmitClick={() => {}}
             onClearSelection={() => gameState.clearSelection()}
             onAdvanceRound={mockOnAdvanceRound}
             onPlayAgain={mockOnPlayAgain}
+            completionControls={completionControls}
           />
         </SettingsProvider>
       );
@@ -510,15 +528,20 @@ describe('ShowChordGuessNotes Integration Test', () => {
       gameState.currentChord = TEST_CHORD_C_MAJOR;
       gameState.startTime = new Date();
 
+      const completionControls = (
+        <button onClick={mockOnPlayAgain}>Play Again</button>
+      );
+
       const { rerender } = renderWithSettings(
         <SingleChordModeDisplay
           gameState={gameState}
           currentNote={TEST_CHORD_C_MAJOR.notes[0]}
           onPianoKeyClick={(note) => gameState.handleNoteSelection(note)}
-          onSubmitAnswer={() => gameState.handleSubmitAnswer()}
+          onSubmitClick={() => {}}
           onClearSelection={() => gameState.clearSelection()}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
+          completionControls={completionControls}
         />
       );
 
@@ -539,10 +562,11 @@ describe('ShowChordGuessNotes Integration Test', () => {
             gameState={gameState}
             currentNote={TEST_CHORD_C_MAJOR.notes[0]}
             onPianoKeyClick={(note) => gameState.handleNoteSelection(note)}
-            onSubmitAnswer={() => gameState.handleSubmitAnswer()}
+            onSubmitClick={() => {}}
             onClearSelection={() => gameState.clearSelection()}
             onAdvanceRound={mockOnAdvanceRound}
             onPlayAgain={mockOnPlayAgain}
+            completionControls={completionControls}
           />
         </SettingsProvider>
       );
@@ -565,10 +589,11 @@ describe('ShowChordGuessNotes Integration Test', () => {
             gameState={gameState}
             currentNote={TEST_CHORD_C_MAJOR.notes[0]}
             onPianoKeyClick={(note) => gameState.handleNoteSelection(note)}
-            onSubmitAnswer={() => gameState.handleSubmitAnswer()}
+            onSubmitClick={() => {}}
             onClearSelection={() => gameState.clearSelection()}
             onAdvanceRound={mockOnAdvanceRound}
             onPlayAgain={mockOnPlayAgain}
+            completionControls={completionControls}
           />
         </SettingsProvider>
       );
@@ -587,7 +612,7 @@ describe('ShowChordGuessNotes Integration Test', () => {
           gameState={gameState}
           currentNote={TEST_CHORD_C_MAJOR.notes[0]}
           onPianoKeyClick={(note) => gameState.handleNoteSelection(note)}
-          onSubmitAnswer={() => gameState.handleSubmitAnswer()}
+          onSubmitClick={() => {}}
           onClearSelection={() => gameState.clearSelection()}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
@@ -618,7 +643,7 @@ describe('ShowChordGuessNotes Integration Test', () => {
           gameState={gameState}
           currentNote={TEST_CHORD_C_MAJOR.notes[0]}
           onPianoKeyClick={(note) => gameState.handleNoteSelection(note)}
-          onSubmitAnswer={() => gameState.handleSubmitAnswer()}
+          onSubmitClick={() => {}}
           onClearSelection={() => gameState.clearSelection()}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
@@ -646,7 +671,7 @@ describe('ShowChordGuessNotes Integration Test', () => {
           gameState={gameState}
           currentNote={TEST_CHORD_C_MAJOR.notes[0]}
           onPianoKeyClick={(note) => gameState.handleNoteSelection(note)}
-          onSubmitAnswer={() => gameState.handleSubmitAnswer()}
+          onSubmitClick={() => {}}
           onClearSelection={() => gameState.clearSelection()}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}

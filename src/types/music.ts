@@ -185,6 +185,7 @@ export type InstrumentType = typeof InstrumentType[keyof typeof InstrumentType];
 export interface AudioSettings {
   volume: number; // 0-100
   instrument: InstrumentType;
+  midiDeviceId?: string; // Selected MIDI input device ID (optional)
 }
 
 export interface TimingSettings {

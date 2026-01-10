@@ -8,6 +8,7 @@ import SettingsButton from './components/SettingsButton'
 import SettingsModal from './components/SettingsModal'
 import { TRAINING_MODES } from './constants'
 import type { GuessAttempt } from './types/game'
+import { MidiManager } from './services/MidiManager'
 import './App.css'
 
 // Main app content component that can access settings context
@@ -29,6 +30,46 @@ function AppContent() {
       setIsPaused(false)
     }
   }, [isSettingsOpen])
+
+  // Initialize MIDI and auto-connect to saved device
+  useEffect(() => {
+    const initializeMidi = async () => {
+      const midiManager = MidiManager.getInstance()
+
+      // Check if MIDI is supported in the browser
+      if (!midiManager.isSupported()) {
+        return
+      }
+
+      try {
+        // Initialize MIDI system
+        await midiManager.initialize()
+
+        // Get saved device ID from settings
+        const savedDeviceId = settings.audio.midiDeviceId
+
+        if (savedDeviceId) {
+          // Check if the saved device is still available
+          const availableDevices = midiManager.getAvailableInputs()
+          const savedDevice = availableDevices.find(d => d.id === savedDeviceId)
+
+          if (savedDevice && savedDevice.state === 'connected') {
+            // Auto-connect to previously selected device
+            midiManager.selectInputDevice(savedDeviceId)
+            console.log('Auto-connected to MIDI device:', savedDevice.name)
+          } else {
+            // Device no longer available
+            console.warn('Previously selected MIDI device not found:', savedDeviceId)
+          }
+        }
+      } catch (error) {
+        // Error is already handled by MidiManager and emitted as event
+        console.error('Failed to initialize MIDI:', error)
+      }
+    }
+
+    initializeMidi()
+  }, [settings.audio.midiDeviceId])
 
   const handleScoreUpdate = (correct: boolean) => {
     setScore(prevScore => ({

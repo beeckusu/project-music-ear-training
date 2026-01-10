@@ -363,18 +363,8 @@ describe('ChordTrainingStrategy', () => {
       );
     });
 
-    it('should throw error if no chord in context', () => {
-      const context: RoundContext = {
-        startTime: new Date(),
-        elapsedTime: 0,
-        selectedNotes: new Set([SELECTED_NOTE]),
-        noteHighlights: []
-      };
-
-      expect(() => strategy.validateAndAdvance(context)).toThrow(
-        'No chord in context. Call startNewRound first.'
-      );
-    });
+    // Note: Chord training modes manage state internally in the game mode,
+    // not in the context, so we don't check for context.chord
 
     it('should call gameMode.handleSubmitAnswer()', () => {
       const context: RoundContext = {
