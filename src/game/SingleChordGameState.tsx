@@ -15,6 +15,8 @@ import type { IGameMode } from './IGameMode';
 import { ChordEngine } from '../utils/chordEngine';
 import { NOTE_TRAINING_SUB_MODES } from '../constants';
 import SingleChordModeDisplay from '../components/modes/SingleChordModeDisplay';
+import { aggregateByChordType, getMostDifficultChords } from '../utils/chordStatistics';
+import ChordStatsBreakdown from '../components/ChordStatsBreakdown';
 
 /**
  * Game state implementation for "Single Chord" mode.
@@ -502,7 +504,7 @@ export class SingleChordGameState implements IGameMode {
       return `${minutes}:${secs.toString().padStart(2, '0')}`;
     };
 
-    return [
+    const basicStats: StatItem[] = [
       {
         label: 'Time',
         value: formatTime(gameStats.completionTime),
@@ -534,6 +536,22 @@ export class SingleChordGameState implements IGameMode {
         className: 'stat-neutral'
       }
     ];
+
+    // Add chord-specific stats if we have enough data
+    if (this.guessHistory.length >= 3) {
+      const chordTypeStats = aggregateByChordType(this.guessHistory);
+      const mostDifficult = getMostDifficultChords(chordTypeStats, 1)[0];
+
+      if (mostDifficult) {
+        basicStats.push({
+          label: 'Most Difficult',
+          value: `${mostDifficult.displayName} (${mostDifficult.accuracy.toFixed(0)}%)`,
+          className: mostDifficult.accuracy < 65 ? 'stat-warning' : mostDifficult.accuracy < 85 ? 'stat-neutral' : 'stat-success'
+        });
+      }
+    }
+
+    return basicStats;
   };
 
   /**
@@ -543,7 +561,14 @@ export class SingleChordGameState implements IGameMode {
    * @returns React node or null
    */
   getAdditionalStatsSection = (sessionResults: Record<string, any>): React.ReactNode => {
-    return null; // Note training mode doesn't need additional sections
+    // Only show detailed breakdown if we have enough data
+    if (this.guessHistory.length < 3) {
+      return null;
+    }
+
+    return React.createElement(ChordStatsBreakdown, {
+      guessHistory: this.guessHistory
+    });
   };
 
   /**

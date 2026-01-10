@@ -16,6 +16,8 @@ import { ChordEngine } from '../utils/chordEngine';
 import { validateChordGuess } from '../utils/chordValidation';
 import { NOTE_TRAINING_SUB_MODES } from '../constants';
 import ChordIdentificationModeDisplay from '../components/modes/ChordIdentificationModeDisplay';
+import { aggregateByChordType, getMostDifficultChords } from '../utils/chordStatistics';
+import ChordStatsBreakdown from '../components/ChordStatsBreakdown';
 
 /**
  * Game state implementation for "Chord Identification" mode (Show Notes, Guess Chord).
@@ -431,7 +433,7 @@ export class ChordIdentificationGameState implements IGameMode {
       return `${minutes}:${secs.toString().padStart(2, '0')}`;
     };
 
-    return [
+    const basicStats: StatItem[] = [
       {
         label: 'Time',
         value: formatTime(gameStats.completionTime),
@@ -463,6 +465,22 @@ export class ChordIdentificationGameState implements IGameMode {
         className: 'stat-neutral'
       }
     ];
+
+    // Add chord-specific stats if we have enough data
+    if (this.guessHistory.length >= 3) {
+      const chordTypeStats = aggregateByChordType(this.guessHistory);
+      const mostDifficult = getMostDifficultChords(chordTypeStats, 1)[0];
+
+      if (mostDifficult) {
+        basicStats.push({
+          label: 'Most Difficult',
+          value: `${mostDifficult.displayName} (${mostDifficult.accuracy.toFixed(0)}%)`,
+          className: mostDifficult.accuracy < 65 ? 'stat-warning' : mostDifficult.accuracy < 85 ? 'stat-neutral' : 'stat-success'
+        });
+      }
+    }
+
+    return basicStats;
   };
 
   /**
@@ -472,7 +490,14 @@ export class ChordIdentificationGameState implements IGameMode {
    * @returns React node or null
    */
   getAdditionalStatsSection = (_sessionResults: Record<string, any>): React.ReactNode => {
-    return null; // Chord identification mode doesn't need additional sections
+    // Only show detailed breakdown if we have enough data
+    if (this.guessHistory.length < 3) {
+      return null;
+    }
+
+    return React.createElement(ChordStatsBreakdown, {
+      guessHistory: this.guessHistory
+    });
   };
 
   /**

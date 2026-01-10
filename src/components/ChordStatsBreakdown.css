@@ -1,0 +1,248 @@
+/* ChordStatsBreakdown Component Styles */
+
+.chord-stats-breakdown {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 123, 255, 0.1);
+}
+
+.breakdown-title {
+  margin: 0 0 1.5rem 0;
+  color: #333;
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.breakdown-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.breakdown-section {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+  margin: 0 0 1rem 0;
+  color: #495057;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.875rem;
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.stats-table thead th {
+  padding: 0.5rem 0.25rem;
+  text-align: left;
+  font-size: 0.75rem;
+  color: #6c757d;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.stats-table tbody tr {
+  border-bottom: 1px solid #f1f3f5;
+  transition: background-color 0.2s ease;
+}
+
+.stats-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.stats-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.stats-table td {
+  padding: 0.75rem 0.25rem;
+  font-size: 0.875rem;
+}
+
+.stats-label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.stats-attempts {
+  color: #6c757d;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+}
+
+.stats-accuracy-bar {
+  width: 100px;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.accuracy-bar-container {
+  height: 8px;
+  background-color: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.accuracy-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.stats-accuracy-text {
+  text-align: right;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+}
+
+/* Accuracy color coding */
+.accuracy-success .accuracy-bar-fill {
+  background: linear-gradient(90deg, #28a745, #20c997);
+}
+
+.accuracy-success .stats-accuracy-text {
+  color: #28a745;
+}
+
+.accuracy-neutral .accuracy-bar-fill {
+  background: linear-gradient(90deg, #ffc107, #fd7e14);
+}
+
+.accuracy-neutral .stats-accuracy-text {
+  color: #fd7e14;
+}
+
+.accuracy-warning .accuracy-bar-fill {
+  background: linear-gradient(90deg, #dc3545, #e83e8c);
+}
+
+.accuracy-warning .stats-accuracy-text {
+  color: #dc3545;
+}
+
+/* Legend */
+.breakdown-legend {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #dee2e6;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: #6c757d;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+}
+
+.legend-color.accuracy-success {
+  background: linear-gradient(90deg, #28a745, #20c997);
+}
+
+.legend-color.accuracy-neutral {
+  background: linear-gradient(90deg, #ffc107, #fd7e14);
+}
+
+.legend-color.accuracy-warning {
+  background: linear-gradient(90deg, #dc3545, #e83e8c);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .stats-accuracy-bar {
+    width: 60px;
+  }
+
+  .stats-table thead th,
+  .stats-table td {
+    padding: 0.5rem 0.15rem;
+    font-size: 0.75rem;
+  }
+
+  .section-title {
+    font-size: 0.75rem;
+  }
+
+  .breakdown-legend {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
+/* Dark mode support (if implemented in future) */
+@media (prefers-color-scheme: dark) {
+  .chord-stats-breakdown {
+    background: linear-gradient(135deg, #2d3748, #1a202c);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .breakdown-title,
+  .section-title {
+    color: #e2e8f0;
+  }
+
+  .breakdown-section {
+    background: #1a202c;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .stats-table thead th {
+    color: #a0aec0;
+    border-bottom-color: #4a5568;
+  }
+
+  .stats-table tbody tr {
+    border-bottom-color: #2d3748;
+  }
+
+  .stats-table tbody tr:hover {
+    background-color: #2d3748;
+  }
+
+  .stats-label {
+    color: #e2e8f0;
+  }
+
+  .stats-attempts {
+    color: #a0aec0;
+  }
+
+  .accuracy-bar-container {
+    background-color: #2d3748;
+  }
+
+  .breakdown-legend {
+    border-top-color: #4a5568;
+  }
+
+  .legend-item {
+    color: #a0aec0;
+  }
+}
