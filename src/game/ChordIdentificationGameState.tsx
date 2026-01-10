@@ -62,8 +62,7 @@ export class ChordIdentificationGameState implements IGameMode {
   modeDisplay = (props: CommonDisplayProps) => {
     return React.createElement(ChordIdentificationModeDisplay, {
       ...props,
-      gameState: this,
-      onSubmitGuess: this.handleSubmitGuess
+      gameState: this
     });
   };
 
@@ -211,7 +210,31 @@ export class ChordIdentificationGameState implements IGameMode {
    * @param guess - The chord name guessed by the user
    * @returns GameActionResult indicating success or failure
    */
-  handleSubmitGuess = (guess: string): GameActionResult => {
+  handleSubmitGuess = (guess?: string): GameActionResult => {
+    // Guard against being called multiple times after completion
+    if (this.isCompleted) {
+      const targetChords = this.noteTrainingSettings.targetChords;
+      const accuracy = this.totalAttempts > 0
+        ? (this.correctChordsCount / this.totalAttempts) * 100
+        : 100;
+
+      const finalStats: GameStats = {
+        completionTime: this.elapsedTime,
+        accuracy: accuracy,
+        averageTimePerNote: this.elapsedTime / this.correctChordsCount,
+        longestStreak: this.longestStreak,
+        totalAttempts: this.totalAttempts,
+        correctAttempts: this.correctChordsCount
+      };
+
+      return {
+        gameCompleted: true,
+        feedback: `🎉 Chord Training Complete! ${this.correctChordsCount}/${targetChords} chords identified`,
+        shouldAdvance: false,
+        stats: finalStats
+      };
+    }
+
     if (!this.currentChord) {
       return {
         gameCompleted: false,
@@ -220,10 +243,11 @@ export class ChordIdentificationGameState implements IGameMode {
       };
     }
 
-    this.userGuess = guess;
+    // Use provided guess or fall back to stored guessedChordName
+    this.userGuess = guess || this.guessedChordName || '';
 
     // Validate the guess using the chord validation utility
-    const validationResult = validateChordGuess(guess, this.currentChord);
+    const validationResult = validateChordGuess(this.userGuess, this.currentChord);
 
     if (validationResult.isCorrect) {
       const result = this.handleCorrectGuess();
@@ -336,8 +360,14 @@ export class ChordIdentificationGameState implements IGameMode {
    * @param sessionResults - Results from the completed session
    * @returns Emoji string
    */
-  getCelebrationEmoji = (_sessionResults: Record<string, any>): string => {
-    return '🎵';
+  getCelebrationEmoji = (sessionResults: Record<string, any>): string => {
+    const accuracy = sessionResults.accuracy || 0;
+
+    if (accuracy >= 95) return '🌟';
+    if (accuracy >= 85) return '🎯';
+    if (accuracy >= 75) return '🎵';
+    if (accuracy >= 65) return '📚';
+    return '💪';
   };
 
   /**

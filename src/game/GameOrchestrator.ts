@@ -1091,11 +1091,15 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
           }
           break;
         case 'submit':
+          console.log('[Orchestrator] Submit action received');
           if (this.currentStrategy.handleSubmitClick) {
+            console.log('[Orchestrator] Calling strategy.handleSubmitClick');
             this.currentStrategy.handleSubmitClick(context);
 
             // Validate and advance after submit
+            console.log('[Orchestrator] Calling strategy.validateAndAdvance');
             const result = this.currentStrategy.validateAndAdvance(context);
+            console.log('[Orchestrator] validateAndAdvance result:', result);
 
             // Send result to state machine
             this.send({
@@ -1106,17 +1110,28 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
 
             // Handle auto-advance if needed
             if (result.shouldAdvance && !result.gameCompleted) {
+              console.log('[Orchestrator] Handling auto-advance');
               this.handleAutoAdvance(1000);
             }
 
             // Handle game completion
+            console.log('[Orchestrator] Checking game completion:', {
+              gameCompleted: result.gameCompleted,
+              hasStats: !!result.stats
+            });
             if (result.gameCompleted && result.stats) {
+              console.log('[Orchestrator] Game completed! Calling complete() and emitting sessionComplete');
               this.complete();
               this.emit('sessionComplete', {
                 session: this.createGameSession(result.stats),
                 stats: result.stats,
               });
+              console.log('[Orchestrator] sessionComplete event emitted');
+            } else {
+              console.log('[Orchestrator] NOT emitting sessionComplete - gameCompleted:', result.gameCompleted, 'hasStats:', !!result.stats);
             }
+          } else {
+            console.warn('[Orchestrator] No handleSubmitClick method on strategy');
           }
           break;
     }

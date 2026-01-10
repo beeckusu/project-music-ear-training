@@ -66,7 +66,6 @@ export class SingleChordGameState implements IGameMode {
       ...props,
       gameState: this,
       onPianoKeyClick: this.handleNoteSelection,
-      onSubmitAnswer: this.handleSubmitAnswer,
       onClearSelection: this.clearSelection
     });
   };
@@ -265,6 +264,30 @@ export class SingleChordGameState implements IGameMode {
    * @returns GameActionResult indicating success, failure, or partial completion
    */
   handleSubmitAnswer = (): GameActionResult => {
+    // Guard against being called multiple times after completion
+    if (this.isCompleted) {
+      const targetChords = this.noteTrainingSettings.targetChords;
+      const noteAccuracy = this.totalNotesAttempted > 0
+        ? (this.totalNotesCorrect / this.totalNotesAttempted) * 100
+        : 100;
+
+      const finalStats: GameStats = {
+        completionTime: this.elapsedTime,
+        accuracy: noteAccuracy,
+        averageTimePerNote: this.elapsedTime / this.correctChordsCount,
+        longestStreak: this.longestStreak,
+        totalAttempts: this.totalAttempts,
+        correctAttempts: this.correctChordsCount
+      };
+
+      return {
+        gameCompleted: true,
+        feedback: `🎉 Note Training Complete! ${this.correctChordsCount}/${targetChords} chords identified`,
+        shouldAdvance: false,
+        stats: finalStats
+      };
+    }
+
     if (!this.currentChord) {
       return {
         gameCompleted: false,
@@ -409,7 +432,13 @@ export class SingleChordGameState implements IGameMode {
    * @returns Emoji string
    */
   getCelebrationEmoji = (sessionResults: Record<string, any>): string => {
-    return '🎵';
+    const accuracy = sessionResults.accuracy || 0;
+
+    if (accuracy >= 95) return '🌟';
+    if (accuracy >= 85) return '🎯';
+    if (accuracy >= 75) return '🎵';
+    if (accuracy >= 65) return '📚';
+    return '💪';
   };
 
   /**

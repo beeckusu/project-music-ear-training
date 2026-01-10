@@ -123,9 +123,12 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
       });
 
       orchestratorRef.current.on('sessionComplete', ({ session, stats }) => {
-        if (LOGS_EVENTS_ENABLED) {
-          console.log('[NoteIdentification] Event received: sessionComplete', { session, stats });
-        }
+        console.log('[NoteIdentification] ========================================');
+        console.log('[NoteIdentification] sessionComplete event received!');
+        console.log('[NoteIdentification] Session:', session);
+        console.log('[NoteIdentification] Stats:', stats);
+        console.log('[NoteIdentification] Setting isEndModalOpen to true');
+        console.log('[NoteIdentification] ========================================');
         addSession(session);
         setGameStats(stats);
         setIsEndModalOpen(true);
@@ -356,33 +359,24 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
   /**
    * Handle submit button click using callback pattern
    * For chord training modes that need explicit submission
-   * NOTE: Currently unused - SingleChordModeDisplay handles its own submission
-   * Kept for potential future chord training modes
    */
-  /*
   const handleSubmitClick = useCallback(() => {
-    if (LOGS_USER_ACTIONS_ENABLED) {
-      console.log('[NoteIdentification] Submit button clicked');
-    }
+    console.log('[NoteIdentification] handleSubmitClick called');
 
     // Get current round context from orchestrator
     const context = orchestratorRef.current?.getRoundContext();
+    console.log('[NoteIdentification] Context:', context);
 
     if (!context) {
       console.warn('[NoteIdentification] No context available for submit click');
       return;
     }
 
-    // Call gameState callback if available (strategy pattern)
-    if (gameState?.onSubmitClick) {
-      gameState.onSubmitClick(context);
-    }
-
-    // For future chord training implementation:
-    // The submit callback will handle preparing the final answer in the context,
-    // then we'll submit it to the orchestrator
-  }, [gameState]);
-  */
+    // Submit through orchestrator using handleUserAction
+    console.log('[NoteIdentification] Calling orchestrator.handleUserAction with type: submit');
+    orchestratorRef.current?.handleUserAction({ type: 'submit' }, context);
+    console.log('[NoteIdentification] handleUserAction called');
+  }, []);
 
   // Compute piano highlights from note identification state
   const pianoHighlights = useMemo((): NoteHighlight[] => {
@@ -422,11 +416,32 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
           onTimerUpdate: setTimeRemaining,
           onAdvanceRound: (delayMs = 1000) => {
             orchestratorRef.current?.handleAutoAdvance(delayMs);
-          }
+          },
+          onSubmitClick: handleSubmitClick,
+          onPlayAgain: handlePlayAgain,
+          completionControls: isGameCompleted && (gameState.getMode().includes('chord') || gameState.getMode().includes('notes')) ? (
+            <div className="controls" style={{ marginTop: '1rem' }}>
+              <div className="completion-controls">
+                <p className="completion-message">
+                  {gameState?.getCompletionMessage() || "🎉 Game Complete!"}
+                </p>
+                <div className="completion-actions">
+                  <button onClick={handleShowScores} className="primary-button">
+                    📊 View Scores
+                  </button>
+                  <button onClick={handlePlayAgain} className="secondary-button">
+                    🔄 Play Again
+                  </button>
+                  <button onClick={handleChangeSettings} className="secondary-button">
+                    ⚙️ Change Settings
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : undefined
         }) : <div>Loading game state...</div>}
 
-        {/* Only render controls for ear training modes */}
-        {/* Chord training modes have their own controls in modeDisplay */}
+        {/* Render controls for ear training modes only (chord/note modes handled above) */}
         {gameState && !gameState.getMode().includes('chord') && !gameState.getMode().includes('notes') && (
           <div className="controls">
             {isGameCompleted ? (
@@ -511,6 +526,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
           sessionResults={gameState.getSessionResults(gameStats)}
           onPlayAgain={handlePlayAgain}
           onChangeSettings={handleChangeSettings}
+          onViewScores={handleShowScores}
         />
       )}
     </div>

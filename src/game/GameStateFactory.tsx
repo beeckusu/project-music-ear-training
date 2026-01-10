@@ -35,6 +35,10 @@ export interface CommonDisplayProps {
   onAdvanceRound?: (delayMs?: number) => void;
   // Callback to restart the current session (for Play Again functionality)
   onPlayAgain?: () => void;
+  // Callback for submit button click (for chord training modes)
+  onSubmitClick?: () => void;
+  // Completion controls to render (for chord/note training modes)
+  completionControls?: React.ReactNode;
 }
 
 
