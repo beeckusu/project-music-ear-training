@@ -1,0 +1,251 @@
+/* MIDI Disconnection Modal Backdrop */
+.midi-disconnection-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000; /* Above settings modal (1000) */
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* MIDI Disconnection Modal */
+.midi-disconnection-modal {
+  background: white;
+  border-radius: 12px;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Modal Header */
+.midi-disconnection-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.midi-disconnection-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.midi-disconnection-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* Modal Body */
+.midi-disconnection-body {
+  padding: 24px;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.midi-disconnection-body p {
+  margin: 0 0 12px 0;
+}
+
+.midi-disconnection-body p:last-child {
+  margin-bottom: 0;
+}
+
+.midi-disconnection-body strong {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+/* Modal Actions */
+.midi-disconnection-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 24px 24px;
+}
+
+/* Buttons */
+.midi-disconnection-button {
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  width: 100%;
+}
+
+.midi-disconnection-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+/* Primary Button - Wait for Reconnection */
+.midi-disconnection-button.primary {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.midi-disconnection-button.primary:hover {
+  background-color: #2563eb;
+}
+
+.midi-disconnection-button.primary:active {
+  background-color: #1d4ed8;
+}
+
+/* Secondary Button - Continue with Keyboard */
+.midi-disconnection-button.secondary {
+  background-color: #10b981;
+  color: white;
+}
+
+.midi-disconnection-button.secondary:hover {
+  background-color: #059669;
+}
+
+.midi-disconnection-button.secondary:active {
+  background-color: #047857;
+}
+
+/* Tertiary Button - Stay Paused */
+.midi-disconnection-button.tertiary {
+  background-color: #e5e7eb;
+  color: #4b5563;
+}
+
+.midi-disconnection-button.tertiary:hover {
+  background-color: #d1d5db;
+}
+
+.midi-disconnection-button.tertiary:active {
+  background-color: #9ca3af;
+  color: white;
+}
+
+/* Reconnection Waiting Indicator */
+.midi-reconnection-waiting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+  border-radius: 0 0 12px 12px;
+}
+
+.midi-reconnection-waiting p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+/* Spinner Animation */
+.midi-reconnection-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .midi-disconnection-modal {
+    background: #1f2937;
+  }
+
+  .midi-disconnection-header {
+    border-bottom-color: #374151;
+  }
+
+  .midi-disconnection-header h2 {
+    color: #f9fafb;
+  }
+
+  .midi-disconnection-body {
+    color: #d1d5db;
+  }
+
+  .midi-disconnection-body strong {
+    color: #f9fafb;
+  }
+
+  .midi-reconnection-waiting {
+    background-color: #111827;
+    border-top-color: #374151;
+  }
+
+  .midi-reconnection-waiting p {
+    color: #9ca3af;
+  }
+
+  .midi-reconnection-spinner {
+    border-color: #374151;
+    border-top-color: #3b82f6;
+  }
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+  .midi-disconnection-modal {
+    max-width: 100%;
+    margin: 16px;
+  }
+
+  .midi-disconnection-header {
+    padding: 20px 20px 12px;
+  }
+
+  .midi-disconnection-body {
+    padding: 20px;
+  }
+
+  .midi-disconnection-actions {
+    padding: 12px 20px 20px;
+  }
+
+  .midi-disconnection-button {
+    padding: 10px 16px;
+    font-size: 0.875rem;
+  }
+}

@@ -11,6 +11,7 @@ Welcome to the MIDI Keyboard Setup Guide for the Music Practice App! This guide 
   - [Browser Permissions](#browser-permissions)
   - [Testing MIDI Connection](#testing-midi-connection)
 - [Using MIDI with Practice Modes](#using-midi-with-practice-modes)
+- [Device Connection and Disconnection](#device-connection-and-disconnection)
 - [MIDI Technical Reference](#midi-technical-reference)
 - [Troubleshooting](#troubleshooting)
 - [Supported MIDI Keyboards](#supported-midi-keyboards)
@@ -166,6 +167,167 @@ When practicing chord identification:
 **Sustain Pedal Support:**
 - If your keyboard has a sustain pedal, check if the app supports it (feature-dependent)
 - The sustain pedal may help hold chord notes for easier input
+
+---
+
+## Device Connection and Disconnection
+
+The Music Practice App automatically detects when MIDI devices are connected or disconnected, providing a seamless experience as you plug and unplug devices.
+
+### Connection Status Indicators
+
+The app displays the current MIDI connection status using visual indicators:
+
+- **Green indicator (●)**: Connected to a MIDI device - ready to use
+- **Yellow/Orange indicator (●)**: MIDI devices available but not connected/selected
+- **Red indicator (●)**: No MIDI devices detected
+- **Gray indicator (●)**: Web MIDI API not supported in this browser
+- **Blue pulsing indicator (●)**: Initializing MIDI connection
+
+You can find the connection status indicator in the settings panel or main interface (location depends on app layout).
+
+### Automatic Device Detection
+
+#### When You Plug In a Device
+
+1. **Real-Time Detection**: The app automatically detects when you connect a MIDI keyboard
+2. **Device List Updates**: The device selector in settings updates immediately to show the new device
+3. **No Refresh Needed**: You don't need to refresh the page or restart the app
+4. **Visual Confirmation**: The device appears in the MIDI device dropdown in settings
+
+**To Start Using the New Device:**
+1. Open Settings (gear icon)
+2. Navigate to Audio settings or MIDI settings section
+3. Select your newly connected device from the dropdown
+4. Click away or close settings - the device is now active
+
+#### When You Unplug a Device
+
+The app handles device disconnections gracefully to prevent interruptions:
+
+**If Disconnection Happens During Practice:**
+
+1. **Session Pauses Automatically**: The practice session pauses immediately
+2. **Modal Notification**: A dialog appears informing you of the disconnection
+3. **Three Options Provided**:
+   - **Wait for Reconnection**: Keep the session paused until you reconnect the device
+   - **Continue with On-Screen Keyboard**: Resume practice using mouse clicks on the virtual piano
+   - **Stay Paused**: Leave the session paused (you can resume later manually)
+
+**If Disconnection Happens Outside Practice:**
+
+- **Non-Blocking Notification**: A brief notification appears (if implemented)
+- **Device List Updates**: The disconnected device is removed from the device selector
+- **Status Indicator Changes**: Connection status updates to "Disconnected" or "No Devices"
+- **No Interruption**: You can continue using the app with on-screen keyboard
+
+### Automatic Reconnection
+
+The app features intelligent automatic reconnection:
+
+#### How It Works
+
+1. **Device Memory**: The app remembers your last selected MIDI device
+2. **On App Launch**: When you open the app, it automatically tries to connect to your previously used device
+3. **On Device Reconnect**: If you unplug and replug the same device, it reconnects automatically
+
+#### During Practice Sessions
+
+If you're waiting for a disconnected device to reconnect:
+
+1. **Automatic Detection**: When the device is plugged back in, the app detects it immediately
+2. **Auto-Resume Option**: If you chose "Wait for Reconnection", the session resumes automatically
+3. **Visual Feedback**: The connection status indicator turns green when reconnected
+4. **Seamless Continuation**: Practice continues from where it was paused
+
+**Example Workflow:**
+```
+1. Practicing with MIDI keyboard
+2. USB cable accidentally unplugs
+3. Modal appears: "MIDI Device Disconnected"
+4. You click "Wait for Reconnection"
+5. You plug the USB cable back in
+6. Session automatically resumes
+7. Continue practicing!
+```
+
+### Multiple Devices
+
+If you have multiple MIDI keyboards or controllers:
+
+#### Device Selection
+
+1. **View All Devices**: Open Settings → Audio/MIDI settings
+2. **See Available Devices**: All connected MIDI input devices are listed in the dropdown
+3. **Select Preferred Device**: Click on the device you want to use
+4. **Instant Activation**: The selected device becomes active immediately
+
+#### Device Priority
+
+- **Active Device**: Only one MIDI device can be active at a time
+- **Switching Devices**: To switch, simply select a different device from the dropdown
+- **No Need to Disconnect**: You don't need to unplug other devices - just select the one you want
+
+#### Real-Time Updates
+
+- **Plug and Play**: As you connect/disconnect devices, the list updates in real-time
+- **No Page Refresh**: Changes are reflected immediately without reloading
+- **Settings Stay Open**: The settings panel stays open as devices connect/disconnect, so you can immediately select a new device
+
+### Connection State Persistence
+
+The app remembers your MIDI setup across sessions:
+
+- **Device Preference Saved**: Your last selected MIDI device ID is stored in browser local storage
+- **Auto-Connect on Launch**: When you return to the app, it tries to connect to your saved device
+- **Survives Page Refresh**: Your device selection persists even if you refresh the page
+- **Per-Browser Storage**: Each browser/device combination has its own saved preferences
+
+**Note**: If you clear your browser data or use a different browser, you'll need to reselect your MIDI device.
+
+### Troubleshooting Connection Events
+
+#### Device Doesn't Reconnect Automatically
+
+**Possible Causes:**
+- Device has a different ID after reconnection (some devices)
+- USB port change assigned a new device ID
+- Browser MIDI access needs re-permission
+
+**Solutions:**
+1. Manually select the device again from Settings → MIDI device dropdown
+2. Refresh the page after reconnecting
+3. Check that the device appears in the dropdown (if not, see [MIDI Keyboard Not Detected](#midi-keyboard-not-detected))
+
+#### "MIDI Device Disconnected" Modal Won't Dismiss
+
+**Possible Causes:**
+- Device is still physically disconnected
+- Browser hasn't detected the reconnection yet
+
+**Solutions:**
+1. Ensure the USB cable is fully plugged in
+2. Try clicking "Continue with On-Screen Keyboard" to proceed without MIDI
+3. Close and reopen the app if the modal is stuck
+
+#### Device Connects but Doesn't Produce Sound/Input
+
+**Possible Causes:**
+- Device is detected but not selected as active input
+- Different device is selected in settings
+
+**Solutions:**
+1. Open Settings → MIDI device selector
+2. Verify the correct device is selected in the dropdown
+3. If not, click on your device to select it
+4. Test by playing a key on the keyboard
+
+#### Multiple Notifications for Same Event
+
+**If you see multiple connection/disconnection notifications:**
+- This may indicate a loose USB connection
+- Try a different USB cable or port
+- Check for physical connection issues with your keyboard
 
 ---
 
@@ -581,6 +743,35 @@ Both types work with the app, but velocity-sensitive keyboards provide a more re
 - **MIDI OUT**: Use this port - it sends the notes you play to the computer
 - **MIDI THRU**: This echoes incoming MIDI data and isn't needed for this app
 - **MIDI IN**: This receives MIDI data (not used when the keyboard is the input device)
+
+### What happens if my MIDI keyboard disconnects during practice?
+
+The app handles disconnections gracefully:
+1. **Practice pauses automatically** to prevent data loss or confusion
+2. **A modal notification appears** with three options:
+   - Wait for reconnection (recommended if cable was accidentally unplugged)
+   - Continue with on-screen keyboard
+   - Stay paused
+3. **Auto-resume**: If you're waiting and reconnect the same device, practice resumes automatically
+
+### Does the app remember my MIDI keyboard?
+
+Yes! The app stores your selected MIDI device in browser local storage:
+- **Automatic reconnection**: When you reopen the app, it tries to connect to your last used device
+- **Persists across page refreshes**: Your device selection is saved
+- **Per-browser**: Each browser has its own saved device preference
+
+Note: If you clear browser data or use a different browser, you'll need to reselect your device.
+
+### Can I switch MIDI keyboards without closing the app?
+
+Absolutely! The app detects device changes in real-time:
+1. Open Settings → MIDI device selector
+2. Your newly connected device appears in the dropdown automatically
+3. Click to select it - no page refresh needed
+4. Start using the new device immediately
+
+The device list updates as you plug/unplug keyboards.
 
 ---
 
