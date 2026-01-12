@@ -1,0 +1,96 @@
+/* MIDI Connection Status Container */
+.midi-connection-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  user-select: none;
+}
+
+/* Status Icon */
+.midi-status-icon {
+  display: inline-block;
+  font-size: 1rem;
+  line-height: 1;
+  transition: color 0.3s ease;
+}
+
+/* Status Text */
+.midi-status-text {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Status States - Connected (Green) */
+.midi-status-connected {
+  color: #10b981; /* Green-500 */
+}
+
+/* Status States - Disconnected but devices available (Yellow/Orange) */
+.midi-status-disconnected {
+  color: #f59e0b; /* Amber-500 */
+}
+
+/* Status States - No devices (Red) */
+.midi-status-no-devices {
+  color: #ef4444; /* Red-500 */
+}
+
+/* Status States - Not supported (Gray) */
+.midi-status-unsupported {
+  color: #9ca3af; /* Gray-400 */
+}
+
+/* Status States - Initializing (Blue) */
+.midi-status-initializing {
+  color: #3b82f6; /* Blue-500 */
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Status States - Error (Red) */
+.midi-status-error {
+  color: #ef4444; /* Red-500 */
+}
+
+/* Pulse animation for initializing state */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Dark mode support (if needed) */
+@media (prefers-color-scheme: dark) {
+  .midi-status-connected {
+    color: #34d399; /* Brighter green for dark mode */
+  }
+
+  .midi-status-disconnected {
+    color: #fbbf24; /* Brighter amber for dark mode */
+  }
+
+  .midi-status-no-devices,
+  .midi-status-error {
+    color: #f87171; /* Brighter red for dark mode */
+  }
+
+  .midi-status-unsupported {
+    color: #d1d5db; /* Lighter gray for dark mode */
+  }
+
+  .midi-status-initializing {
+    color: #60a5fa; /* Brighter blue for dark mode */
+  }
+}
+
+/* Compact variant (smaller icon) */
+.midi-connection-status.compact .midi-status-icon {
+  font-size: 0.75rem;
+}
+
+.midi-connection-status.compact .midi-status-text {
+  font-size: 0.75rem;
+}
