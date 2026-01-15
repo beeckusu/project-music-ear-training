@@ -113,7 +113,7 @@ export class MidiManager extends EventEmitter<MidiManagerEvents> {
       if (this.selectedInputId) {
         const device = this.midiAccess.inputs.get(this.selectedInputId);
         if (device && device.state === 'connected') {
-          this.attachInputListener(device);
+          await this.attachInputListener(device);
           this.updateStatus('connected');
         } else {
           this.selectedInputId = null;
@@ -200,7 +200,7 @@ export class MidiManager extends EventEmitter<MidiManagerEvents> {
    * @param deviceId - The ID of the device to select
    * @throws {Error} If MIDI is not initialized or device not found
    */
-  public selectInputDevice(deviceId: string): void {
+  public async selectInputDevice(deviceId: string): Promise<void> {
     if (!this.midiAccess) {
       throw new Error('MIDI not initialized. Call initialize() first.');
     }
@@ -220,7 +220,7 @@ export class MidiManager extends EventEmitter<MidiManagerEvents> {
 
     // Attach listener to new device
     this.selectedInputId = deviceId;
-    this.attachInputListener(device);
+    await this.attachInputListener(device);
     this.updateStatus('connected');
   }
 
@@ -276,8 +276,10 @@ export class MidiManager extends EventEmitter<MidiManagerEvents> {
 
       // If this was our selected device, reattach listener
       if (port.id === this.selectedInputId) {
-        this.attachInputListener(port as MIDIInput);
-        this.updateStatus('connected');
+        // Fire and forget - don't await in event handler
+        this.attachInputListener(port as MIDIInput).then(() => {
+          this.updateStatus('connected');
+        });
       }
     } else if (port.state === 'disconnected') {
       this.emit('deviceDisconnected', deviceInfo);
@@ -293,7 +295,17 @@ export class MidiManager extends EventEmitter<MidiManagerEvents> {
    * Attaches MIDI message listener to an input device
    * @private
    */
-  private attachInputListener(input: MIDIInput): void {
+  private async attachInputListener(input: MIDIInput): Promise<void> {
+    // Open the MIDI port if it's not already open
+    if (input.connection !== 'open') {
+      try {
+        await input.open();
+      } catch (err) {
+        console.error('[MidiManager] Failed to open MIDI port:', err);
+        return;
+      }
+    }
+
     input.onmidimessage = (event: MIDIMessageEvent) => {
       this.handleMidiMessage(event);
     };
