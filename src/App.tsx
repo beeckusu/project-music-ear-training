@@ -73,7 +73,7 @@ function AppContent() {
     }
 
     // Handler for auto-selecting device when it connects
-    const handleDeviceConnected = (device: any) => {
+    const handleDeviceConnected = async (device: any) => {
       // Don't auto-select during initial setup to avoid infinite loops
       if (!midiInitialized.current) return
 
@@ -81,7 +81,7 @@ function AppContent() {
 
       // If no device is currently selected, or the selected device is disconnected, auto-select this newly connected device
       if (!selectedDevice || selectedDevice.state !== 'connected') {
-        midiManager.selectInputDevice(device.id)
+        await midiManager.selectInputDevice(device.id)
         console.log('Auto-selected newly connected MIDI device:', device.name, 'ID:', device.id)
       }
 
@@ -111,7 +111,7 @@ function AppContent() {
 
             if (savedDevice && savedDevice.state === 'connected') {
               // Auto-connect to previously selected device
-              midiManager.selectInputDevice(savedDeviceId)
+              await midiManager.selectInputDevice(savedDeviceId)
               console.log('Auto-connected to MIDI device:', savedDevice.name)
             } else {
               // Device no longer available
@@ -120,7 +120,7 @@ function AppContent() {
           } else if (availableDevices.length > 0) {
             // No saved device, but devices are available - auto-select first device
             const firstDevice = availableDevices[0]
-            midiManager.selectInputDevice(firstDevice.id)
+            await midiManager.selectInputDevice(firstDevice.id)
             console.log('Auto-selected first MIDI device:', firstDevice.name)
           }
 

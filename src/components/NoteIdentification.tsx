@@ -15,6 +15,7 @@ import type { GuessAttempt, GameStats } from '../types/game';
 import type { IGameMode } from '../game/IGameMode';
 import { useSettings } from '../hooks/useSettings';
 import { useGameHistory } from '../hooks/useGameHistory';
+import { MidiManager } from '../services/MidiManager';
 import { SETTINGS_TABS } from '../constants';
 import { GameOrchestrator } from '../game/GameOrchestrator';
 import { RoundState } from '../machines/types';
@@ -395,6 +396,34 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
 
     return highlights;
   }, [userGuess, correctNoteHighlight]);
+
+  // MIDI input integration - listen to MidiManager for note events
+  useEffect(() => {
+    const midiManager = MidiManager.getInstance();
+
+    const handleMidiNoteOn = (event: { note: NoteWithOctave }) => {
+      // Only process MIDI input when game is active and waiting for input
+      if (isWaitingInput && !isPaused) {
+        handlePianoKeyClick(event.note);
+      }
+    };
+
+    const handleMidiNoteOff = (event: { note: NoteWithOctave }) => {
+      if (LOGS_USER_ACTIONS_ENABLED) {
+        console.log('[NoteIdentification] MIDI note off:', event.note.note);
+      }
+    };
+
+    // Subscribe to MIDI events
+    midiManager.on('noteOn', handleMidiNoteOn);
+    midiManager.on('noteOff', handleMidiNoteOff);
+
+    // Cleanup
+    return () => {
+      midiManager.off('noteOn', handleMidiNoteOn);
+      midiManager.off('noteOff', handleMidiNoteOff);
+    };
+  }, [isWaitingInput, isPaused, handlePianoKeyClick]);
 
   return (
     <div className="note-identification">
