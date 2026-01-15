@@ -413,12 +413,90 @@ export class SingleChordGameState implements IGameMode {
    * @returns Session results object
    */
   getSessionResults = (stats: GameStats): Record<string, any> => {
+    // Calculate chord type statistics
+    const chordTypeStats = this.calculateChordTypeStats();
+
+    // Calculate first-try accuracy (chords correct on first attempt)
+    const firstTryCorrect = this.guessHistory.filter((attempt, index, arr) => {
+      // Count only correct attempts where there's no previous attempt for the same chord
+      if (!attempt.isCorrect) return false;
+
+      // Check if this is the first attempt for this chord
+      const previousAttempts = arr.slice(0, index);
+      const hasPreviousAttempt = previousAttempts.some(
+        prev => prev.actualChord.name === attempt.actualChord.name &&
+                prev.timestamp.getTime() < attempt.timestamp.getTime()
+      );
+
+      return !hasPreviousAttempt;
+    }).length;
+
     return {
       chordsCompleted: stats.correctAttempts,
       longestStreak: stats.longestStreak,
       averageTimePerChord: stats.averageTimePerNote,
-      accuracy: stats.accuracy
+      accuracy: stats.accuracy,
+      // Chord-specific data for historical tracking
+      chordTypeStats,
+      guessHistory: this.serializeGuessHistory(),
+      firstTryCorrect,
+      totalChordsAttempted: this.guessHistory.length,
+      subMode: this.noteTrainingSettings.selectedSubMode
     };
+  };
+
+  /**
+   * Calculates statistics grouped by chord type.
+   * Tracks attempts, correct count, and accuracy for each chord type encountered.
+   *
+   * @returns Object mapping chord names to their statistics
+   */
+  private calculateChordTypeStats = (): Record<string, {
+    attempts: number;
+    correct: number;
+    accuracy: number;
+  }> => {
+    const stats: Record<string, { attempts: number; correct: number; accuracy: number }> = {};
+
+    for (const attempt of this.guessHistory) {
+      const chordName = attempt.actualChord.name;
+
+      if (!stats[chordName]) {
+        stats[chordName] = { attempts: 0, correct: 0, accuracy: 0 };
+      }
+
+      stats[chordName].attempts++;
+      if (attempt.isCorrect) {
+        stats[chordName].correct++;
+      }
+    }
+
+    // Calculate accuracy percentages
+    for (const chordName in stats) {
+      const { attempts, correct } = stats[chordName];
+      stats[chordName].accuracy = attempts > 0 ? (correct / attempts) * 100 : 0;
+    }
+
+    return stats;
+  };
+
+  /**
+   * Serializes the guess history into a format suitable for localStorage.
+   * Converts Date objects to ISO strings and simplifies chord data.
+   *
+   * @returns Serializable array of guess attempts
+   */
+  private serializeGuessHistory = (): any[] => {
+    return this.guessHistory.map(attempt => ({
+      id: attempt.id,
+      timestamp: attempt.timestamp.toISOString(),
+      chordName: attempt.actualChord.name,
+      isCorrect: attempt.isCorrect,
+      accuracy: attempt.accuracy,
+      correctNotesCount: attempt.correctNotes?.length || 0,
+      missedNotesCount: attempt.missedNotes?.length || 0,
+      incorrectNotesCount: attempt.incorrectNotes?.length || 0
+    }));
   };
 
   // ========================================

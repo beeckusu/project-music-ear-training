@@ -823,6 +823,13 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
       if (LOGS_TIMERS_ENABLED) {
         console.log('[Orchestrator] Auto-advance timer fired');
       }
+
+      // Check if game is completed before advancing
+      if (this.gameMode?.isGameComplete && this.gameMode.isGameComplete()) {
+        this.handleExternalCompletion();
+        return;
+      }
+
       // Advance to next round in state machine
       this.send({ type: GameAction.ADVANCE_ROUND });
 
@@ -909,10 +916,10 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
    */
   private handleExternalCompletion(): void {
     console.log('[GameOrchestrator] handleExternalCompletion called - gameMode.isCompleted:', this.gameMode?.isCompleted);
-    if (this.gameMode?.isCompleted) {
-      console.log('[GameOrchestrator] Game mode already completed, returning');
-      return; // Already completed
-    }
+
+    // Don't skip if already completed - we still need to save the session!
+    // The isCompleted flag just prevents the game from continuing, but we still need
+    // to emit sessionComplete so the session is saved to localStorage.
 
     // Mark game mode as completed FIRST to prevent infinite loop
     if (this.gameMode) {
@@ -946,8 +953,9 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
     }
 
     // Emit sessionComplete event
+    const session = this.createGameSession(stats);
     this.emit('sessionComplete', {
-      session: this.createGameSession(stats),
+      session,
       stats: stats,
     });
   }

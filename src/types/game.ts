@@ -129,6 +129,51 @@ export interface SandboxGameState extends BaseGameState {
   correctAttempts: number;
 }
 
+/**
+ * Chord-specific statistics for a single chord type.
+ * Used in Note Training session results to track performance per chord.
+ */
+export interface ChordTypeStats {
+  attempts: number;
+  correct: number;
+  accuracy: number;
+}
+
+/**
+ * Serialized chord guess attempt for history tracking.
+ * Simplified version of ChordGuessAttempt for localStorage storage.
+ */
+export interface SerializedChordGuessAttempt {
+  id: string;
+  timestamp: string; // ISO string
+  chordName: string;
+  isCorrect: boolean;
+  // For SingleChord mode (Show Chord, Guess Notes)
+  accuracy?: number;
+  correctNotesCount?: number;
+  missedNotesCount?: number;
+  incorrectNotesCount?: number;
+  // For ChordIdentification mode (Show Notes, Guess Chord)
+  guessedChordName?: string;
+}
+
+/**
+ * Enhanced session results for Note Training modes.
+ * Extends the base session results with chord-specific tracking data.
+ */
+export interface NoteTrainingSessionResults {
+  chordsCompleted: number;
+  longestStreak: number;
+  averageTimePerChord: number;
+  accuracy: number;
+  // Chord-specific data for historical tracking and analysis
+  chordTypeStats: Record<string, ChordTypeStats>;
+  guessHistory: SerializedChordGuessAttempt[];
+  firstTryCorrect: number;
+  totalChordsAttempted: number;
+  subMode: NoteTrainingSubMode;
+}
+
 export interface GameSession {
   mode: string;
   timestamp: Date;
@@ -136,7 +181,7 @@ export interface GameSession {
   accuracy: number;
   totalAttempts: number;
   settings: Record<string, any>;
-  results: Record<string, any>;
+  results: Record<string, any> | NoteTrainingSessionResults;
 }
 
 export interface GameStats {
