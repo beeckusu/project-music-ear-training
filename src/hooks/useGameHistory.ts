@@ -9,6 +9,8 @@ export interface GameHistoryHook {
   getSessionHistory: (mode: string, settingsFilter?: Record<string, any>) => GameSession[];
   clearHistory: (mode?: string) => void;
   getRecentSessions: (mode: string, limit?: number) => GameSession[];
+  getNoteTrainingSessions: (limit?: number) => GameSession[];
+  getSessionsBySubMode: (subMode: string, limit?: number) => GameSession[];
 }
 
 export const useGameHistory = (): GameHistoryHook => {
@@ -92,11 +94,62 @@ export const useGameHistory = (): GameHistoryHook => {
     }
   }, []);
 
+  /**
+   * Gets all Note Training sessions (both sub-modes).
+   * Filters for sessions with mode containing 'note-training' or specific sub-mode identifiers.
+   *
+   * @param limit - Maximum number of sessions to return (default: unlimited)
+   * @returns Array of Note Training sessions sorted by timestamp (newest first)
+   */
+  const getNoteTrainingSessions = useCallback((limit?: number) => {
+    const noteTrainingSessions = history
+      .filter(session => {
+        // Check if it's a Note Training session by looking at the mode or results
+        const isNoteTrainingMode = session.mode.includes('note-training') ||
+                                   session.mode.includes('show-chord-guess-notes') ||
+                                   session.mode.includes('show-notes-guess-chord');
+
+        // Also check if results have subMode property (Note Training specific)
+        const hasSubMode = session.results && 'subMode' in session.results;
+
+        return isNoteTrainingMode || hasSubMode;
+      })
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+    return limit ? noteTrainingSessions.slice(0, limit) : noteTrainingSessions;
+  }, [history]);
+
+  /**
+   * Gets sessions filtered by Note Training sub-mode.
+   * Useful for filtering between "Show Chord, Guess Notes" and "Show Notes, Guess Chord".
+   *
+   * @param subMode - The Note Training sub-mode to filter by
+   * @param limit - Maximum number of sessions to return (default: unlimited)
+   * @returns Array of sessions for the specified sub-mode sorted by timestamp (newest first)
+   */
+  const getSessionsBySubMode = useCallback((subMode: string, limit?: number) => {
+    const filteredSessions = history
+      .filter(session => {
+        // Check if the session has subMode in results
+        if (session.results && 'subMode' in session.results) {
+          return session.results.subMode === subMode;
+        }
+
+        // Fallback: check if the mode string matches
+        return session.mode === subMode;
+      })
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+    return limit ? filteredSessions.slice(0, limit) : filteredSessions;
+  }, [history]);
+
   return {
     history,
     addSession,
     getSessionHistory,
     clearHistory,
-    getRecentSessions
+    getRecentSessions,
+    getNoteTrainingSessions,
+    getSessionsBySubMode
   };
 };
