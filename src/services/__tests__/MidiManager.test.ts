@@ -290,8 +290,8 @@ describe('MidiManager', () => {
       expect(midiManager.hasDevices()).toBe(false);
     });
 
-    it('should select a MIDI input device', () => {
-      midiManager.selectInputDevice('device-1');
+    it('should select a MIDI input device', async () => {
+      await midiManager.selectInputDevice('device-1');
 
       const selectedDevice = midiManager.getSelectedDevice();
 
@@ -302,25 +302,25 @@ describe('MidiManager', () => {
       expect(midiManager.getConnectionStatus()).toBe('connected');
     });
 
-    it('should throw error when selecting non-existent device', () => {
-      expect(() => {
-        midiManager.selectInputDevice('non-existent');
-      }).toThrow('MIDI input device with ID non-existent not found');
+    it('should throw error when selecting non-existent device', async () => {
+      await expect(async () => {
+        await midiManager.selectInputDevice('non-existent');
+      }).rejects.toThrow('MIDI input device with ID non-existent not found');
     });
 
-    it('should throw error when selecting device before initialization', () => {
+    it('should throw error when selecting device before initialization', async () => {
       midiManager.disconnect();
 
-      expect(() => {
-        midiManager.selectInputDevice('device-1');
-      }).toThrow('MIDI not initialized. Call initialize() first.');
+      await expect(async () => {
+        await midiManager.selectInputDevice('device-1');
+      }).rejects.toThrow('MIDI not initialized. Call initialize() first.');
     });
 
-    it('should switch between devices correctly', () => {
-      midiManager.selectInputDevice('device-1');
+    it('should switch between devices correctly', async () => {
+      await midiManager.selectInputDevice('device-1');
       expect(midiManager.getSelectedDevice()?.id).toBe('device-1');
 
-      midiManager.selectInputDevice('device-2');
+      await midiManager.selectInputDevice('device-2');
       expect(midiManager.getSelectedDevice()?.id).toBe('device-2');
 
       // Previous device should have listener removed
@@ -342,7 +342,7 @@ describe('MidiManager', () => {
   describe('MIDI Message Handling', () => {
     beforeEach(async () => {
       await midiManager.initialize();
-      midiManager.selectInputDevice('device-1');
+      await midiManager.selectInputDevice('device-1');
     });
 
     it('should emit raw message event for all MIDI messages', () => {
@@ -520,8 +520,8 @@ describe('MidiManager', () => {
       );
     });
 
-    it('should update status to disconnected when selected device is unplugged', () => {
-      midiManager.selectInputDevice('device-1');
+    it('should update status to disconnected when selected device is unplugged', async () => {
+      await midiManager.selectInputDevice('device-1');
       expect(midiManager.getConnectionStatus()).toBe('connected');
 
       mockMidiAccess.simulateDeviceDisconnected('device-1');
@@ -529,16 +529,16 @@ describe('MidiManager', () => {
       expect(midiManager.getConnectionStatus()).toBe('disconnected');
     });
 
-    it('should not change status when non-selected device is unplugged', () => {
-      midiManager.selectInputDevice('device-1');
+    it('should not change status when non-selected device is unplugged', async () => {
+      await midiManager.selectInputDevice('device-1');
 
       mockMidiAccess.simulateDeviceDisconnected('device-2');
 
       expect(midiManager.getConnectionStatus()).toBe('connected');
     });
 
-    it('should reattach listener when selected device reconnects', () => {
-      midiManager.selectInputDevice('device-1');
+    it('should reattach listener when selected device reconnects', async () => {
+      await midiManager.selectInputDevice('device-1');
 
       mockMidiAccess.simulateDeviceDisconnected('device-1');
       expect(midiManager.getConnectionStatus()).toBe('disconnected');
@@ -546,6 +546,9 @@ describe('MidiManager', () => {
       // Reconnect device
       mockDevice1.state = 'connected';
       mockMidiAccess.simulateDeviceConnected(mockDevice1);
+
+      // Need to wait for the async reattachment to complete
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       expect(midiManager.getConnectionStatus()).toBe('connected');
       expect(mockDevice1.onmidimessage).not.toBeNull();
@@ -600,7 +603,7 @@ describe('MidiManager', () => {
       const statusChangeSpy = vi.fn();
       midiManager.on('statusChange', statusChangeSpy);
 
-      midiManager.selectInputDevice('device-1');
+      await midiManager.selectInputDevice('device-1');
 
       expect(statusChangeSpy).toHaveBeenCalledWith('connected');
     });
@@ -609,7 +612,7 @@ describe('MidiManager', () => {
   describe('Cleanup and Disconnection', () => {
     beforeEach(async () => {
       await midiManager.initialize();
-      midiManager.selectInputDevice('device-1');
+      await midiManager.selectInputDevice('device-1');
     });
 
     it('should clean up resources on disconnect', () => {
@@ -716,17 +719,17 @@ describe('MidiManager', () => {
     it('should handle rapid device switching', async () => {
       await midiManager.initialize();
 
-      midiManager.selectInputDevice('device-1');
-      midiManager.selectInputDevice('device-2');
-      midiManager.selectInputDevice('device-1');
-      midiManager.selectInputDevice('device-2');
+      await midiManager.selectInputDevice('device-1');
+      await midiManager.selectInputDevice('device-2');
+      await midiManager.selectInputDevice('device-1');
+      await midiManager.selectInputDevice('device-2');
 
       expect(midiManager.getSelectedDevice()?.id).toBe('device-2');
     });
 
     it('should handle rapid MIDI messages', async () => {
       await midiManager.initialize();
-      midiManager.selectInputDevice('device-1');
+      await midiManager.selectInputDevice('device-1');
 
       const noteOnSpy = vi.fn();
       midiManager.on('noteOn', noteOnSpy);
