@@ -122,6 +122,7 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
     'error': 'piano-key-error',
     'dimmed': 'piano-key-dimmed',
     'highlighted': 'piano-key-highlighted',
+    'midi-active': 'piano-key-midi-active',
     'custom': '' // Custom class provided in highlight object
   };
 

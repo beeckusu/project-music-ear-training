@@ -15,6 +15,7 @@ import type { GuessAttempt, GameStats } from '../types/game';
 import type { IGameMode } from '../game/IGameMode';
 import { useSettings } from '../hooks/useSettings';
 import { useGameHistory } from '../hooks/useGameHistory';
+import { useMidiHighlights } from '../hooks/useMidiHighlights';
 import { MidiManager } from '../services/MidiManager';
 import { SETTINGS_TABS } from '../constants';
 import { GameOrchestrator } from '../game/GameOrchestrator';
@@ -42,6 +43,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
 }) => {
   const { settings, hasCompletedModeSetup, startFirstTimeSetup, openSettings } = useSettings();
   const { addSession } = useGameHistory();
+  const midiHighlights = useMidiHighlights();
 
   // UI state (derived from orchestrator events)
   const [currentNote, setCurrentNote] = useState<NoteWithOctave | null>(null);
@@ -380,8 +382,13 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
   }, []);
 
   // Compute piano highlights from note identification state
+  // MIDI highlights are added first, then game highlights override them
+  // This ensures game feedback (success/error) takes precedence over MIDI active state
   const pianoHighlights = useMemo((): NoteHighlight[] => {
     const highlights: NoteHighlight[] = [];
+
+    // MIDI highlights first (lowest priority - will be overridden by game highlights)
+    highlights.push(...midiHighlights);
 
     // User's guess gets 'highlighted' highlight (green, like original behavior)
     if (userGuess) {
@@ -395,7 +402,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
     }
 
     return highlights;
-  }, [userGuess, correctNoteHighlight]);
+  }, [midiHighlights, userGuess, correctNoteHighlight]);
 
   // MIDI input integration - listen to MidiManager for note events
   useEffect(() => {
