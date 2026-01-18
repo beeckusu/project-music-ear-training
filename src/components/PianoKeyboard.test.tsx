@@ -88,6 +88,35 @@ describe('PianoKeyboard - Mono Mode', () => {
     expect(errorKey).toBeInTheDocument();
   });
 
+  it('should highlight notes with midi-active type for MIDI input', () => {
+    const testNote: NoteWithOctave = { note: 'D', octave: 4 };
+    const { container } = renderWithSettings(
+      <PianoKeyboard
+        highlights={[{ note: testNote, type: 'midi-active' }]}
+      />
+    );
+
+    // Check if the D key has the midi-active class
+    const midiActiveKey = container.querySelector('.piano-key-midi-active');
+    expect(midiActiveKey).toBeInTheDocument();
+  });
+
+  it('should support multiple midi-active highlights simultaneously', () => {
+    const { container } = renderWithSettings(
+      <PianoKeyboard
+        highlights={[
+          { note: { note: 'C', octave: 4 }, type: 'midi-active' },
+          { note: { note: 'E', octave: 4 }, type: 'midi-active' },
+          { note: { note: 'G', octave: 4 }, type: 'midi-active' },
+        ]}
+      />
+    );
+
+    // Check if all three keys have the midi-active class
+    const midiActiveKeys = container.querySelectorAll('.piano-key-midi-active');
+    expect(midiActiveKeys).toHaveLength(3);
+  });
+
   it('should have preventNoteRestart prop available', () => {
     // This test verifies the prop exists and can be set
     const onNoteClick = vi.fn();

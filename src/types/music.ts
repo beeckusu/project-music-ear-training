@@ -18,6 +18,7 @@ export type NoteHighlightType =
   | 'error'        // Negative feedback (e.g., incorrect note)
   | 'dimmed'       // Subdued/grayed out (e.g., missing note)
   | 'highlighted'  // General highlight (e.g., note being played)
+  | 'midi-active'  // MIDI input active (key currently pressed via MIDI)
   | 'custom';      // Custom styling via className
 
 /**
