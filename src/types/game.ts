@@ -140,6 +140,29 @@ export interface ChordTypeStats {
 }
 
 /**
+ * Statistics for chord inversions.
+ * Tracks accuracy for root position vs inverted chords.
+ */
+export interface InversionStats {
+  attempts: number;
+  correct: number;
+  accuracy: number;
+}
+
+/**
+ * Aggregated inversion statistics for a session.
+ * Provides summary stats for root position vs inversions.
+ */
+export interface InversionStatsAggregate {
+  /** Stats for root position chords (inversion === 0 or undefined) */
+  rootPosition: InversionStats;
+  /** Stats for all inverted chords combined (inversion > 0) */
+  inversions: InversionStats;
+  /** Detailed breakdown by specific inversion number (1st, 2nd, 3rd, etc.) */
+  byInversion: Record<number, InversionStats>;
+}
+
+/**
  * Serialized chord guess attempt for history tracking.
  * Simplified version of ChordGuessAttempt for localStorage storage.
  */
@@ -148,6 +171,8 @@ export interface SerializedChordGuessAttempt {
   timestamp: string; // ISO string
   chordName: string;
   isCorrect: boolean;
+  // Inversion tracking (0 = root position, 1+ = inversions)
+  inversion?: number;
   // For SingleChord mode (Show Chord, Guess Notes)
   accuracy?: number;
   correctNotesCount?: number;
@@ -172,6 +197,8 @@ export interface NoteTrainingSessionResults {
   firstTryCorrect: number;
   totalChordsAttempted: number;
   subMode: NoteTrainingSubMode;
+  // Inversion-specific statistics (only present when inversions were enabled)
+  inversionStats?: InversionStatsAggregate;
 }
 
 export interface GameSession {
