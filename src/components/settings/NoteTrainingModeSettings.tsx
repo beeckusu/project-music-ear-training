@@ -122,6 +122,18 @@ const NoteTrainingModeSettings: React.FC = () => {
         <label className="checkbox-label">
           <input
             type="checkbox"
+            checked={noteTrainingSettings.chordFilter.includeInversions}
+            onChange={(e) => updateChordFilter({ includeInversions: e.target.checked })}
+          />
+          Include Inversions
+        </label>
+        <small>Practice chords in root position and all inversions (1st, 2nd, etc.)</small>
+      </div>
+
+      <div className="setting-group">
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
             checked={noteTrainingSettings.targetChords !== undefined}
             onChange={(e) => {
               if (e.target.checked) {
