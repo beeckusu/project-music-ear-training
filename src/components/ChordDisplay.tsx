@@ -14,6 +14,17 @@ interface ChordDisplayProps {
 }
 
 /**
+ * Returns the display label for a chord inversion.
+ * @param inversion - The inversion number (0 = root, 1 = first, 2 = second, etc.)
+ * @returns The formatted label (e.g., "1st inv") or null if root position
+ */
+const getInversionLabel = (inversion: number | undefined): string | null => {
+  if (inversion === undefined || inversion === 0) return null;
+  const ordinals = ['1st', '2nd', '3rd'];
+  return `${ordinals[inversion - 1] || `${inversion}th`} inv`;
+};
+
+/**
  * ChordDisplay component - displays chord name and type above piano keyboard
  *
  * Extracted from SingleChordModeDisplay for reusability across multiple chord-related modes.
@@ -34,6 +45,11 @@ const ChordDisplay: React.FC<ChordDisplayProps> = ({
       <div className="chord-name-container">
         <div className="chord-label">Current Chord</div>
         <div className="chord-name">{chord.name}</div>
+        {chord.inversion !== undefined && chord.inversion > 0 && (
+          <div className="chord-inversion" aria-label={`${getInversionLabel(chord.inversion)}`}>
+            {getInversionLabel(chord.inversion)}
+          </div>
+        )}
         {showInstructions && (
           <div className="chord-instruction">
             Select all {chord.notes.length} notes in this chord
