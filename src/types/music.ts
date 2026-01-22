@@ -18,6 +18,7 @@ export type NoteHighlightType =
   | 'error'        // Negative feedback (e.g., incorrect note)
   | 'dimmed'       // Subdued/grayed out (e.g., missing note)
   | 'highlighted'  // General highlight (e.g., note being played)
+  | 'held'         // MIDI key currently held down (cyan)
   | 'custom';      // Custom styling via className
 
 /**

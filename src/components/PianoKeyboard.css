@@ -194,3 +194,20 @@
 .black-key.piano-key-selected:not(.piano-key-success):not(.piano-key-error):not(.piano-key-dimmed) {
   background-color: #606060;
 }
+
+/* Held - MIDI key currently pressed (cyan - matches ear training) */
+.white-key.piano-key-held {
+  background-color: #4dd0e1;
+  color: #333;
+  border-color: #26c6da;
+}
+
+.black-key.piano-key-held {
+  background-color: #00bcd4;
+  color: white;
+}
+
+.white-key.piano-key-held .note-label,
+.black-key.piano-key-held .note-label {
+  color: #333;
+}
