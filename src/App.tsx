@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { SettingsProvider } from './contexts/SettingsContext'
+import { PresetProvider } from './contexts/PresetContext'
 import { useSettings } from './hooks/useSettings'
 import NoteIdentification from './components/NoteIdentification'
 import ScoreTracker from './components/ScoreTracker'
@@ -227,7 +228,9 @@ function AppContent() {
 function App() {
   return (
     <SettingsProvider>
-      <AppContent />
+      <PresetProvider>
+        <AppContent />
+      </PresetProvider>
     </SettingsProvider>
   )
 }

@@ -1,15 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSettings } from '../../hooks/useSettings';
+import { usePresets } from '../../hooks/usePresets';
 import { CHORD_FILTER_PRESETS } from '../../constants/chordPresets';
+import { detectCurrentPreset } from '../../utils/chordFilterHelpers';
 import ChordPresetSelector from './ChordPresetSelector';
 import RootNoteSelector from './RootNoteSelector';
 import KeyFilterSelector from './KeyFilterSelector';
 import ChordTypeSelector from './ChordTypeSelector';
+import SavePresetModal from './SavePresetModal';
 import type { ChordType, Note, ChordFilter } from '../../types/music';
+import type { CustomChordFilterPreset } from '../../types/presets';
 
 const NoteTrainingModeSettings: React.FC = () => {
   const { pendingSettings, updateModeSettings } = useSettings();
+  const { customPresets } = usePresets();
   const noteTrainingSettings = pendingSettings.modes.noteTraining;
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+
+  // Check if current filter is a custom configuration (not matching any preset)
+  const currentPresetKey = detectCurrentPreset(noteTrainingSettings.chordFilter, customPresets);
+  const isCustomConfiguration = currentPresetKey === 'CUSTOM';
 
   const handleTargetChordsChange = (targetChords: number | undefined) => {
     updateModeSettings({
@@ -20,7 +30,19 @@ const NoteTrainingModeSettings: React.FC = () => {
     });
   };
 
-  const handleChordPresetChange = (presetKey: string) => {
+  const handleChordPresetChange = (presetKey: string, customPreset?: CustomChordFilterPreset) => {
+    // Handle custom preset
+    if (customPreset) {
+      updateModeSettings({
+        noteTraining: {
+          ...noteTrainingSettings,
+          chordFilter: { ...customPreset.filter }
+        }
+      });
+      return;
+    }
+
+    // Handle predefined preset
     const preset = CHORD_FILTER_PRESETS[presetKey as keyof typeof CHORD_FILTER_PRESETS];
     if (preset) {
       updateModeSettings({
@@ -68,6 +90,19 @@ const NoteTrainingModeSettings: React.FC = () => {
         onPresetSelect={handleChordPresetChange}
       />
 
+      {isCustomConfiguration && (
+        <div className="save-preset-section">
+          <button
+            type="button"
+            className="save-preset-button"
+            onClick={() => setIsSaveModalOpen(true)}
+          >
+            Save as Preset
+          </button>
+          <small>Save your current configuration for quick access later</small>
+        </div>
+      )}
+
       <ChordTypeSelector
         selectedChordTypes={noteTrainingSettings.chordFilter.allowedChordTypes}
         onChange={handleChordTypesChange}
@@ -82,6 +117,18 @@ const NoteTrainingModeSettings: React.FC = () => {
         keyFilter={noteTrainingSettings.chordFilter.keyFilter}
         onChange={handleKeyFilterChange}
       />
+
+      <div className="setting-group">
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={noteTrainingSettings.chordFilter.includeInversions}
+            onChange={(e) => updateChordFilter({ includeInversions: e.target.checked })}
+          />
+          Include Inversions
+        </label>
+        <small>Practice chords in root position and all inversions (1st, 2nd, etc.)</small>
+      </div>
 
       <div className="setting-group">
         <label className="checkbox-label">
@@ -129,6 +176,15 @@ const NoteTrainingModeSettings: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <SavePresetModal
+        isOpen={isSaveModalOpen}
+        onClose={() => setIsSaveModalOpen(false)}
+        filter={noteTrainingSettings.chordFilter}
+        onSaved={() => {
+          // Modal handles closing itself
+        }}
+      />
     </div>
   );
 };

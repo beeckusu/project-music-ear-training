@@ -33,6 +33,20 @@
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
+/* Inversion indicator badge */
+.chord-inversion {
+  display: inline-block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 4px 10px;
+  margin-top: 8px;
+}
+
 /* Instruction text below chord name */
 .chord-instruction {
   font-size: 14px;
@@ -44,6 +58,11 @@
 @media (max-width: 768px) {
   .chord-name {
     font-size: 24px;
+  }
+
+  .chord-inversion {
+    font-size: 10px;
+    padding: 3px 8px;
   }
 
   .chord-instruction {

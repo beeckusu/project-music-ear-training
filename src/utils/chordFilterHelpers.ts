@@ -1,5 +1,6 @@
 import type { ChordFilter } from '../types/music';
 import type { ChordFilterPreset } from '../constants/chordPresets';
+import type { CustomChordFilterPreset } from '../types/presets';
 import { CHORD_FILTER_PRESETS } from '../constants/chordPresets';
 
 /**
@@ -74,23 +75,45 @@ export function getChordFilterPresetByName(name: string): ChordFilterPreset | un
 /**
  * Detect which preset (if any) matches the current chord filter configuration.
  * Returns 'CUSTOM' if the filter doesn't match any preset exactly.
+ * Checks predefined presets first, then custom presets.
  *
  * @param filter - The current chord filter to check
- * @returns The preset key that matches, or 'CUSTOM' if no match
+ * @param customPresets - Optional array of custom presets to check
+ * @returns The preset key that matches, or 'CUSTOM' if no match.
+ *          Custom preset keys are prefixed with 'custom:' (e.g., 'custom:preset-123')
  *
  * @example
  * const currentPreset = detectCurrentPreset(chordFilter);
  * if (currentPreset === 'CUSTOM') {
  *   console.log('User has customized their filter');
  * }
+ *
+ * @example
+ * const currentPreset = detectCurrentPreset(chordFilter, customPresets);
+ * if (currentPreset.startsWith('custom:')) {
+ *   console.log('Using a custom preset');
+ * }
  */
-export function detectCurrentPreset(filter: ChordFilter): string {
-  // Try to find a matching preset by deep comparison
+export function detectCurrentPreset(
+  filter: ChordFilter,
+  customPresets?: CustomChordFilterPreset[]
+): string {
+  // Try to find a matching predefined preset first
   for (const [key, preset] of Object.entries(CHORD_FILTER_PRESETS)) {
     if (filtersAreEqual(filter, preset.filter)) {
       return key;
     }
   }
+
+  // Then check custom presets if provided
+  if (customPresets) {
+    for (const preset of customPresets) {
+      if (filtersAreEqual(filter, preset.filter)) {
+        return `custom:${preset.id}`;
+      }
+    }
+  }
+
   return 'CUSTOM';
 }
 
@@ -102,7 +125,7 @@ export function detectCurrentPreset(filter: ChordFilter): string {
  * @param filter2 - Second filter to compare
  * @returns True if filters are identical, false otherwise
  */
-function filtersAreEqual(filter1: ChordFilter, filter2: ChordFilter): boolean {
+export function filtersAreEqual(filter1: ChordFilter, filter2: ChordFilter): boolean {
   // Compare allowedChordTypes arrays
   if (!arraysAreEqual(filter1.allowedChordTypes, filter2.allowedChordTypes)) {
     return false;

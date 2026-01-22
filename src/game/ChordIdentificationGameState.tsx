@@ -6,7 +6,9 @@ import type {
   StatItem,
   HistoryItem,
   GameSession,
-  ChordGuessAttempt
+  ChordGuessAttempt,
+  InversionStats,
+  InversionStatsAggregate
 } from '../types/game';
 import type { CommonDisplayProps, GameActionResult } from './GameStateFactory';
 import type { Chord, NoteWithOctave, NoteFilter } from '../types/music';
@@ -345,6 +347,9 @@ export class ChordIdentificationGameState implements IGameMode {
     // Calculate chord type statistics
     const chordTypeStats = this.calculateChordTypeStats();
 
+    // Calculate inversion statistics (only if inversions were used)
+    const inversionStats = this.calculateInversionStats();
+
     // Calculate first-try accuracy (chords correct on first attempt)
     const firstTryCorrect = this.guessHistory.filter((attempt, index, arr) => {
       // Count only correct attempts where there's no previous attempt for the same chord
@@ -360,7 +365,7 @@ export class ChordIdentificationGameState implements IGameMode {
       return !hasPreviousAttempt;
     }).length;
 
-    return {
+    const results: Record<string, any> = {
       chordsCompleted: stats.correctAttempts,
       longestStreak: stats.longestStreak,
       averageTimePerChord: stats.averageTimePerNote,
@@ -372,6 +377,13 @@ export class ChordIdentificationGameState implements IGameMode {
       totalChordsAttempted: this.guessHistory.length,
       subMode: this.noteTrainingSettings.selectedSubMode
     };
+
+    // Only include inversionStats if inversions were actually used
+    if (inversionStats) {
+      results.inversionStats = inversionStats;
+    }
+
+    return results;
   };
 
   /**
@@ -410,6 +422,70 @@ export class ChordIdentificationGameState implements IGameMode {
   };
 
   /**
+   * Calculates statistics grouped by chord inversion.
+   * Tracks accuracy for root position vs inverted chords.
+   *
+   * @returns Aggregated inversion statistics or null if no inversions were attempted
+   */
+  private calculateInversionStats = (): InversionStatsAggregate | null => {
+    // Check if any chords with inversions were attempted
+    const hasInversions = this.guessHistory.some(
+      attempt => attempt.actualChord.inversion !== undefined && attempt.actualChord.inversion > 0
+    );
+
+    // If no inversions were used, don't return inversion stats
+    if (!hasInversions) {
+      return null;
+    }
+
+    const rootPosition: InversionStats = { attempts: 0, correct: 0, accuracy: 0 };
+    const inversions: InversionStats = { attempts: 0, correct: 0, accuracy: 0 };
+    const byInversion: Record<number, InversionStats> = {};
+
+    for (const attempt of this.guessHistory) {
+      const inversion = attempt.actualChord.inversion ?? 0;
+
+      if (inversion === 0) {
+        // Root position
+        rootPosition.attempts++;
+        if (attempt.isCorrect) {
+          rootPosition.correct++;
+        }
+      } else {
+        // Inverted chord
+        inversions.attempts++;
+        if (attempt.isCorrect) {
+          inversions.correct++;
+        }
+
+        // Track specific inversion
+        if (!byInversion[inversion]) {
+          byInversion[inversion] = { attempts: 0, correct: 0, accuracy: 0 };
+        }
+        byInversion[inversion].attempts++;
+        if (attempt.isCorrect) {
+          byInversion[inversion].correct++;
+        }
+      }
+    }
+
+    // Calculate accuracy percentages
+    rootPosition.accuracy = rootPosition.attempts > 0
+      ? (rootPosition.correct / rootPosition.attempts) * 100
+      : 0;
+    inversions.accuracy = inversions.attempts > 0
+      ? (inversions.correct / inversions.attempts) * 100
+      : 0;
+
+    for (const inv in byInversion) {
+      const stats = byInversion[inv];
+      stats.accuracy = stats.attempts > 0 ? (stats.correct / stats.attempts) * 100 : 0;
+    }
+
+    return { rootPosition, inversions, byInversion };
+  };
+
+  /**
    * Serializes the guess history into a format suitable for localStorage.
    * Converts Date objects to ISO strings and simplifies chord data.
    *
@@ -421,6 +497,7 @@ export class ChordIdentificationGameState implements IGameMode {
       timestamp: attempt.timestamp.toISOString(),
       chordName: attempt.actualChord.name,
       isCorrect: attempt.isCorrect,
+      inversion: attempt.actualChord.inversion ?? 0,
       guessedChordName: attempt.guessedChordName || ''
     }));
   };
@@ -506,7 +583,7 @@ export class ChordIdentificationGameState implements IGameMode {
       return `${minutes}:${secs.toString().padStart(2, '0')}`;
     };
 
-    return [
+    const stats: StatItem[] = [
       {
         label: 'Time',
         value: formatTime(gameStats.completionTime),
@@ -538,6 +615,25 @@ export class ChordIdentificationGameState implements IGameMode {
         className: 'stat-neutral'
       }
     ];
+
+    // Add inversion stats if inversions were used
+    const inversionStats = sessionResults.inversionStats as InversionStatsAggregate | undefined;
+    if (inversionStats) {
+      stats.push({
+        label: 'Root Position',
+        value: `${inversionStats.rootPosition.accuracy.toFixed(1)}%`,
+        className: inversionStats.rootPosition.accuracy >= 85 ? 'stat-success' :
+                   inversionStats.rootPosition.accuracy >= 65 ? 'stat-neutral' : 'stat-warning'
+      });
+      stats.push({
+        label: 'Inversions',
+        value: `${inversionStats.inversions.accuracy.toFixed(1)}%`,
+        className: inversionStats.inversions.accuracy >= 85 ? 'stat-success' :
+                   inversionStats.inversions.accuracy >= 65 ? 'stat-neutral' : 'stat-warning'
+      });
+    }
+
+    return stats;
   };
 
   /**
