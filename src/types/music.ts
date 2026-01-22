@@ -19,6 +19,7 @@ export type NoteHighlightType =
   | 'dimmed'       // Subdued/grayed out (e.g., missing note)
   | 'highlighted'  // General highlight (e.g., note being played)
   | 'midi-active'  // MIDI input active (key currently pressed via MIDI)
+  | 'held'         // MIDI key currently held down (cyan)
   | 'custom';      // Custom styling via className
 
 /**
