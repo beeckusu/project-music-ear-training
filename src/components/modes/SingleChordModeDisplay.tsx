@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import type { SingleChordGameState } from '../../game/SingleChordGameState';
 import type { CommonDisplayProps } from '../../game/GameStateFactory';
-import type { NoteWithOctave } from '../../types/music';
+import type { NoteWithOctave, NoteHighlight } from '../../types/music';
 import type { FeedbackType } from '../FeedbackMessage';
 import TimerDigital from '../TimerDigital';
 import TimerCircular from '../TimerCircular';
@@ -13,6 +13,7 @@ import FeedbackMessage from '../FeedbackMessage';
 import { audioEngine } from '../../utils/audioEngine';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { SHORTCUTS } from '../../constants/keyboardShortcuts';
+import { MidiManager } from '../../services/MidiManager';
 import './SingleChordModeDisplay.css';
 
 interface SingleChordModeDisplayProps extends CommonDisplayProps {
@@ -39,6 +40,11 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
   const [, forceUpdate] = React.useReducer(x => x + 1, 0);
   const [feedback, setFeedback] = React.useState<{ message: string; type: FeedbackType } | null>(null);
 
+  // Track MIDI notes currently being held down (for hold-to-select behavior)
+  const [heldMidiNotes, setHeldMidiNotes] = React.useState<Set<string>>(new Set());
+  // Track wrong notes pressed (for showing red highlight)
+  const [wrongMidiNotes, setWrongMidiNotes] = React.useState<Set<string>>(new Set());
+
   // Calculate accuracy
   const accuracy = totalAttempts > 0 ? Math.round((correctChordsCount / totalAttempts) * 100) : 0;
 
@@ -51,11 +57,132 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
   // Determine if submit button should be enabled
   const canSubmit = selectedNotes.size > 0 && currentChord !== null && !gameState.isCompleted;
 
-  // Handle note selection with re-render
+  // Handle note selection with re-render (for mouse clicks - toggle behavior)
   const handleNoteClick = (note: NoteWithOctave) => {
     onPianoKeyClick(note);
     forceUpdate();
   };
+
+  // Helper to create a unique key for a note (for Set comparison)
+  const getNoteKey = (note: NoteWithOctave): string => `${note.note}-${note.octave}`;
+
+  // Check if a note (by name, octave-agnostic) is part of the chord
+  const isNoteInChord = useCallback((noteName: string, chord: typeof currentChord): boolean => {
+    if (!chord) return false;
+    return chord.notes.some(n => n.note === noteName);
+  }, []);
+
+  // Check if currently held MIDI notes match the chord (octave-agnostic)
+  const checkChordMatch = useCallback((heldKeys: Set<string>, chord: typeof currentChord) => {
+    if (!chord) return false;
+
+    // Get just the note names from held keys (strip octave)
+    const heldNoteNames = new Set<string>();
+    heldKeys.forEach(key => {
+      const noteName = key.split('-')[0];
+      heldNoteNames.add(noteName);
+    });
+
+    // Get chord note names
+    const chordNoteNames = new Set(chord.notes.map(n => n.note));
+
+    // Check if held notes exactly match chord notes
+    if (heldNoteNames.size !== chordNoteNames.size) return false;
+    for (const note of chordNoteNames) {
+      if (!heldNoteNames.has(note)) return false;
+    }
+    return true;
+  }, []);
+
+  // Use refs to avoid stale closures in MIDI event handlers
+  const stateRef = useRef({
+    currentChord,
+    isCompleted: gameState.isCompleted,
+    isPaused,
+    heldMidiNotes
+  });
+  const handleSubmitRef = useRef<() => void>(() => {});
+  const handleWrongNoteRef = useRef<(note: NoteWithOctave) => void>(() => {});
+
+  // Keep refs up to date
+  stateRef.current = { currentChord, isCompleted: gameState.isCompleted, isPaused, heldMidiNotes };
+
+  // MIDI input integration - hold-to-select behavior
+  // Notes are highlighted while held, released when key is lifted
+  // Wrong notes are highlighted red and count as mistakes
+  useEffect(() => {
+    const midiManager = MidiManager.getInstance();
+
+    const handleMidiNoteOn = (event: { note: NoteWithOctave }) => {
+      const { currentChord, isCompleted, isPaused } = stateRef.current;
+      // Only process MIDI input when game is active and not paused
+      if (!currentChord || isCompleted || isPaused) return;
+
+      const noteKey = getNoteKey(event.note);
+      const noteName = event.note.note;
+
+      // Check if this note is part of the chord
+      if (!isNoteInChord(noteName, currentChord)) {
+        // Wrong note - add to wrong notes and trigger mistake
+        setWrongMidiNotes(prev => {
+          const newSet = new Set(prev);
+          newSet.add(noteKey);
+          return newSet;
+        });
+        // Trigger wrong note handler
+        setTimeout(() => handleWrongNoteRef.current(event.note), 0);
+        return;
+      }
+
+      // Correct note - add to held notes
+      setHeldMidiNotes(prev => {
+        const newSet = new Set(prev);
+        newSet.add(noteKey);
+
+        // Check if chord is complete after adding this note
+        if (checkChordMatch(newSet, currentChord)) {
+          // Use setTimeout to avoid state update during render
+          setTimeout(() => handleSubmitRef.current(), 0);
+        }
+
+        return newSet;
+      });
+    };
+
+    const handleMidiNoteOff = (event: { note: NoteWithOctave }) => {
+      const noteKey = getNoteKey(event.note);
+
+      // Remove from held notes
+      setHeldMidiNotes(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(noteKey);
+        return newSet;
+      });
+
+      // Remove from wrong notes
+      setWrongMidiNotes(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(noteKey);
+        return newSet;
+      });
+    };
+
+    // Subscribe to MIDI events
+    midiManager.on('noteOn', handleMidiNoteOn);
+    midiManager.on('noteOff', handleMidiNoteOff);
+
+    // Cleanup
+    return () => {
+      midiManager.off('noteOn', handleMidiNoteOn);
+      midiManager.off('noteOff', handleMidiNoteOff);
+    };
+  }, [checkChordMatch, isNoteInChord]);
+
+  // Clear held and wrong notes when chord changes (new round)
+  useEffect(() => {
+    setHeldMidiNotes(new Set());
+    setWrongMidiNotes(new Set());
+  }, [currentChord]);
 
   // Handle clear selection with re-render
   const handleClearSelection = () => {
@@ -63,13 +190,99 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
     forceUpdate();
   };
 
-  // Handle submit answer with re-render
-  const handleSubmitAnswer = () => {
-    console.log('[SingleChordModeDisplay] handleSubmitAnswer called');
+  // Handle MIDI chord completion (auto-submit when all correct notes are held)
+  const handleMidiChordComplete = useCallback(() => {
+    if (!currentChord || gameState.isCompleted) return;
 
+    // Set the selected notes from held MIDI notes for the game state
+    // Convert held note keys back to NoteWithOctave and select them
+    heldMidiNotes.forEach(noteKey => {
+      const [noteName, octaveStr] = noteKey.split('-');
+      const note: NoteWithOctave = {
+        note: noteName as NoteWithOctave['note'],
+        octave: parseInt(octaveStr) as NoteWithOctave['octave']
+      };
+      // Add to game state's selected notes (if not already selected)
+      if (!Array.from(selectedNotes).some(n => getNoteKey(n) === noteKey)) {
+        onPianoKeyClick(note);
+      }
+    });
+
+    // Now submit the answer
+    const result = gameState.handleSubmitAnswer();
+
+    setFeedback({
+      message: result.feedback,
+      type: result.shouldAdvance ? 'success' : 'error'
+    });
+
+    forceUpdate();
+
+    if (onSubmitClick) {
+      onSubmitClick();
+    }
+
+    if (result.shouldAdvance && !result.gameCompleted && onAdvanceRound) {
+      setTimeout(() => setFeedback(null), 800);
+      onAdvanceRound(1000);
+    }
+  }, [currentChord, gameState, heldMidiNotes, selectedNotes, onPianoKeyClick, onSubmitClick, onAdvanceRound]);
+
+  // Keep the submit ref updated for MIDI callback
+  handleSubmitRef.current = handleMidiChordComplete;
+
+  // Handle wrong note press (count as mistake, but record partial correct notes)
+  const handleWrongNote = useCallback((note: NoteWithOctave) => {
+    if (!currentChord || gameState.isCompleted) return;
+
+    // First, add all currently held correct notes to the selection
+    // This ensures partial progress is recorded
+    heldMidiNotes.forEach(noteKey => {
+      const [noteName, octaveStr] = noteKey.split('-');
+      const heldNote: NoteWithOctave = {
+        note: noteName as NoteWithOctave['note'],
+        octave: parseInt(octaveStr) as NoteWithOctave['octave']
+      };
+      // Add to game state's selected notes (if not already selected)
+      if (!Array.from(selectedNotes).some(n => getNoteKey(n) === noteKey)) {
+        onPianoKeyClick(heldNote);
+      }
+    });
+
+    // Add the wrong note to selected notes so it gets recorded
+    onPianoKeyClick(note);
+
+    // Submit as incorrect attempt (will record partial correct + wrong note)
+    const result = gameState.handleSubmitAnswer();
+
+    // Show error feedback with partial info
+    const correctCount = heldMidiNotes.size;
+    const message = correctCount > 0
+      ? `Wrong note: ${note.note} (${correctCount}/${currentChord.notes.length} correct)`
+      : `Wrong note: ${note.note}`;
+
+    setFeedback({
+      message,
+      type: 'error'
+    });
+
+    forceUpdate();
+
+    if (onSubmitClick) {
+      onSubmitClick();
+    }
+
+    // Clear feedback after delay but don't advance (wrong answer)
+    setTimeout(() => setFeedback(null), 1500);
+  }, [currentChord, gameState, heldMidiNotes, selectedNotes, onPianoKeyClick, onSubmitClick]);
+
+  // Keep the wrong note ref updated
+  handleWrongNoteRef.current = handleWrongNote;
+
+  // Handle submit answer with re-render (for manual button click)
+  const handleSubmitAnswer = () => {
     // Call the game state's handleSubmitAnswer for immediate feedback
     const result = gameState.handleSubmitAnswer();
-    console.log('[SingleChordModeDisplay] Result from handleSubmitAnswer:', result);
 
     // Set feedback based on result
     setFeedback({
@@ -80,22 +293,51 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
     forceUpdate();
 
     // Notify orchestrator of the submission for proper event handling
-    // This ensures sessionComplete event is emitted when game finishes
-    console.log('[SingleChordModeDisplay] onSubmitClick available?', !!onSubmitClick);
     if (onSubmitClick) {
-      console.log('[SingleChordModeDisplay] Calling onSubmitClick');
       onSubmitClick();
-    } else {
-      console.warn('[SingleChordModeDisplay] onSubmitClick is not available!');
     }
 
     // If the answer was correct, trigger round advancement
     if (result.shouldAdvance && !result.gameCompleted && onAdvanceRound) {
-      // Clear feedback after delay, then advance
       setTimeout(() => setFeedback(null), 800);
-      onAdvanceRound(1000); // 1 second delay before next round
+      onAdvanceRound(1000);
     }
   };
+
+  // Generate highlights that include held MIDI notes and wrong notes
+  const getHighlightsWithHeldNotes = useCallback((): NoteHighlight[] => {
+    const baseHighlights = gameState.getNoteHighlights();
+    const additionalHighlights: NoteHighlight[] = [];
+
+    // Add held MIDI notes as 'held' type highlights (cyan)
+    heldMidiNotes.forEach(noteKey => {
+      const [noteName, octaveStr] = noteKey.split('-');
+      const note: NoteWithOctave = {
+        note: noteName as NoteWithOctave['note'],
+        octave: parseInt(octaveStr) as NoteWithOctave['octave']
+      };
+
+      // Only add if not already highlighted with another type
+      const alreadyHighlighted = baseHighlights.some(h => getNoteKey(h.note) === noteKey);
+      if (!alreadyHighlighted) {
+        additionalHighlights.push({ note, type: 'held' });
+      }
+    });
+
+    // Add wrong MIDI notes as 'error' type highlights (red)
+    wrongMidiNotes.forEach(noteKey => {
+      const [noteName, octaveStr] = noteKey.split('-');
+      const note: NoteWithOctave = {
+        note: noteName as NoteWithOctave['note'],
+        octave: parseInt(octaveStr) as NoteWithOctave['octave']
+      };
+
+      // Wrong notes always show as error (override any other highlight)
+      additionalHighlights.push({ note, type: 'error' });
+    });
+
+    return [...baseHighlights, ...additionalHighlights];
+  }, [gameState, heldMidiNotes, wrongMidiNotes]);
 
   // Calculate the keyboard's base octave to show the chord at its lowest position
   const keyboardOctave = currentChord
@@ -320,7 +562,7 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
       <div className="piano-container">
         <PianoKeyboard
           onNoteClick={handleNoteClick}
-          highlights={gameState.getNoteHighlights()}
+          highlights={getHighlightsWithHeldNotes()}
           octave={keyboardOctave}
           numOctaves={2}
           disabled={gameState.isCompleted || !currentChord}

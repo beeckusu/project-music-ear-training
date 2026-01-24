@@ -453,10 +453,18 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
   });
 
   // MIDI input integration - listen to MidiManager for note events
+  // Note: Chord modes (SingleChordModeDisplay) handle their own MIDI input directly
   useEffect(() => {
     const midiManager = MidiManager.getInstance();
 
+    // Check if current mode is a chord mode - they handle MIDI directly in their display component
+    const isChordMode = gameState?.getMode?.().includes('chord') || gameState?.getMode?.().includes('notes');
+
     const handleMidiNoteOn = (event: { note: NoteWithOctave }) => {
+      // Skip MIDI processing for chord modes - they handle it in their own display component
+      if (isChordMode) {
+        return;
+      }
       // Only process MIDI input when game is active and waiting for input
       if (isWaitingInput && !isPaused) {
         handlePianoKeyClick(event.note);
@@ -478,7 +486,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
       midiManager.off('noteOn', handleMidiNoteOn);
       midiManager.off('noteOff', handleMidiNoteOff);
     };
-  }, [isWaitingInput, isPaused, handlePianoKeyClick]);
+  }, [isWaitingInput, isPaused, handlePianoKeyClick, gameState]);
 
   return (
     <div className="note-identification">
