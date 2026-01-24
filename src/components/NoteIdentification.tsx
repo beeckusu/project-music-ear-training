@@ -15,7 +15,9 @@ import type { GuessAttempt, GameStats } from '../types/game';
 import type { IGameMode } from '../game/IGameMode';
 import { useSettings } from '../hooks/useSettings';
 import { useGameHistory } from '../hooks/useGameHistory';
+import { useChordStats } from '../hooks/useChordStats';
 import { useMidiHighlights } from '../hooks/useMidiHighlights';
+import type { NoteTrainingSessionResults } from '../types/game';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { SHORTCUTS } from '../constants/keyboardShortcuts';
 import { MidiManager } from '../services/MidiManager';
@@ -45,6 +47,7 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
 }) => {
   const { settings, hasCompletedModeSetup, startFirstTimeSetup, openSettings } = useSettings();
   const { addSession } = useGameHistory();
+  const { updateFromSession: updateChordStats } = useChordStats();
   const midiHighlights = useMidiHighlights();
 
   // UI state (derived from orchestrator events)
@@ -135,6 +138,13 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
         console.log('[NoteIdentification] Setting isEndModalOpen to true');
         console.log('[NoteIdentification] ========================================');
         addSession(session);
+
+        // Update long-term chord stats if this is a Note Training session
+        const results = session.results as NoteTrainingSessionResults | undefined;
+        if (results?.chordTypeStats) {
+          updateChordStats(results);
+        }
+
         setGameStats(stats);
         setIsEndModalOpen(true);
         onGameComplete?.(stats);

@@ -72,7 +72,8 @@ export const FEEDBACK_MESSAGES = {
 
 // LocalStorage Key Constants
 export const STORAGE_KEYS = {
-  GAME_HISTORY: 'music-practice-game-history'
+  GAME_HISTORY: 'music-practice-game-history',
+  CHORD_STATS: 'music-practice-chord-stats'
 } as const;
 
 // Aria Label Constants
