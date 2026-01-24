@@ -11,6 +11,8 @@ import ChordGuessHistory from '../ChordGuessHistory';
 import { getKeyboardOctaveForChord } from '../../utils/chordKeyboardPositioning';
 import FeedbackMessage from '../FeedbackMessage';
 import { audioEngine } from '../../utils/audioEngine';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
+import { SHORTCUTS } from '../../constants/keyboardShortcuts';
 import { MidiManager } from '../../services/MidiManager';
 import './SingleChordModeDisplay.css';
 
@@ -361,6 +363,56 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
     }
   };
 
+  // Handle start practice
+  const handleStartPractice = () => {
+    if (onAdvanceRound) {
+      onAdvanceRound(0);
+    }
+  };
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts([
+    // Space: Play chord again
+    {
+      key: SHORTCUTS.REPLAY.key,
+      code: SHORTCUTS.REPLAY.code,
+      handler: handlePlayChord,
+      enabled: !!currentChord && !gameState.isCompleted,
+    },
+    // Enter: Submit answer
+    {
+      key: SHORTCUTS.SUBMIT.key,
+      handler: handleSubmitAnswer,
+      enabled: canSubmit,
+    },
+    // N: Next chord
+    {
+      key: SHORTCUTS.NEXT.key,
+      handler: handleNextChord,
+      enabled: !!currentChord && !gameState.isCompleted,
+    },
+    // C: Clear selection
+    {
+      key: SHORTCUTS.CLEAR.key,
+      handler: handleClearSelection,
+      enabled: selectedNotes.size > 0 && !gameState.isCompleted,
+    },
+    // S: Start practice
+    {
+      key: SHORTCUTS.START.key,
+      handler: handleStartPractice,
+      enabled: !currentChord && !gameState.isCompleted,
+    },
+    // R: Play again (after game completion)
+    {
+      key: SHORTCUTS.PLAY_AGAIN.key,
+      handler: () => onPlayAgain && onPlayAgain(),
+      enabled: gameState.isCompleted,
+    },
+  ], {
+    enabled: !isPaused,
+  });
+
   return (
     <>
       {/* 1. Game Stats */}
@@ -431,8 +483,9 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
             onClick={() => onAdvanceRound && onAdvanceRound(0)}
             disabled={isPaused}
             className="primary-button"
+            title="Press S to start"
           >
-            Start Practice
+            Start Practice <span className="shortcut-hint">(S)</span>
           </button>
         </div>
       )}
@@ -443,15 +496,17 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
             onClick={handlePlayChord}
             disabled={isPaused}
             className="primary-button"
+            title="Press Space to replay"
           >
-            Play Chord Again
+            Play Chord Again <span className="shortcut-hint">(Space)</span>
           </button>
           <button
             onClick={handleNextChord}
             disabled={isPaused}
             className="secondary-button"
+            title="Press N to skip"
           >
-            Next Chord
+            Next Chord <span className="shortcut-hint">(N)</span>
           </button>
         </div>
       )}
@@ -487,15 +542,17 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
               className="clear-button"
               onClick={handleClearSelection}
               disabled={selectedNotes.size === 0}
+              title="Press C to clear"
             >
-              Clear Selection
+              Clear Selection <span className="shortcut-hint">(C)</span>
             </button>
             <button
               className="submit-button"
               onClick={handleSubmitAnswer}
               disabled={!canSubmit}
+              title="Press Enter to submit"
             >
-              Submit Answer
+              Submit Answer <span className="shortcut-hint">(Enter)</span>
             </button>
           </div>
         </div>

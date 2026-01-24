@@ -14,6 +14,8 @@ import FeedbackMessage from '../FeedbackMessage';
 import { formatChordName } from '../../constants/chords';
 import { getKeyboardOctaveForChord } from '../../utils/chordKeyboardPositioning';
 import { audioEngine } from '../../utils/audioEngine';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
+import { SHORTCUTS } from '../../constants/keyboardShortcuts';
 import './ChordIdentificationModeDisplay.css';
 
 interface ChordIdentificationModeDisplayProps extends CommonDisplayProps {
@@ -155,6 +157,48 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
   // Calculate the keyboard's base octave to show the chord at its lowest position
   const keyboardOctave = getKeyboardOctaveForChord(gameState.displayedNotes);
 
+  // Handle start practice
+  const handleStartPractice = () => {
+    if (onAdvanceRound) {
+      onAdvanceRound(0);
+    }
+  };
+
+  // Check if submit is possible
+  const canSubmit = !!(guessInput.trim() || (selectedBaseNote && selectedChordType)) && !gameState.isCompleted;
+
+  // Keyboard shortcuts
+  // Note: These won't fire when user is typing in the ChordInput field (text input detection in hook)
+  useKeyboardShortcuts([
+    // Space: Play chord again
+    {
+      key: SHORTCUTS.REPLAY.key,
+      code: SHORTCUTS.REPLAY.code,
+      handler: handlePlayChord,
+      enabled: !!currentChord && !gameState.isCompleted,
+    },
+    // N: Next chord
+    {
+      key: SHORTCUTS.NEXT.key,
+      handler: handleNextChord,
+      enabled: !!currentChord && !gameState.isCompleted,
+    },
+    // S: Start practice
+    {
+      key: SHORTCUTS.START.key,
+      handler: handleStartPractice,
+      enabled: !currentChord && !gameState.isCompleted,
+    },
+    // R: Play again (after game completion)
+    {
+      key: SHORTCUTS.PLAY_AGAIN.key,
+      handler: () => onPlayAgain && onPlayAgain(),
+      enabled: gameState.isCompleted,
+    },
+  ], {
+    enabled: !isPaused,
+  });
+
   return (
     <>
       {/* 1. Game Stats */}
@@ -225,8 +269,9 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
             onClick={() => onAdvanceRound && onAdvanceRound(0)}
             disabled={isPaused}
             className="primary-button"
+            title="Press S to start"
           >
-            Start Practice
+            Start Practice <span className="shortcut-hint">(S)</span>
           </button>
         </div>
       )}
@@ -237,15 +282,17 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
             onClick={handlePlayChord}
             disabled={isPaused}
             className="primary-button"
+            title="Press Space to replay"
           >
-            Play Chord Again
+            Play Chord Again <span className="shortcut-hint">(Space)</span>
           </button>
           <button
             onClick={handleNextChord}
             disabled={isPaused}
             className="secondary-button"
+            title="Press N to skip"
           >
-            Next Chord
+            Next Chord <span className="shortcut-hint">(N)</span>
           </button>
         </div>
       )}
