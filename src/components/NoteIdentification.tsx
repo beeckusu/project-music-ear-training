@@ -18,6 +18,8 @@ import { useGameHistory } from '../hooks/useGameHistory';
 import { useChordStats } from '../hooks/useChordStats';
 import { useMidiHighlights } from '../hooks/useMidiHighlights';
 import type { NoteTrainingSessionResults } from '../types/game';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { SHORTCUTS } from '../constants/keyboardShortcuts';
 import { MidiManager } from '../services/MidiManager';
 import { SETTINGS_TABS } from '../constants';
 import { GameOrchestrator } from '../game/GameOrchestrator';
@@ -413,6 +415,52 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
 
     return highlights;
   }, [midiHighlights, userGuess, correctNoteHighlight]);
+
+  // Keyboard shortcuts for ear training modes
+  // Only active for non-chord modes (chord modes have their own shortcuts in their display components)
+  const isEarTrainingMode = gameState && !gameState.getMode().includes('chord') && !gameState.getMode().includes('notes');
+
+  useKeyboardShortcuts([
+    // Space: Replay note
+    {
+      key: SHORTCUTS.REPLAY.key,
+      code: SHORTCUTS.REPLAY.code,
+      handler: () => {
+        if (currentNote && !isGameCompleted) {
+          orchestratorRef.current?.replayNoteAction();
+        }
+      },
+      enabled: !!currentNote && !isGameCompleted,
+    },
+    // N: Next note (skip)
+    {
+      key: SHORTCUTS.NEXT.key,
+      handler: () => {
+        if (currentNote && !isGameCompleted) {
+          orchestratorRef.current?.skipNote();
+        }
+      },
+      enabled: !!currentNote && !isGameCompleted,
+    },
+    // S: Start practice
+    {
+      key: SHORTCUTS.START.key,
+      handler: () => {
+        if (!currentNote && !isGameCompleted) {
+          orchestratorRef.current?.startPractice(hasCompletedModeSetup, !!isPaused);
+        }
+      },
+      enabled: !currentNote && !isGameCompleted,
+    },
+    // R: Play again (after game completion)
+    {
+      key: SHORTCUTS.PLAY_AGAIN.key,
+      handler: handlePlayAgain,
+      enabled: isGameCompleted,
+    },
+  ], {
+    enabled: !isPaused && !isEndModalOpen && isEarTrainingMode,
+  });
 
   // MIDI input integration - listen to MidiManager for note events
   // Note: Chord modes (SingleChordModeDisplay) handle their own MIDI input directly
