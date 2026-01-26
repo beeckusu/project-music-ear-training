@@ -8,7 +8,8 @@ import type {
   GameSession,
   ChordGuessAttempt,
   InversionStats,
-  InversionStatsAggregate
+  InversionStatsAggregate,
+  NoteTrainingSessionResults
 } from '../types/game';
 import type { CommonDisplayProps, GameActionResult, GameStateWithDisplay } from './GameStateFactory';
 import type { Chord, NoteWithOctave, NoteFilter, NoteHighlight } from '../types/music';
@@ -17,6 +18,7 @@ import type { IGameMode } from './IGameMode';
 import { ChordEngine } from '../utils/chordEngine';
 import { NOTE_TRAINING_SUB_MODES } from '../constants';
 import SingleChordModeDisplay from '../components/modes/SingleChordModeDisplay';
+import ChordProgressSection from '../components/ChordProgressSection';
 
 /**
  * Game state implementation for "Single Chord" mode.
@@ -712,12 +714,21 @@ export class SingleChordGameState implements IGameMode {
 
   /**
    * Gets additional stats section for the end screen.
+   * Displays a progress graph showing accuracy improvement over time.
    *
    * @param sessionResults - Results from the completed session
-   * @returns React node or null
+   * @returns React node with ChordProgressSection
    */
   getAdditionalStatsSection = (sessionResults: Record<string, any>): React.ReactNode => {
-    return null; // Note training mode doesn't need additional sections
+    // Extract chord names from current session's chord type stats
+    const results = sessionResults as NoteTrainingSessionResults;
+    const currentSessionChords = results.chordTypeStats
+      ? Object.keys(results.chordTypeStats)
+      : [];
+
+    return React.createElement(ChordProgressSection, {
+      currentSessionChords
+    });
   };
 
   /**

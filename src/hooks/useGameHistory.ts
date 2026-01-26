@@ -45,7 +45,40 @@ export const useGameHistory = (): GameHistoryHook => {
   }, [history]);
 
   const addSession = useCallback((session: GameSession) => {
+    console.log('[useGameHistory] ========== addSession called ==========');
+    console.log('[useGameHistory] Session timestamp:', session.timestamp);
+    console.log('[useGameHistory] Session mode:', session.mode);
+    console.log('[useGameHistory] Session accuracy:', session.accuracy);
+    console.log('[useGameHistory] Stack trace:', new Error().stack);
+
     setHistory(prevHistory => {
+      console.log('[useGameHistory] Inside setHistory, prevHistory length:', prevHistory.length);
+      console.log('[useGameHistory] prevHistory timestamps:', prevHistory.map(s => s.timestamp.getTime()));
+
+      // Check for duplicate: same timestamp or identical results within last 5 seconds
+      const isDuplicate = prevHistory.some(existing => {
+        // Exact timestamp match
+        if (existing.timestamp.getTime() === session.timestamp.getTime()) {
+          console.log('[useGameHistory] Duplicate detected: exact timestamp match');
+          return true;
+        }
+        // Very close timestamp (within 5 seconds) with same mode and accuracy
+        const timeDiff = Math.abs(existing.timestamp.getTime() - session.timestamp.getTime());
+        if (timeDiff < 5000 &&
+            existing.mode === session.mode &&
+            existing.accuracy === session.accuracy) {
+          console.log('[useGameHistory] Duplicate detected: close timestamp with same mode/accuracy');
+          return true;
+        }
+        return false;
+      });
+
+      if (isDuplicate) {
+        console.log('[useGameHistory] Duplicate session detected, skipping add');
+        return prevHistory;
+      }
+
+      console.log('[useGameHistory] Adding new session to history');
       const newHistory = [session, ...prevHistory];
 
       // Group by mode and limit sessions per mode to prevent storage bloat

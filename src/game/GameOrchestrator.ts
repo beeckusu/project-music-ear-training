@@ -132,6 +132,9 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
   // Pause state tracking
   private wasInIntermissionWhenPaused: boolean = false;
 
+  // Flag to prevent duplicate sessionComplete emissions
+  private sessionCompleteEmitted: boolean = false;
+
   // Round configuration (set once, used for all rounds)
   private responseTimeLimit: number | null = null;
   private autoAdvanceSpeed: number = 2;
@@ -630,6 +633,9 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
     // Reset current note
     this.currentNote = null;
 
+    // Reset sessionComplete flag for new game
+    this.sessionCompleteEmitted = false;
+
     // Emit events for UI to react
     this.emit('gameReset', undefined);
     this.emit('feedbackUpdate', 'Click "Start Practice" to begin your ear training session');
@@ -793,10 +799,14 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
       // Transition state machine to COMPLETED
       this.complete();
 
-      this.emit('sessionComplete', {
-        session: this.createGameSession(result.stats),
-        stats: result.stats,
-      });
+      // Only emit sessionComplete once per session
+      if (!this.sessionCompleteEmitted) {
+        this.sessionCompleteEmitted = true;
+        this.emit('sessionComplete', {
+          session: this.createGameSession(result.stats),
+          stats: result.stats,
+        });
+      }
       return; // Don't schedule auto-advance if game is complete
     }
 
@@ -952,7 +962,14 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
       this.complete();
     }
 
+    // Only emit sessionComplete once per session
+    if (this.sessionCompleteEmitted) {
+      console.log('[GameOrchestrator] sessionComplete already emitted, skipping');
+      return;
+    }
+
     // Emit sessionComplete event
+    this.sessionCompleteEmitted = true;
     const session = this.createGameSession(stats);
     this.emit('sessionComplete', {
       session,
@@ -1091,10 +1108,14 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
             // Handle game completion
             if (result.gameCompleted && result.stats) {
               this.complete();
-              this.emit('sessionComplete', {
-                session: this.createGameSession(result.stats),
-                stats: result.stats,
-              });
+              // Only emit sessionComplete once per session
+              if (!this.sessionCompleteEmitted) {
+                this.sessionCompleteEmitted = true;
+                this.emit('sessionComplete', {
+                  session: this.createGameSession(result.stats),
+                  stats: result.stats,
+                });
+              }
             }
           }
           break;
@@ -1130,11 +1151,17 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
             if (result.gameCompleted && result.stats) {
               console.log('[Orchestrator] Game completed! Calling complete() and emitting sessionComplete');
               this.complete();
-              this.emit('sessionComplete', {
-                session: this.createGameSession(result.stats),
-                stats: result.stats,
-              });
-              console.log('[Orchestrator] sessionComplete event emitted');
+              // Only emit sessionComplete once per session
+              if (!this.sessionCompleteEmitted) {
+                this.sessionCompleteEmitted = true;
+                this.emit('sessionComplete', {
+                  session: this.createGameSession(result.stats),
+                  stats: result.stats,
+                });
+                console.log('[Orchestrator] sessionComplete event emitted');
+              } else {
+                console.log('[Orchestrator] sessionComplete already emitted, skipping');
+              }
             } else {
               console.log('[Orchestrator] NOT emitting sessionComplete - gameCompleted:', result.gameCompleted, 'hasStats:', !!result.stats);
             }
@@ -1270,6 +1297,9 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
 
     // Reset current note
     this.currentNote = null;
+
+    // Reset sessionComplete flag for new game
+    this.sessionCompleteEmitted = false;
 
     // Send PLAY_AGAIN action to state machine (COMPLETED → PLAYING)
     this.send({ type: GameAction.PLAY_AGAIN });

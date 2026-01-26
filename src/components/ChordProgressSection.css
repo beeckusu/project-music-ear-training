@@ -1,0 +1,69 @@
+.chord-progress-section {
+  margin-top: 20px;
+  border-top: 1px solid #374151;
+  padding-top: 16px;
+}
+
+.progress-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.control-label {
+  color: #9ca3af;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.chord-select {
+  flex: 1;
+  max-width: 200px;
+  background: #1f2937;
+  color: #e5e7eb;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ca3af' d='M3 4.5L6 7.5L9 4.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 32px;
+}
+
+.chord-select:hover {
+  border-color: #4b5563;
+}
+
+.chord-select:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+}
+
+.chord-select option {
+  background: #1f2937;
+  color: #e5e7eb;
+}
+
+.chord-select optgroup {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .progress-controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .chord-select {
+    max-width: 100%;
+    width: 100%;
+  }
+}
