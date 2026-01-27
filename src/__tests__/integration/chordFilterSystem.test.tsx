@@ -1,16 +1,10 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import NoteTrainingModeSettings from '../../components/settings/NoteTrainingModeSettings';
-import { SettingsProvider } from '../../contexts/SettingsContext';
+import { renderWithSettings } from '../../test/testUtils';
 
 describe('Chord Filter System Integration Tests', () => {
-  const renderComponent = () => {
-    return render(
-      <SettingsProvider>
-        <NoteTrainingModeSettings />
-      </SettingsProvider>
-    );
-  };
+  const renderComponent = () => renderWithSettings(<NoteTrainingModeSettings />);
 
   it('should render all chord filter components', () => {
     renderComponent();
