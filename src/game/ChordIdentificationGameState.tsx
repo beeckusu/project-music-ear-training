@@ -8,7 +8,8 @@ import type {
   GameSession,
   ChordGuessAttempt,
   InversionStats,
-  InversionStatsAggregate
+  InversionStatsAggregate,
+  NoteTrainingSessionResults
 } from '../types/game';
 import type { CommonDisplayProps, GameActionResult } from './GameStateFactory';
 import type { Chord, NoteWithOctave, NoteFilter } from '../types/music';
@@ -18,6 +19,7 @@ import { ChordEngine } from '../utils/chordEngine';
 import { validateChordGuess } from '../utils/chordValidation';
 import { NOTE_TRAINING_SUB_MODES } from '../constants';
 import ChordIdentificationModeDisplay from '../components/modes/ChordIdentificationModeDisplay';
+import ChordProgressSection from '../components/ChordProgressSection';
 
 /**
  * Game state implementation for "Chord Identification" mode (Show Notes, Guess Chord).
@@ -638,12 +640,21 @@ export class ChordIdentificationGameState implements IGameMode {
 
   /**
    * Gets additional stats section for the end screen.
+   * Displays a progress graph showing accuracy improvement over time.
    *
    * @param sessionResults - Results from the completed session
-   * @returns React node or null
+   * @returns React node with ChordProgressSection
    */
-  getAdditionalStatsSection = (_sessionResults: Record<string, any>): React.ReactNode => {
-    return null; // Chord identification mode doesn't need additional sections
+  getAdditionalStatsSection = (sessionResults: Record<string, any>): React.ReactNode => {
+    // Extract chord names from current session's chord type stats
+    const results = sessionResults as NoteTrainingSessionResults;
+    const currentSessionChords = results.chordTypeStats
+      ? Object.keys(results.chordTypeStats)
+      : [];
+
+    return React.createElement(ChordProgressSection, {
+      currentSessionChords
+    });
   };
 
   /**
