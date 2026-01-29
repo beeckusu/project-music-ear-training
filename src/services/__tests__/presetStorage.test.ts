@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import {
   loadCustomPresets,
   saveCustomPreset,
@@ -9,29 +9,11 @@ import {
 } from '../presetStorage';
 import type { CustomChordFilterPreset } from '../../types/presets';
 import { ChordType } from '../../types/music';
-
-// Mock localStorage
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-  return {
-    getItem: vi.fn((key: string) => store[key] || null),
-    setItem: vi.fn((key: string, value: string) => {
-      store[key] = value;
-    }),
-    removeItem: vi.fn((key: string) => {
-      delete store[key];
-    }),
-    clear: vi.fn(() => {
-      store = {};
-    }),
-  };
-})();
-
-Object.defineProperty(global, 'localStorage', {
-  value: localStorageMock,
-});
+import { setupLocalStorageMock, type LocalStorageMock } from '../../test/localStorageMock';
 
 describe('presetStorage', () => {
+  let localStorageMock: LocalStorageMock;
+
   const mockFilter = {
     allowedChordTypes: [ChordType.MAJOR, ChordType.MINOR],
     allowedRootNotes: null,
@@ -40,8 +22,12 @@ describe('presetStorage', () => {
   };
 
   beforeEach(() => {
-    localStorageMock.clear();
+    localStorageMock = setupLocalStorageMock();
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   describe('loadCustomPresets', () => {

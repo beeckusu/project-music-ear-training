@@ -5,9 +5,77 @@ import type { NoteFilter, TimingSettings, AudioSettings } from '../types/music';
 import type { ModeSettings } from '../types/game';
 import type { AppSettings } from '../types/settings';
 import { DEFAULT_NOTE_FILTER, DEFAULT_TIMING_SETTINGS, DEFAULT_AUDIO_SETTINGS } from '../types/music';
-import { SETTINGS_TABS, TRAINING_MODES } from '../constants';
+import { SETTINGS_TABS, TRAINING_MODES, STORAGE_KEYS } from '../constants';
 import type { TrainingType } from '../constants';
 import { DEFAULT_MODE_SETTINGS } from '../types/game';
+
+/**
+ * Deep merge two objects, with source values taking precedence.
+ * Handles nested objects but not arrays (arrays are replaced entirely).
+ * @internal Exported for testing
+ */
+export function deepMerge<T extends Record<string, unknown>>(target: T, source: Partial<T>): T {
+  const result = { ...target };
+
+  for (const key in source) {
+    if (Object.prototype.hasOwnProperty.call(source, key)) {
+      const sourceValue = source[key];
+      const targetValue = target[key];
+
+      if (
+        sourceValue !== null &&
+        typeof sourceValue === 'object' &&
+        !Array.isArray(sourceValue) &&
+        targetValue !== null &&
+        typeof targetValue === 'object' &&
+        !Array.isArray(targetValue)
+      ) {
+        result[key] = deepMerge(
+          targetValue as Record<string, unknown>,
+          sourceValue as Record<string, unknown>
+        ) as T[typeof key];
+      } else if (sourceValue !== undefined) {
+        result[key] = sourceValue as T[typeof key];
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Load settings from localStorage, merging with defaults.
+ * @internal Exported for testing
+ */
+export function loadSettingsFromStorage(defaults: AppSettings): AppSettings {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.APP_SETTINGS);
+    if (!stored) {
+      return defaults;
+    }
+
+    const parsed = JSON.parse(stored);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return defaults;
+    }
+
+    return deepMerge(defaults, parsed as Partial<AppSettings>);
+  } catch {
+    return defaults;
+  }
+}
+
+/**
+ * Save settings to localStorage.
+ * @internal Exported for testing
+ */
+export function saveSettingsToStorage(settings: AppSettings): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.APP_SETTINGS, JSON.stringify(settings));
+  } catch {
+    // Silently fail on quota exceeded or other storage errors
+  }
+}
 
 export interface SettingsContextType {
   settings: AppSettings; // Current active settings used by the game
@@ -47,8 +115,8 @@ interface SettingsProviderProps {
 }
 
 export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) => {
-  const [settings, setSettings] = useState<AppSettings>(defaultSettings); // Current active settings
-  const [pendingSettings, setPendingSettings] = useState<AppSettings>(defaultSettings); // Staged settings
+  const [settings, setSettings] = useState<AppSettings>(() => loadSettingsFromStorage(defaultSettings)); // Current active settings
+  const [pendingSettings, setPendingSettings] = useState<AppSettings>(() => loadSettingsFromStorage(defaultSettings)); // Staged settings
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isFirstTimeSetup, setIsFirstTimeSetup] = useState(false);
   const [hasCompletedModeSetup, setHasCompletedModeSetup] = useState(false);
@@ -114,6 +182,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
 
   const commitPendingSettings = () => {
     setSettings(pendingSettings);
+    saveSettingsToStorage(pendingSettings);
   };
 
   const revertPendingSettings = () => {
