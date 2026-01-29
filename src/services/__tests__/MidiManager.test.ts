@@ -1,92 +1,15 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { MidiManager } from '../MidiManager';
-import { MidiMessages } from '../../utils/__tests__/testHelpers/midiMessageBuilder';
-import { MIDI_TEST_CONSTANTS } from '../../utils/__tests__/testHelpers/midiTestData';
+import {
+  MidiMessages,
+  MIDI_TEST_CONSTANTS,
+  MockMIDIInput,
+  MockMIDIAccess,
+  createMidiTestFixture,
+  cleanupMidiTestFixture,
+  type MidiTestFixture,
+} from '../../utils/__tests__/testHelpers';
 import type { MidiNoteEvent, MidiError, MidiDeviceInfo } from '../../types/midi';
-
-/**
- * Mock Web MIDI API classes and types
- */
-class MockMIDIInput implements Partial<MIDIInput> {
-  id: string;
-  manufacturer: string;
-  name: string;
-  state: MIDIPortDeviceState;
-  type: MIDIPortType = 'input';
-  onmidimessage: ((event: MIDIMessageEvent) => void) | null = null;
-  onstatechange: ((event: Event) => void) | null = null;
-
-  constructor(
-    id: string,
-    name: string = 'Test MIDI Device',
-    manufacturer: string = 'Test Manufacturer',
-    state: MIDIPortDeviceState = 'connected'
-  ) {
-    this.id = id;
-    this.name = name;
-    this.manufacturer = manufacturer;
-    this.state = state;
-  }
-
-  open(): Promise<MIDIPort> {
-    return Promise.resolve(this as unknown as MIDIPort);
-  }
-
-  close(): Promise<MIDIPort> {
-    return Promise.resolve(this as unknown as MIDIPort);
-  }
-
-  // Helper method to simulate receiving a MIDI message
-  simulateMessage(data: number[], timestamp: number = Date.now()): void {
-    if (this.onmidimessage) {
-      const event = {
-        data: new Uint8Array(data),
-        timeStamp: timestamp,
-      } as MIDIMessageEvent;
-      this.onmidimessage(event);
-    }
-  }
-}
-
-class MockMIDIAccess implements Partial<MIDIAccess> {
-  inputs: Map<string, MIDIInput>;
-  outputs: Map<string, MIDIOutput>;
-  onstatechange: ((event: MIDIConnectionEvent) => void) | null = null;
-  sysexEnabled: boolean = false;
-
-  constructor(inputs: MockMIDIInput[] = []) {
-    this.inputs = new Map();
-    this.outputs = new Map();
-    inputs.forEach(input => {
-      this.inputs.set(input.id, input as unknown as MIDIInput);
-    });
-  }
-
-  // Helper method to simulate device connection
-  simulateDeviceConnected(device: MockMIDIInput): void {
-    this.inputs.set(device.id, device as unknown as MIDIInput);
-    if (this.onstatechange) {
-      const event = {
-        port: device as unknown as MIDIPort,
-      } as MIDIConnectionEvent;
-      this.onstatechange(event);
-    }
-  }
-
-  // Helper method to simulate device disconnection
-  simulateDeviceDisconnected(deviceId: string): void {
-    const device = this.inputs.get(deviceId) as unknown as MockMIDIInput;
-    if (device) {
-      device.state = 'disconnected';
-      if (this.onstatechange) {
-        const event = {
-          port: device as unknown as MIDIPort,
-        } as MIDIConnectionEvent;
-        this.onstatechange(event);
-      }
-    }
-  }
-}
 
 /**
  * Test suite for MidiManager
@@ -98,25 +21,12 @@ describe('MidiManager', () => {
   let mockDevice2: MockMIDIInput;
 
   beforeEach(() => {
-    // Reset singleton instance before each test
-    // @ts-expect-error - Accessing private static property for testing
-    MidiManager.instance = null;
-
-    // Create mock devices
-    mockDevice1 = new MockMIDIInput('device-1', 'MIDI Keyboard 1', 'Manufacturer A');
-    mockDevice2 = new MockMIDIInput('device-2', 'MIDI Keyboard 2', 'Manufacturer B');
-
-    // Create mock MIDI access with devices
-    mockMidiAccess = new MockMIDIAccess([mockDevice1, mockDevice2]);
-
-    // Mock navigator.requestMIDIAccess
-    global.navigator = {
-      ...global.navigator,
-      requestMIDIAccess: vi.fn().mockResolvedValue(mockMidiAccess),
-    };
-
-    // Get fresh instance
-    midiManager = MidiManager.getInstance();
+    // Use shared test fixture
+    const fixture = createMidiTestFixture();
+    midiManager = fixture.midiManager;
+    mockMidiAccess = fixture.mockMidiAccess;
+    mockDevice1 = fixture.mockDevice1;
+    mockDevice2 = fixture.mockDevice2;
   });
 
   afterEach(() => {
