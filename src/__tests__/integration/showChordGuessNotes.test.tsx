@@ -1,20 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { SingleChordGameState } from '../../game/SingleChordGameState';
 import SingleChordModeDisplay from '../../components/modes/SingleChordModeDisplay';
 import { SettingsProvider } from '../../contexts/SettingsContext';
+import { renderWithSettings } from '../../test/testUtils';
 import type { NoteTrainingModeSettings } from '../../types/game';
 import type { NoteWithOctave, Chord } from '../../types/music';
-
-// Mock audio engine to prevent actual audio playback
-vi.mock('../../utils/audioEngine', () => ({
-  audioEngine: {
-    playChord: vi.fn(),
-    playNote: vi.fn(),
-    releaseAllNotes: vi.fn()
-  }
-}));
 
 // Test data: Predefined chords for deterministic testing
 const TEST_CHORD_C_MAJOR: Chord = {
@@ -55,15 +47,6 @@ const TEST_CHORD_E_MAJOR: Chord = {
 };
 
 const TEST_CHORDS = [TEST_CHORD_C_MAJOR, TEST_CHORD_D_MINOR, TEST_CHORD_E_MAJOR];
-
-// Helper to render with SettingsProvider
-const renderWithSettings = (ui: React.ReactElement) => {
-  return render(
-    <SettingsProvider>
-      {ui}
-    </SettingsProvider>
-  );
-};
 
 // Helper to find and click a piano key by note name and octave
 const clickPianoKey = (container: HTMLElement, note: NoteWithOctave, gameState: SingleChordGameState) => {

@@ -14,6 +14,7 @@ export * from './midiTestData';
 export * from './midiAssertions';
 export * from './midiTestHelpers';
 export * from './midiMessageBuilder';
+export * from './midiMocks';
 
 // Common/generic test utilities
 export * from './commonTestUtils';
