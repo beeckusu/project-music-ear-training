@@ -29,6 +29,15 @@ import GameEndModal from './GameEndModal';
 import { LOGS_STATE_ENABLED, LOGS_EVENTS_ENABLED, LOGS_USER_ACTIONS_ENABLED } from '../config/logging';
 import './NoteIdentification.css';
 
+export interface GameStateUpdateData {
+  currentStreak: number;
+  longestStreak: number;
+  targetAccuracy?: number;
+  targetStreak?: number;
+  targetNotes?: number;
+  correctAttempts: number;
+}
+
 interface NoteIdentificationProps {
   onGuessAttempt?: (attempt: GuessAttempt) => void;
   isPaused?: boolean;
@@ -36,6 +45,7 @@ interface NoteIdentificationProps {
   resetTrigger?: number;
   onGameComplete?: (stats: GameStats) => void;
   onScoreReset?: () => void;
+  onGameStateUpdate?: (data: GameStateUpdateData) => void;
 }
 
 const NoteIdentification: React.FC<NoteIdentificationProps> = ({
@@ -43,7 +53,8 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
   isPaused,
   resetTrigger,
   onGameComplete,
-  onScoreReset
+  onScoreReset,
+  onGameStateUpdate
 }) => {
   const { settings, hasCompletedModeSetup, startFirstTimeSetup, openSettings } = useSettings();
   const { addSession } = useGameHistory();
@@ -300,6 +311,22 @@ const NoteIdentification: React.FC<NoteIdentificationProps> = ({
       orchestratorRef.current?.userReset();
     }
   }, [resetTrigger]);
+
+  // Report sandbox game state stats to parent
+  useEffect(() => {
+    if (!onGameStateUpdate || !gameState) return;
+    const mode = gameState.getMode();
+    if (mode !== 'sandbox') return;
+    const state = gameState as unknown as import('../types/game').SandboxGameState;
+    onGameStateUpdate({
+      currentStreak: state.currentStreak,
+      longestStreak: state.longestStreak,
+      targetAccuracy: state.targetAccuracy,
+      targetStreak: state.targetStreak,
+      targetNotes: state.targetNotes,
+      correctAttempts: state.correctAttempts,
+    });
+  });
 
   // Handle "Play Again"
   const handlePlayAgain = useCallback(() => {
