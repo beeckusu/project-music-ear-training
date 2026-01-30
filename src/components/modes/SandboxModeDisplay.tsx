@@ -26,9 +26,6 @@ const SandboxModeDisplay: React.FC<SandboxModeDisplayProps> = ({
   // Session timer is active when game has started and not completed
   const sessionTimerIsActive = gameState.startTime !== undefined && !gameState.isCompleted && !isPaused;
 
-  // Calculate current stats
-  const currentAccuracy = gameState.totalAttempts > 0 ? (gameState.correctAttempts / gameState.totalAttempts) * 100 : 0;
-
   // Update parent with timer state
   useEffect(() => {
     if (timeRemaining !== undefined) {
@@ -53,32 +50,6 @@ const SandboxModeDisplay: React.FC<SandboxModeDisplayProps> = ({
             </div>
           </div>
 
-          {/* Target Progress */}
-          <div className="target-progress">
-            <div className="progress-stats">
-              <div className="stat-item">
-                <span className="stat-label">Accuracy:</span>
-                <span className={`stat-value ${gameState.targetAccuracy && currentAccuracy >= gameState.targetAccuracy ? 'target-met' : 'target-pending'}`}>
-                  {currentAccuracy.toFixed(1)}%
-                  {gameState.targetAccuracy && ` / ${gameState.targetAccuracy}%`}
-                </span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Streak:</span>
-                <span className={`stat-value ${gameState.targetStreak && gameState.longestStreak >= gameState.targetStreak ? 'target-met' : 'target-pending'}`}>
-                  {gameState.longestStreak}
-                  {gameState.targetStreak && ` / ${gameState.targetStreak}`}
-                </span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">{gameState.targetNotes ? 'Target Notes:' : 'Notes:'}</span>
-                <span className={`stat-value ${gameState.targetNotes && gameState.correctAttempts >= gameState.targetNotes ? 'target-met' : 'target-pending'}`}>
-                  {gameState.correctAttempts}
-                  {gameState.targetNotes ? ` / ${gameState.targetNotes}` : ` (${gameState.totalAttempts} total)`}
-                </span>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 

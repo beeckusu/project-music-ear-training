@@ -7,8 +7,9 @@ import ScoreTracker from './components/ScoreTracker'
 import GuessHistory from './components/GuessHistory'
 import SettingsButton from './components/SettingsButton'
 import SettingsModal from './components/SettingsModal'
-import { TRAINING_MODES } from './constants'
+import { TRAINING_MODES, EAR_TRAINING_SUB_MODES } from './constants'
 import type { GuessAttempt } from './types/game'
+import type { GameStateUpdateData } from './components/NoteIdentification'
 import { MidiManager } from './services/MidiManager'
 import { MidiDisconnectionHandler } from './components/MidiDisconnectionHandler'
 import './App.css'
@@ -19,6 +20,7 @@ function AppContent() {
   const [score, setScore] = useState({ correct: 0, total: 0 })
   const [guessHistory, setGuessHistory] = useState<GuessAttempt[]>([])
   const [isPaused, setIsPaused] = useState(false)
+  const [sandboxStats, setSandboxStats] = useState<GameStateUpdateData | null>(null)
   const [gameResetTrigger, setGameResetTrigger] = useState(0)
   const [isSessionActive, setIsSessionActive] = useState(false)
   const [midiReady, setMidiReady] = useState(false)
@@ -162,6 +164,7 @@ function AppContent() {
   const resetScore = () => {
     setScore({ correct: 0, total: 0 })
     setGuessHistory([])
+    setSandboxStats(null)
   }
 
   const resetGame = () => {
@@ -198,11 +201,20 @@ function AppContent() {
       </header>
 
       <main className="app-main">
+        {isEarTrainingMode && settings.modes.selectedMode === EAR_TRAINING_SUB_MODES.SANDBOX && (
+          <ScoreTracker
+            correct={score.correct}
+            total={score.total}
+            onReset={resetScore}
+            currentStreak={sandboxStats?.currentStreak}
+            longestStreak={sandboxStats?.longestStreak}
+            targetAccuracy={sandboxStats?.targetAccuracy}
+            targetStreak={sandboxStats?.targetStreak}
+            targetNotes={sandboxStats?.targetNotes}
+          />
+        )}
         {isEarTrainingMode && (
-          <div className="score-section">
-            <ScoreTracker correct={score.correct} total={score.total} onReset={resetScore} />
-            <GuessHistory attempts={guessHistory} />
-          </div>
+          <GuessHistory attempts={guessHistory} />
         )}
 
         <NoteIdentification
@@ -210,6 +222,7 @@ function AppContent() {
           isPaused={gameIsPaused}
           resetTrigger={gameResetTrigger}
           onScoreReset={resetScore}
+          onGameStateUpdate={setSandboxStats}
         />
       </main>
 
