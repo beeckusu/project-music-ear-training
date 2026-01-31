@@ -55,6 +55,8 @@ interface PianoKeyboardProps {
   selectedNotes?: Set<string>;
 }
 
+const KEYBOARD_WIDTHS = { 1: 480, 2: 900 } as const;
+
 const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
   onNoteClick,
   highlights,
@@ -70,6 +72,26 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
   const { settings } = useSettings();
   const { noteDuration } = settings.timing;
   const { showNoteLabels } = settings;
+
+  // Responsive scaling
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [scale, setScale] = React.useState(1);
+
+  React.useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const availableWidth = entry.contentRect.width;
+        const expectedWidth = KEYBOARD_WIDTHS[numOctaves];
+        setScale(Math.min(1, availableWidth / expectedWidth));
+      }
+    });
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [numOctaves]);
 
   // Track last played note for restart prevention
   const lastPlayedNoteRef = React.useRef<{ note: NoteWithOctave; endTime: number } | null>(null);
@@ -301,43 +323,65 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
     return '';
   };
 
+  const expectedWidth = KEYBOARD_WIDTHS[numOctaves];
+  const needsScaling = scale < 1;
+  const scaledWidth = expectedWidth * scale;
+  const scaledHeight = 200 * scale; // white key height scaled
+
   return (
-    <div className={`piano-keyboard piano-keyboard-${numOctaves}-octave`}>
-      <div className="white-keys">
-        {whiteKeys.map((note, index) => {
-          const highlightClass = getHighlightClass(note, index);
-          const className = `white-key ${highlightClass}`.trim();
+    <div ref={containerRef} className="piano-keyboard-container">
+      <div
+        className="piano-keyboard-scaler"
+        style={needsScaling ? {
+          width: scaledWidth,
+          height: scaledHeight,
+          margin: '20px auto 0',
+        } : undefined}
+      >
+        <div
+          className={`piano-keyboard piano-keyboard-${numOctaves}-octave`}
+          style={needsScaling ? {
+            transform: `scale(${scale})`,
+            transformOrigin: 'top left',
+          } : undefined}
+        >
+          <div className="white-keys">
+            {whiteKeys.map((note, index) => {
+              const highlightClass = getHighlightClass(note, index);
+              const className = `white-key ${highlightClass}`.trim();
 
-          return (
-            <button
-              key={`${note}-${index}`}
-              className={className}
-              onClick={() => handleKeyClick(note, index)}
-              disabled={disabled}
-            >
-              {showNoteLabels && <span className="note-label">{note}</span>}
-            </button>
-          );
-        })}
-      </div>
-      <div className="black-keys">
-        {blackKeys.map(({ note, leftOffset, octaveOffset }, index) => {
-          const highlightClass = getHighlightClass(note, -1, octaveOffset);
-          const className = `black-key ${highlightClass}`.trim();
-          const blackKeyOctave = (octave + octaveOffset) as Octave;
+              return (
+                <button
+                  key={`${note}-${index}`}
+                  className={className}
+                  onClick={() => handleKeyClick(note, index)}
+                  disabled={disabled}
+                >
+                  {showNoteLabels && <span className="note-label">{note}</span>}
+                </button>
+              );
+            })}
+          </div>
+          <div className="black-keys">
+            {blackKeys.map(({ note, leftOffset, octaveOffset }, index) => {
+              const highlightClass = getHighlightClass(note, -1, octaveOffset);
+              const className = `black-key ${highlightClass}`.trim();
+              const blackKeyOctave = (octave + octaveOffset) as Octave;
 
-          return (
-            <button
-              key={`${note}-${octaveOffset}-${index}`}
-              className={className}
-              style={{ left: `${leftOffset}px` }}
-              onClick={() => handleKeyClick(note, undefined, blackKeyOctave)}
-              disabled={disabled}
-            >
-              {showNoteLabels && <span className="note-label">{note}</span>}
-            </button>
-          );
-        })}
+              return (
+                <button
+                  key={`${note}-${octaveOffset}-${index}`}
+                  className={className}
+                  style={{ left: `${leftOffset}px` }}
+                  onClick={() => handleKeyClick(note, undefined, blackKeyOctave)}
+                  disabled={disabled}
+                >
+                  {showNoteLabels && <span className="note-label">{note}</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );

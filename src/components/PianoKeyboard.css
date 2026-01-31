@@ -1,3 +1,14 @@
+.piano-keyboard-container {
+  width: 100%;
+  overflow: hidden;
+  text-align: center;
+}
+
+.piano-keyboard-scaler {
+  display: inline-block;
+  position: relative;
+}
+
 .piano-keyboard {
   position: relative;
   display: inline-block;
