@@ -9,6 +9,13 @@ import '../game/modes/noteTrainingModes';
 // Extend Vitest's expect with jest-dom matchers
 expect.extend(matchers);
 
+// Polyfill ResizeObserver for jsdom
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as unknown as typeof globalThis.ResizeObserver;
+
 // Cleanup after each test
 afterEach(() => {
   cleanup();
