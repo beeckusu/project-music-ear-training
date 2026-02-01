@@ -81,7 +81,12 @@ describe('ChordGuessHistory', () => {
       { note: 'D', octave: 5 }
     ]),
     isCorrect,
-    guessedChordName: isCorrect ? 'G' : 'Gm'
+    guessedChordName: isCorrect ? 'G' : 'Gm',
+    displayedNotes: [
+      { note: 'G', octave: 4 },
+      { note: 'B', octave: 4 },
+      { note: 'D', octave: 5 }
+    ]
   });
 
   beforeEach(() => {
@@ -232,11 +237,11 @@ describe('ChordGuessHistory', () => {
       expect(item).toBeInTheDocument();
 
       // Initially no tooltip
-      expect(container.querySelector('.chord-tooltip')).not.toBeInTheDocument();
+      expect(document.querySelector('.chord-tooltip')).not.toBeInTheDocument();
 
       // Hover to show tooltip
       fireEvent.mouseEnter(item!);
-      expect(container.querySelector('.chord-tooltip')).toBeInTheDocument();
+      expect(document.querySelector('.chord-tooltip')).toBeInTheDocument();
     });
 
     it('should hide tooltip on mouse leave', () => {
@@ -247,10 +252,10 @@ describe('ChordGuessHistory', () => {
 
       const item = container.querySelector('.chord-guess-history-item');
       fireEvent.mouseEnter(item!);
-      expect(container.querySelector('.chord-tooltip')).toBeInTheDocument();
+      expect(document.querySelector('.chord-tooltip')).toBeInTheDocument();
 
       fireEvent.mouseLeave(item!);
-      expect(container.querySelector('.chord-tooltip')).not.toBeInTheDocument();
+      expect(document.querySelector('.chord-tooltip')).not.toBeInTheDocument();
     });
 
     it('should show correct notes breakdown on hover', () => {
@@ -262,7 +267,7 @@ describe('ChordGuessHistory', () => {
       const item = container.querySelector('.chord-guess-history-item');
       fireEvent.mouseEnter(item!);
 
-      const tooltip = container.querySelector('.chord-tooltip');
+      const tooltip = document.querySelector('.chord-tooltip');
       expect(tooltip).toBeInTheDocument();
       expect(tooltip?.textContent).toContain('D4');
     });
@@ -276,7 +281,7 @@ describe('ChordGuessHistory', () => {
       const item = container.querySelector('.chord-guess-history-item');
       fireEvent.mouseEnter(item!);
 
-      const tooltip = container.querySelector('.chord-tooltip');
+      const tooltip = document.querySelector('.chord-tooltip');
       expect(tooltip?.textContent).toContain('Missed Notes');
       expect(tooltip?.textContent).toContain('F4');
       expect(tooltip?.textContent).toContain('A4');
@@ -291,7 +296,7 @@ describe('ChordGuessHistory', () => {
       const item = container.querySelector('.chord-guess-history-item');
       fireEvent.mouseEnter(item!);
 
-      const tooltip = container.querySelector('.chord-tooltip');
+      const tooltip = document.querySelector('.chord-tooltip');
       expect(tooltip?.textContent).toContain('Incorrect Notes');
       expect(tooltip?.textContent).toContain('C4');
     });
@@ -305,7 +310,7 @@ describe('ChordGuessHistory', () => {
       const item = container.querySelector('.chord-guess-history-item');
       fireEvent.mouseEnter(item!);
 
-      const tooltip = container.querySelector('.chord-tooltip');
+      const tooltip = document.querySelector('.chord-tooltip');
       expect(tooltip?.textContent).toContain('66%');
     });
 
@@ -318,7 +323,7 @@ describe('ChordGuessHistory', () => {
       const item = container.querySelector('.chord-guess-history-item');
       fireEvent.mouseEnter(item!);
 
-      const tooltip = container.querySelector('.chord-tooltip');
+      const tooltip = document.querySelector('.chord-tooltip');
       expect(tooltip?.textContent).toContain('D minor');
     });
   });
@@ -333,7 +338,7 @@ describe('ChordGuessHistory', () => {
       const item = container.querySelector('.chord-guess-history-item');
       fireEvent.mouseEnter(item!);
 
-      const tooltip = container.querySelector('.chord-tooltip');
+      const tooltip = document.querySelector('.chord-tooltip');
       expect(tooltip?.textContent).toContain('Correct!');
       expect(tooltip?.textContent).toContain('G major');
     });
@@ -347,7 +352,7 @@ describe('ChordGuessHistory', () => {
       const item = container.querySelector('.chord-guess-history-item');
       fireEvent.mouseEnter(item!);
 
-      const tooltip = container.querySelector('.chord-tooltip');
+      const tooltip = document.querySelector('.chord-tooltip');
       expect(tooltip?.textContent).toContain('Actual:');
       expect(tooltip?.textContent).toContain('G major');
       expect(tooltip?.textContent).toContain('Your guess:');
@@ -363,10 +368,41 @@ describe('ChordGuessHistory', () => {
       const item = container.querySelector('.chord-guess-history-item');
       fireEvent.mouseEnter(item!);
 
-      const tooltip = container.querySelector('.chord-tooltip');
+      const tooltip = document.querySelector('.chord-tooltip');
       expect(tooltip?.textContent).not.toContain('Correct Notes');
       expect(tooltip?.textContent).not.toContain('Missed Notes');
       expect(tooltip?.textContent).not.toContain('Incorrect Notes');
+    });
+
+    it('should show displayed notes in identification mode tooltip', () => {
+      const attempts = [createIdentificationAttempt('1', false)];
+      const { container } = render(
+        <ChordGuessHistory attempts={attempts} mode="identification" />
+      );
+
+      const item = container.querySelector('.chord-guess-history-item');
+      fireEvent.mouseEnter(item!);
+
+      const tooltip = document.querySelector('.chord-tooltip');
+      expect(tooltip?.textContent).toContain('Notes:');
+      expect(tooltip?.textContent).toContain('G4');
+      expect(tooltip?.textContent).toContain('B4');
+      expect(tooltip?.textContent).toContain('D5');
+    });
+
+    it('should show displayed notes for correct identification attempts', () => {
+      const attempts = [createIdentificationAttempt('1', true)];
+      const { container } = render(
+        <ChordGuessHistory attempts={attempts} mode="identification" />
+      );
+
+      const item = container.querySelector('.chord-guess-history-item');
+      fireEvent.mouseEnter(item!);
+
+      const tooltip = document.querySelector('.chord-tooltip');
+      expect(tooltip?.textContent).toContain('Correct!');
+      expect(tooltip?.textContent).toContain('Notes:');
+      expect(tooltip?.textContent).toContain('G4');
     });
   });
 
@@ -406,7 +442,7 @@ describe('ChordGuessHistory', () => {
 
       // Hover first item
       fireEvent.mouseEnter(items[0]);
-      let tooltip = container.querySelector('.chord-tooltip');
+      let tooltip = document.querySelector('.chord-tooltip');
       expect(tooltip).toBeInTheDocument();
       const firstTooltipContent = tooltip?.textContent;
 
@@ -414,7 +450,7 @@ describe('ChordGuessHistory', () => {
 
       // Hover second item
       fireEvent.mouseEnter(items[1]);
-      tooltip = container.querySelector('.chord-tooltip');
+      tooltip = document.querySelector('.chord-tooltip');
       expect(tooltip).toBeInTheDocument();
       const secondTooltipContent = tooltip?.textContent;
 
@@ -444,7 +480,7 @@ describe('ChordGuessHistory', () => {
       fireEvent.mouseEnter(item!);
 
       // Should not crash
-      const tooltip = container.querySelector('.chord-tooltip');
+      const tooltip = document.querySelector('.chord-tooltip');
       expect(tooltip).toBeInTheDocument();
     });
 
@@ -468,7 +504,7 @@ describe('ChordGuessHistory', () => {
       const item = container.querySelector('.chord-guess-history-item');
       fireEvent.mouseEnter(item!);
 
-      const tooltip = container.querySelector('.chord-tooltip');
+      const tooltip = document.querySelector('.chord-tooltip');
       expect(tooltip).toBeInTheDocument();
       expect(tooltip?.textContent).not.toContain('Correct Notes');
     });

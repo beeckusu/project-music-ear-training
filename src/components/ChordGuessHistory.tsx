@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import type { ChordGuessAttempt, GuessResult } from '../types/game';
 import type { NoteWithOctave } from '../types/music';
 import './ChordGuessHistory.css';
@@ -9,6 +10,11 @@ interface ChordGuessHistoryProps {
   mode: 'training' | 'identification';
 }
 
+interface TooltipPosition {
+  top: number;
+  left: number;
+}
+
 const ChordGuessHistory: React.FC<ChordGuessHistoryProps> = ({
   attempts,
   maxDisplay = 10,
@@ -16,7 +22,22 @@ const ChordGuessHistory: React.FC<ChordGuessHistoryProps> = ({
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [hoveredAttempt, setHoveredAttempt] = useState<string | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<TooltipPosition | null>(null);
   const recentAttempts = attempts.slice(-maxDisplay);
+
+  const handleMouseEnter = useCallback((attemptId: string, el: HTMLElement) => {
+    const rect = el.getBoundingClientRect();
+    setTooltipPos({
+      top: rect.top,
+      left: rect.left + rect.width / 2,
+    });
+    setHoveredAttempt(attemptId);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredAttempt(null);
+    setTooltipPos(null);
+  }, []);
 
   // Auto-scroll to the right when new attempts are added
   useEffect(() => {
@@ -132,10 +153,27 @@ const ChordGuessHistory: React.FC<ChordGuessHistoryProps> = ({
               )}
             </>
           )}
+
+          {attempt.displayedNotes && attempt.displayedNotes.length > 0 && (
+            <div className="chord-tooltip-section">
+              <div className="chord-tooltip-label">Notes:</div>
+              <div className="chord-tooltip-notes">
+                {attempt.displayedNotes.map((note, idx) => (
+                  <span key={idx} className="chord-tooltip-note">
+                    {formatNote(note)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       );
     }
   };
+
+  const hoveredAttemptData = hoveredAttempt
+    ? recentAttempts.find(a => a.id === hoveredAttempt)
+    : null;
 
   return (
     <div className="chord-guess-history">
@@ -153,24 +191,31 @@ const ChordGuessHistory: React.FC<ChordGuessHistoryProps> = ({
                 <div
                   key={attempt.id}
                   className={`chord-guess-history-item ${result}`}
-                  onMouseEnter={() => setHoveredAttempt(attempt.id)}
-                  onMouseLeave={() => setHoveredAttempt(null)}
+                  onMouseEnter={(e) => handleMouseEnter(attempt.id, e.currentTarget)}
+                  onMouseLeave={handleMouseLeave}
                 >
                   <div className="chord-guess-icon">
                     {getResultIcon(result)}
                   </div>
-
-                  {hoveredAttempt === attempt.id && (
-                    <div className="chord-tooltip">
-                      {renderTooltipContent(attempt)}
-                    </div>
-                  )}
                 </div>
               );
             })
           )}
         </div>
       </div>
+
+      {hoveredAttemptData && tooltipPos && createPortal(
+        <div
+          className="chord-tooltip"
+          style={{
+            top: tooltipPos.top,
+            left: tooltipPos.left,
+          }}
+        >
+          {renderTooltipContent(hoveredAttemptData)}
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

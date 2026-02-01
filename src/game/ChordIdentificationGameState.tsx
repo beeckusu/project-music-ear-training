@@ -114,7 +114,8 @@ export class ChordIdentificationGameState implements IGameMode {
       timestamp: new Date(),
       actualChord: this.currentChord!,
       isCorrect: true,
-      guessedChordName: this.userGuess || ''
+      guessedChordName: this.userGuess || '',
+      displayedNotes: [...this.displayedNotes]
     };
     this.guessHistory = [...this.guessHistory, guessAttempt];
 
@@ -191,7 +192,8 @@ export class ChordIdentificationGameState implements IGameMode {
       timestamp: new Date(),
       actualChord: this.currentChord,
       isCorrect: false,
-      guessedChordName: this.userGuess || ''
+      guessedChordName: this.userGuess || '',
+      displayedNotes: [...this.displayedNotes]
     };
     this.guessHistory = [...this.guessHistory, guessAttempt];
     console.log('[ChordIdentificationGameState] Added to guess history', {

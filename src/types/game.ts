@@ -22,6 +22,7 @@ export interface ChordGuessAttempt {
   correctNotes?: NoteWithOctave[]; // For Chord Training
   missedNotes?: NoteWithOctave[]; // For Chord Training
   incorrectNotes?: NoteWithOctave[]; // For Chord Training
+  displayedNotes?: NoteWithOctave[]; // For Chord Identification (notes shown to user)
 }
 
 export type GuessResult = 'correct' | 'wrong' | 'partial';
