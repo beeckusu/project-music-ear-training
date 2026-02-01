@@ -9,61 +9,7 @@ describe('KeyFilterSelector', () => {
     mockOnChange.mockClear();
   });
 
-  it('should render with key filter disabled by default', () => {
-    render(
-      <KeyFilterSelector
-        keyFilter={undefined}
-        onChange={mockOnChange}
-      />
-    );
-
-    const checkbox = screen.getByRole('checkbox') as HTMLInputElement;
-    expect(checkbox.checked).toBe(false);
-    expect(screen.getByText(/Enable to restrict chords/i)).toBeInTheDocument();
-  });
-
-  it('should render with key filter enabled', () => {
-    render(
-      <KeyFilterSelector
-        keyFilter={{ key: 'C', scale: 'major' }}
-        onChange={mockOnChange}
-      />
-    );
-
-    const checkbox = screen.getByRole('checkbox') as HTMLInputElement;
-    expect(checkbox.checked).toBe(true);
-    expect(screen.getByText(/Only practice chords.*C major/i)).toBeInTheDocument();
-  });
-
-  it('should enable key filter with default values when checkbox is checked', () => {
-    render(
-      <KeyFilterSelector
-        keyFilter={undefined}
-        onChange={mockOnChange}
-      />
-    );
-
-    const checkbox = screen.getByRole('checkbox');
-    fireEvent.click(checkbox);
-
-    expect(mockOnChange).toHaveBeenCalledWith({ key: 'C', scale: 'major' });
-  });
-
-  it('should disable key filter when checkbox is unchecked', () => {
-    render(
-      <KeyFilterSelector
-        keyFilter={{ key: 'G', scale: 'minor' }}
-        onChange={mockOnChange}
-      />
-    );
-
-    const checkbox = screen.getByRole('checkbox');
-    fireEvent.click(checkbox);
-
-    expect(mockOnChange).toHaveBeenCalledWith(undefined);
-  });
-
-  it('should show key and scale selectors when enabled', () => {
+  it('should render key and scale selectors', () => {
     render(
       <KeyFilterSelector
         keyFilter={{ key: 'D', scale: 'major' }}
@@ -79,6 +25,18 @@ describe('KeyFilterSelector', () => {
 
     expect(keySelect.value).toBe('D');
     expect(scaleSelect.value).toBe('major');
+  });
+
+  it('should set default keyFilter when rendered without one', () => {
+    render(
+      <KeyFilterSelector
+        keyFilter={undefined}
+        onChange={mockOnChange}
+      />
+    );
+
+    // useEffect should fire to set default
+    expect(mockOnChange).toHaveBeenCalledWith({ key: 'C', scale: 'major' });
   });
 
   it('should call onChange when key is changed', () => {
@@ -109,24 +67,15 @@ describe('KeyFilterSelector', () => {
     expect(mockOnChange).toHaveBeenCalledWith({ key: 'C', scale: 'minor' });
   });
 
-  it('should display correct description for different keys and scales', () => {
-    const { rerender } = render(
+  it('should display description about diatonic filtering', () => {
+    render(
       <KeyFilterSelector
         keyFilter={{ key: 'C', scale: 'major' }}
         onChange={mockOnChange}
       />
     );
 
-    expect(screen.getByText(/C major/i)).toBeInTheDocument();
-
-    rerender(
-      <KeyFilterSelector
-        keyFilter={{ key: 'F#', scale: 'minor' }}
-        onChange={mockOnChange}
-      />
-    );
-
-    expect(screen.getByText(/F# minor/i)).toBeInTheDocument();
+    expect(screen.getByText(/Only chords diatonic to the selected key will appear/i)).toBeInTheDocument();
   });
 
   it('should have all 12 chromatic notes in key selector', () => {
@@ -159,15 +108,29 @@ describe('KeyFilterSelector', () => {
     expect(options[1].value).toBe('minor');
   });
 
-  it('should not show controls when disabled', () => {
-    render(
+  it('should display correct values for different keys and scales', () => {
+    const { rerender } = render(
       <KeyFilterSelector
-        keyFilter={undefined}
+        keyFilter={{ key: 'C', scale: 'major' }}
         onChange={mockOnChange}
       />
     );
 
-    expect(screen.queryByLabelText('Key:')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Scale:')).not.toBeInTheDocument();
+    let keySelect = screen.getByLabelText('Key:') as HTMLSelectElement;
+    let scaleSelect = screen.getByLabelText('Scale:') as HTMLSelectElement;
+    expect(keySelect.value).toBe('C');
+    expect(scaleSelect.value).toBe('major');
+
+    rerender(
+      <KeyFilterSelector
+        keyFilter={{ key: 'F#', scale: 'minor' }}
+        onChange={mockOnChange}
+      />
+    );
+
+    keySelect = screen.getByLabelText('Key:') as HTMLSelectElement;
+    scaleSelect = screen.getByLabelText('Scale:') as HTMLSelectElement;
+    expect(keySelect.value).toBe('F#');
+    expect(scaleSelect.value).toBe('minor');
   });
 });

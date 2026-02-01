@@ -1069,7 +1069,7 @@ describe('ChordEngine', () => {
         );
       });
 
-      it('should throw error when keyFilter is specified (not yet implemented)', () => {
+      it('should not throw error when keyFilter is specified', () => {
         const filter: ChordFilter = {
           allowedChordTypes: ['major'],
           allowedRootNotes: null,
@@ -1078,9 +1078,7 @@ describe('ChordEngine', () => {
           keyFilter: { key: 'C', scale: 'major' }
         };
 
-        expect(() => ChordEngine.getRandomChordFromFilter(filter)).toThrow(
-          'keyFilter is not yet implemented'
-        );
+        expect(() => ChordEngine.getRandomChordFromFilter(filter)).not.toThrow();
       });
 
       it('should skip invalid chords that exceed octave boundaries', () => {
@@ -1525,14 +1523,9 @@ describe('ChordEngine', () => {
       Object.values(CHORD_FILTER_PRESETS).forEach(preset => {
         const filter = applyChordFilterPreset(preset);
 
-        // Some presets may have keyFilter which isn't implemented yet
-        if (filter.keyFilter) {
-          expect(() => ChordEngine.getRandomChordFromFilter(filter)).toThrow('keyFilter is not yet implemented');
-        } else {
-          const chord = ChordEngine.getRandomChordFromFilter(filter);
-          expect(chord).toBeDefined();
-          expect(ChordEngine.validateChord(chord)).toBe(true);
-        }
+        const chord = ChordEngine.getRandomChordFromFilter(filter);
+        expect(chord).toBeDefined();
+        expect(ChordEngine.validateChord(chord)).toBe(true);
       });
     });
 
@@ -1566,6 +1559,172 @@ describe('ChordEngine', () => {
         expect(retrievedPreset).toBeDefined();
         expect(retrievedPreset?.name).toBe(firstPreset.name);
       }
+    });
+  });
+
+  describe('Diatonic Key Filtering', () => {
+    const C_MAJOR_NOTES: Note[] = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+    const C_MINOR_NOTES: Note[] = ['C', 'D', 'D#', 'F', 'G', 'G#', 'A#'];
+
+    it('should only produce chords with notes in C major scale', () => {
+      const filter: ChordFilter = {
+        allowedChordTypes: ['major', 'minor', 'diminished'],
+        allowedRootNotes: null,
+        allowedOctaves: [4],
+        includeInversions: false,
+        keyFilter: { key: 'C', scale: 'major' }
+      };
+
+      for (let i = 0; i < 50; i++) {
+        const chord = ChordEngine.getRandomChordFromFilter(filter);
+        chord.notes.forEach(n => {
+          expect(C_MAJOR_NOTES).toContain(n.note);
+        });
+      }
+    });
+
+    it('should produce expected diatonic triads for C major', () => {
+      const filter: ChordFilter = {
+        allowedChordTypes: ['major', 'minor', 'diminished'],
+        allowedRootNotes: null,
+        allowedOctaves: [4],
+        includeInversions: false,
+        keyFilter: { key: 'C', scale: 'major' }
+      };
+
+      const chordsSeen = new Set<string>();
+      for (let i = 0; i < 200; i++) {
+        const chord = ChordEngine.getRandomChordFromFilter(filter);
+        chordsSeen.add(`${chord.root}-${chord.type}`);
+      }
+
+      // C major diatonic triads: C, Dm, Em, F, G, Am, Bdim
+      expect(chordsSeen.has('C-major')).toBe(true);
+      expect(chordsSeen.has('D-minor')).toBe(true);
+      expect(chordsSeen.has('E-minor')).toBe(true);
+      expect(chordsSeen.has('F-major')).toBe(true);
+      expect(chordsSeen.has('G-major')).toBe(true);
+      expect(chordsSeen.has('A-minor')).toBe(true);
+      expect(chordsSeen.has('B-diminished')).toBe(true);
+
+      // Non-diatonic should not appear
+      expect(chordsSeen.has('C-minor')).toBe(false);
+      expect(chordsSeen.has('D-major')).toBe(false);
+      expect(chordsSeen.has('C#-major')).toBe(false);
+    });
+
+    it('should only produce chords with notes in C minor scale', () => {
+      const filter: ChordFilter = {
+        allowedChordTypes: ['major', 'minor', 'diminished'],
+        allowedRootNotes: null,
+        allowedOctaves: [4],
+        includeInversions: false,
+        keyFilter: { key: 'C', scale: 'minor' }
+      };
+
+      for (let i = 0; i < 50; i++) {
+        const chord = ChordEngine.getRandomChordFromFilter(filter);
+        chord.notes.forEach(n => {
+          expect(C_MINOR_NOTES).toContain(n.note);
+        });
+      }
+    });
+
+    it('should respect chord type restrictions with keyFilter', () => {
+      // Only allow major chords in C major -> should get C, F, G
+      const filter: ChordFilter = {
+        allowedChordTypes: ['major'],
+        allowedRootNotes: null,
+        allowedOctaves: [4],
+        includeInversions: false,
+        keyFilter: { key: 'C', scale: 'major' }
+      };
+
+      const rootsSeen = new Set<string>();
+      for (let i = 0; i < 100; i++) {
+        const chord = ChordEngine.getRandomChordFromFilter(filter);
+        rootsSeen.add(chord.root);
+        expect(chord.type).toBe('major');
+      }
+
+      // Only C, F, G should have major chords diatonic to C major
+      expect(rootsSeen.has('C')).toBe(true);
+      expect(rootsSeen.has('F')).toBe(true);
+      expect(rootsSeen.has('G')).toBe(true);
+      expect(rootsSeen.size).toBe(3);
+    });
+
+    it('should respect allowedRootNotes with keyFilter', () => {
+      // Only allow C and G as roots in C major with major chords
+      const filter: ChordFilter = {
+        allowedChordTypes: ['major', 'minor', 'diminished'],
+        allowedRootNotes: ['C', 'G'],
+        allowedOctaves: [4],
+        includeInversions: false,
+        keyFilter: { key: 'C', scale: 'major' }
+      };
+
+      for (let i = 0; i < 50; i++) {
+        const chord = ChordEngine.getRandomChordFromFilter(filter);
+        expect(['C', 'G']).toContain(chord.root);
+      }
+    });
+
+    it('should work with inversions and keyFilter', () => {
+      const filter: ChordFilter = {
+        allowedChordTypes: ['major'],
+        allowedRootNotes: ['C'],
+        allowedOctaves: [4],
+        includeInversions: true,
+        keyFilter: { key: 'C', scale: 'major' }
+      };
+
+      const inversionsSeen = new Set<number>();
+      for (let i = 0; i < 50; i++) {
+        const chord = ChordEngine.getRandomChordFromFilter(filter);
+        inversionsSeen.add(chord.inversion ?? 0);
+        // All notes should still be diatonic
+        chord.notes.forEach(n => {
+          expect(C_MAJOR_NOTES).toContain(n.note);
+        });
+      }
+
+      expect(inversionsSeen.size).toBeGreaterThan(1);
+    });
+
+    it('should work with getDiatonicChords directly', () => {
+      const filter: ChordFilter = {
+        allowedChordTypes: ['major', 'minor', 'diminished'],
+        allowedRootNotes: null,
+        allowedOctaves: [4],
+        includeInversions: false
+      };
+
+      const chords = ChordEngine.getDiatonicChords('C', 'major', filter);
+
+      // Should have 7 diatonic triads in C major at octave 4
+      expect(chords.length).toBe(7);
+
+      // Verify all chord tones are diatonic
+      chords.forEach(chord => {
+        chord.notes.forEach(n => {
+          expect(C_MAJOR_NOTES).toContain(n.note);
+        });
+      });
+    });
+
+    it('should throw when keyFilter produces no valid chords', () => {
+      const filter: ChordFilter = {
+        allowedChordTypes: ['augmented'], // No augmented chords are diatonic to C major
+        allowedRootNotes: null,
+        allowedOctaves: [4],
+        includeInversions: false,
+        keyFilter: { key: 'C', scale: 'major' }
+      };
+
+      expect(() => ChordEngine.getRandomChordFromFilter(filter)).toThrow(
+        'No valid chords available with current filter settings'
+      );
     });
   });
 

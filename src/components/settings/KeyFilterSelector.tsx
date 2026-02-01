@@ -11,83 +11,63 @@ const KeyFilterSelector: React.FC<KeyFilterSelectorProps> = ({
   keyFilter,
   onChange,
 }) => {
-  const isEnabled = keyFilter !== undefined;
+  // Default to C major if no keyFilter is set yet
+  const currentKey = keyFilter?.key ?? 'C';
+  const currentScale = keyFilter?.scale ?? 'major';
 
-  const handleEnableToggle = (enabled: boolean) => {
-    if (enabled) {
-      // Enable with default values
+  // Ensure keyFilter is set on first render if not already
+  React.useEffect(() => {
+    if (!keyFilter) {
       onChange({ key: 'C', scale: 'major' });
-    } else {
-      // Disable
-      onChange(undefined);
     }
-  };
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleKeyChange = (key: Note) => {
-    if (keyFilter) {
-      onChange({ ...keyFilter, key });
-    }
+    onChange({ key, scale: currentScale });
   };
 
   const handleScaleChange = (scale: 'major' | 'minor') => {
-    if (keyFilter) {
-      onChange({ ...keyFilter, scale });
-    }
+    onChange({ key: currentKey, scale });
   };
 
   return (
     <div className="setting-group">
-      <label className="checkbox-label">
-        <input
-          type="checkbox"
-          checked={isEnabled}
-          onChange={(e) => handleEnableToggle(e.target.checked)}
-        />
-        Filter by Key (Diatonic Chords Only)
-      </label>
-
-      {isEnabled && keyFilter && (
-        <div className="key-filter-controls">
-          <div className="key-filter-row">
-            <div className="key-filter-field">
-              <label htmlFor="key-select">Key:</label>
-              <select
-                id="key-select"
-                value={keyFilter.key}
-                onChange={(e) => handleKeyChange(e.target.value as Note)}
-                className="key-select"
-              >
-                {ALL_NOTES.map(note => (
-                  <option key={note} value={note}>
-                    {note}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="key-filter-field">
-              <label htmlFor="scale-select">Scale:</label>
-              <select
-                id="scale-select"
-                value={keyFilter.scale}
-                onChange={(e) => handleScaleChange(e.target.value as 'major' | 'minor')}
-                className="scale-select"
-              >
-                <option value="major">Major</option>
-                <option value="minor">Minor</option>
-              </select>
-            </div>
+      <div className="key-filter-controls">
+        <div className="key-filter-row">
+          <div className="key-filter-field">
+            <label htmlFor="key-select">Key:</label>
+            <select
+              id="key-select"
+              value={currentKey}
+              onChange={(e) => handleKeyChange(e.target.value as Note)}
+              className="key-select"
+            >
+              {ALL_NOTES.map(note => (
+                <option key={note} value={note}>
+                  {note}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <small className="key-filter-description">
-            Only practice chords that are diatonic to {keyFilter.key} {keyFilter.scale}
-          </small>
+          <div className="key-filter-field">
+            <label htmlFor="scale-select">Scale:</label>
+            <select
+              id="scale-select"
+              value={currentScale}
+              onChange={(e) => handleScaleChange(e.target.value as 'major' | 'minor')}
+              className="scale-select"
+            >
+              <option value="major">Major</option>
+              <option value="minor">Minor</option>
+            </select>
+          </div>
         </div>
-      )}
 
-      {!isEnabled && (
-        <small>Enable to restrict chords to those in a specific key and scale</small>
-      )}
+        <small className="key-filter-description">
+          Only chords diatonic to the selected key will appear
+        </small>
+      </div>
     </div>
   );
 };

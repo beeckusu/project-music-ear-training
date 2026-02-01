@@ -1,66 +1,52 @@
 import { screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import NoteTrainingModeSettings from '../../components/settings/NoteTrainingModeSettings';
+import ChordFilterSettings from '../../components/settings/ChordFilterSettings';
 import { renderWithSettings } from '../../test/testUtils';
 
 describe('Chord Filter System Integration Tests', () => {
-  const renderComponent = () => renderWithSettings(<NoteTrainingModeSettings />);
+  const renderComponent = () => renderWithSettings(<ChordFilterSettings />);
 
-  it('should render all chord filter components', () => {
+  it('should render subtabs and default to Custom tab', () => {
     renderComponent();
 
-    // Check that all filter components are present
+    // Subtabs should be present
+    expect(screen.getByText('Custom')).toBeInTheDocument();
+    expect(screen.getByText('Keys')).toBeInTheDocument();
+
+    // Custom tab content should be visible by default
     expect(screen.getAllByText(/Chord Types/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Root Note Filter/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Filter by Key/i)).toBeInTheDocument();
   });
 
-  it('should allow enabling and configuring key filter', () => {
+  it('should switch to Keys subtab and show key filter controls', () => {
     renderComponent();
 
-    // Find the key filter checkbox
-    const keyFilterCheckbox = screen.getByLabelText(/Filter by Key/i);
-    expect(keyFilterCheckbox).not.toBeChecked();
+    // Click on Keys subtab
+    fireEvent.click(screen.getByText('Keys'));
 
-    // Enable key filter
-    fireEvent.click(keyFilterCheckbox);
-
-    // Now key and scale selectors should appear
+    // Key and scale selectors should appear
     expect(screen.getByLabelText('Key:')).toBeInTheDocument();
     expect(screen.getByLabelText('Scale:')).toBeInTheDocument();
+    expect(screen.getByText(/Only chords diatonic to the selected key will appear/i)).toBeInTheDocument();
   });
 
-  it('should update root notes filter', () => {
+  it('should handle key filter with different keys and scales in Keys subtab', () => {
     renderComponent();
 
-    // Should see root notes selected count
-    expect(screen.getByText(/root notes selected/i)).toBeInTheDocument();
-
-    // Find the "All Notes" radio button and verify it exists
-    const allNotesRadio = screen.getByLabelText('All Notes');
-    expect(allNotesRadio).toBeInTheDocument();
-  });
-
-  it('should handle key filter with different keys and scales', () => {
-    renderComponent();
-
-    // Enable key filter
-    const keyFilterCheckbox = screen.getByLabelText(/Filter by Key/i);
-    fireEvent.click(keyFilterCheckbox);
+    // Switch to Keys subtab
+    fireEvent.click(screen.getByText('Keys'));
 
     // Change key to G
     const keySelect = screen.getByLabelText('Key:');
     fireEvent.change(keySelect, { target: { value: 'G' } });
 
-    // Description should update
-    expect(screen.getByText(/G major/i)).toBeInTheDocument();
-
     // Change scale to minor
     const scaleSelect = screen.getByLabelText('Scale:');
     fireEvent.change(scaleSelect, { target: { value: 'minor' } });
 
-    // Description should update
-    expect(screen.getByText(/G minor/i)).toBeInTheDocument();
+    // Selectors should reflect the changes
+    expect((keySelect as HTMLSelectElement).value).toBe('G');
+    expect((scaleSelect as HTMLSelectElement).value).toBe('minor');
   });
 
   it('should show correct chord type counts', () => {
@@ -70,20 +56,17 @@ describe('Chord Filter System Integration Tests', () => {
     expect(screen.getByText(/\d+ types selected/)).toBeInTheDocument();
   });
 
-  it('should disable key filter when unchecked', () => {
+  it('should hide key filter when switching back to Custom tab', () => {
     renderComponent();
 
-    // Enable key filter
-    const keyFilterCheckbox = screen.getByLabelText(/Filter by Key/i);
-    fireEvent.click(keyFilterCheckbox);
-
-    // Selectors should be visible
+    // Switch to Keys subtab
+    fireEvent.click(screen.getByText('Keys'));
     expect(screen.getByLabelText('Key:')).toBeInTheDocument();
 
-    // Disable key filter
-    fireEvent.click(keyFilterCheckbox);
+    // Switch back to Custom subtab
+    fireEvent.click(screen.getByText('Custom'));
 
-    // Selectors should be hidden
+    // Key filter controls should not be visible in Custom tab
     expect(screen.queryByLabelText('Key:')).not.toBeInTheDocument();
   });
 
@@ -106,5 +89,28 @@ describe('Chord Filter System Integration Tests', () => {
 
     // Should have category toggle buttons
     expect(categoryButtons.length).toBeGreaterThan(0);
+  });
+
+  it('should show chord type selector in Keys subtab', () => {
+    renderComponent();
+
+    // Switch to Keys subtab
+    fireEvent.click(screen.getByText('Keys'));
+
+    // Chord type selector should still be available in Keys tab
+    expect(screen.getAllByText(/Chord Types/i).length).toBeGreaterThan(0);
+  });
+
+  it('should show inversions checkbox in both subtabs', () => {
+    renderComponent();
+
+    // Custom tab should have inversions checkbox
+    expect(screen.getByLabelText(/Include Inversions/i)).toBeInTheDocument();
+
+    // Switch to Keys subtab
+    fireEvent.click(screen.getByText('Keys'));
+
+    // Keys tab should also have inversions checkbox
+    expect(screen.getByLabelText(/Include Inversions/i)).toBeInTheDocument();
   });
 });

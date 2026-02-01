@@ -13,6 +13,7 @@
 import type { Note, NoteWithOctave, Chord, ChordType, Octave, ChordFilter } from '../types/music';
 import { CHORD_FORMULAS, formatChordName } from '../constants/chords';
 import { ALL_NOTES } from '../types/music';
+import { getScaleNotes } from '../constants/scales';
 
 /**
  * Utility class for chord operations including generation, recognition, and validation
@@ -417,6 +418,63 @@ export class ChordEngine {
   }
 
   /**
+   * Returns all chords that are diatonic to a given key and scale,
+   * filtered by the rest of the ChordFilter constraints.
+   *
+   * A chord is diatonic if every chord tone (mod 12) belongs to the scale.
+   *
+   * @param key - Root note of the scale
+   * @param scale - 'major' or 'minor'
+   * @param filter - ChordFilter for additional constraints (chord types, octaves, inversions)
+   * @returns Array of valid diatonic Chord objects
+   */
+  static getDiatonicChords(key: Note, scale: 'major' | 'minor', filter: ChordFilter): Chord[] {
+    const scaleNotes = getScaleNotes(key, scale);
+    const scaleNoteIndices = new Set(scaleNotes.map(n => ALL_NOTES.indexOf(n)));
+    const validChords: Chord[] = [];
+
+    // Use all 12 chromatic notes as potential roots (diatonic check will filter)
+    const rootNotes = filter.allowedRootNotes ?? ALL_NOTES;
+
+    for (const chordType of filter.allowedChordTypes) {
+      const formula = CHORD_FORMULAS[chordType];
+      if (!formula) continue;
+
+      for (const rootNote of rootNotes) {
+        const rootIndex = ALL_NOTES.indexOf(rootNote);
+
+        // Check if all chord tones (mod 12) fall within the scale
+        const allTonesInScale = formula.every(interval => {
+          const noteIndex = (rootIndex + interval) % 12;
+          return scaleNoteIndices.has(noteIndex);
+        });
+
+        if (!allTonesInScale) continue;
+
+        // This root + type is diatonic; now build for each octave/inversion
+        const maxInversion = formula.length - 1;
+        const inversionsToTry = filter.includeInversions
+          ? Array.from({ length: maxInversion + 1 }, (_, i) => i)
+          : [0];
+
+        for (const octave of filter.allowedOctaves) {
+          for (const inversion of inversionsToTry) {
+            try {
+              const chord = this.buildChord(rootNote, chordType, octave, inversion);
+              validChords.push(chord);
+            } catch {
+              // Skip invalid combinations (e.g., octave out of bounds)
+              continue;
+            }
+          }
+        }
+      }
+    }
+
+    return validChords;
+  }
+
+  /**
    * Generates a random chord based on ChordFilter settings
    *
    * This method creates all possible chords that match the filter constraints,
@@ -433,7 +491,7 @@ export class ChordEngine {
    * - allowedRootNotes: Which root notes are allowed (null = all 12 chromatic notes)
    * - allowedOctaves: Which octaves the chord root can start in
    * - includeInversions: Whether to include inversions (true) or only root position (false)
-   * - keyFilter: Optional diatonic key restriction (NOT YET IMPLEMENTED)
+   * - keyFilter: Optional diatonic key restriction
    *
    * **Distribution:**
    * Each valid chord has equal probability of being selected. The method builds
@@ -447,7 +505,7 @@ export class ChordEngine {
    * @param filter - ChordFilter configuration specifying which chords are allowed
    * @returns A randomly selected Chord object matching the filter constraints
    * @throws {Error} If no valid chords are available with current filter settings
-   * @throws {Error} If keyFilter is specified (not yet implemented)
+   * @throws {Error} If no valid chords match the filter (including keyFilter)
    *
    * @example
    * // Get random major or minor chord in root position
@@ -470,45 +528,49 @@ export class ChordEngine {
    * const chord = ChordEngine.getRandomChordFromFilter(filter);
    */
   static getRandomChordFromFilter(filter: ChordFilter): Chord {
-    // keyFilter not yet implemented
-    if (filter.keyFilter) {
-      throw new Error('keyFilter is not yet implemented');
-    }
-
     // Check cache first
     const cacheKey = this.getFilterCacheKey(filter);
     let validChords = this.chordFilterCache.get(cacheKey);
 
     // If not cached, calculate and cache
     if (!validChords) {
-      validChords = [];
+      if (filter.keyFilter) {
+        // Use diatonic filtering when a key is specified
+        validChords = this.getDiatonicChords(
+          filter.keyFilter.key,
+          filter.keyFilter.scale,
+          filter
+        );
+      } else {
+        validChords = [];
 
-      // Determine which root notes to use
-      const rootNotes = filter.allowedRootNotes ?? ALL_NOTES;
+        // Determine which root notes to use
+        const rootNotes = filter.allowedRootNotes ?? ALL_NOTES;
 
-      // Iterate through all combinations
-      for (const chordType of filter.allowedChordTypes) {
-        for (const rootNote of rootNotes) {
-          for (const octave of filter.allowedOctaves) {
-            // Determine which inversions to try
-            const formula = CHORD_FORMULAS[chordType];
-            if (!formula) {
-              continue; // Skip unknown chord types
-            }
+        // Iterate through all combinations
+        for (const chordType of filter.allowedChordTypes) {
+          for (const rootNote of rootNotes) {
+            for (const octave of filter.allowedOctaves) {
+              // Determine which inversions to try
+              const formula = CHORD_FORMULAS[chordType];
+              if (!formula) {
+                continue; // Skip unknown chord types
+              }
 
-            const maxInversion = formula.length - 1;
-            const inversionsToTry = filter.includeInversions
-              ? Array.from({ length: maxInversion + 1 }, (_, i) => i) // [0, 1, 2, ...]
-              : [0]; // Only root position
+              const maxInversion = formula.length - 1;
+              const inversionsToTry = filter.includeInversions
+                ? Array.from({ length: maxInversion + 1 }, (_, i) => i) // [0, 1, 2, ...]
+                : [0]; // Only root position
 
-            for (const inversion of inversionsToTry) {
-              try {
-                // Attempt to build the chord
-                const chord = this.buildChord(rootNote, chordType, octave, inversion);
-                validChords.push(chord);
-              } catch (error) {
-                // Skip invalid combinations (e.g., octave out of bounds)
-                continue;
+              for (const inversion of inversionsToTry) {
+                try {
+                  // Attempt to build the chord
+                  const chord = this.buildChord(rootNote, chordType, octave, inversion);
+                  validChords.push(chord);
+                } catch (error) {
+                  // Skip invalid combinations (e.g., octave out of bounds)
+                  continue;
+                }
               }
             }
           }
