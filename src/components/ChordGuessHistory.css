@@ -114,12 +114,10 @@
   text-align: center;
 }
 
-/* Tooltip styles */
+/* Tooltip styles - rendered via portal at body level */
 .chord-tooltip {
-  position: absolute;
-  bottom: calc(100% + 10px);
-  left: 50%;
-  transform: translateX(-50%);
+  position: fixed;
+  transform: translateX(-50%) translateY(-100%) translateY(-10px);
   background: rgba(33, 37, 41, 0.96);
   color: white;
   padding: 0.85rem;
@@ -127,7 +125,7 @@
   font-size: 0.75rem;
   min-width: 200px;
   max-width: 300px;
-  z-index: 1000;
+  z-index: 10000;
   pointer-events: none;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
   animation: tooltipFadeIn 0.2s ease;
@@ -136,11 +134,11 @@
 @keyframes tooltipFadeIn {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(5px);
+    transform: translateX(-50%) translateY(-100%) translateY(-5px);
   }
   to {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    transform: translateX(-50%) translateY(-100%) translateY(-10px);
   }
 }
 
