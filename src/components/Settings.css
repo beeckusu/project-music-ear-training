@@ -986,6 +986,39 @@ input[type="range"]::-moz-range-track {
   font-style: italic;
 }
 
+/* Chord Filter Subtabs */
+.chord-filter-subtabs {
+  display: flex;
+  border-bottom: 2px solid #e0e0e0;
+  margin-bottom: 16px;
+  gap: 0;
+}
+
+.chord-filter-subtab {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6c757d;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s ease;
+}
+
+.chord-filter-subtab:hover {
+  color: #495057;
+  background-color: #f8f9fa;
+}
+
+.chord-filter-subtab.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+  font-weight: 600;
+}
+
 /* Mode Selector Styles */
 .mode-grid {
   display: grid;
