@@ -148,11 +148,12 @@ describe('ChordIdentificationModeDisplay', () => {
         />
       );
 
-      const baseNoteButtons = container.querySelectorAll('.base-note-button');
-      expect(baseNoteButtons.length).toBe(12); // 12 chromatic notes
+      const columns = container.querySelectorAll('.chord-column');
+      const rootButtons = columns[0].querySelectorAll('.chord-col-button');
+      expect(rootButtons.length).toBe(12); // 12 chromatic notes
     });
 
-    it('should display chord type buttons', () => {
+    it('should display quality and extension columns', () => {
       const { container } = renderWithSettings(
         <ChordIdentificationModeDisplay
           gameState={gameState}
@@ -163,8 +164,12 @@ describe('ChordIdentificationModeDisplay', () => {
         />
       );
 
-      const chordTypeButtons = container.querySelectorAll('.chord-type-button');
-      expect(chordTypeButtons.length).toBe(24); // 24 chord types
+      const columns = container.querySelectorAll('.chord-column');
+      expect(columns.length).toBe(3); // Root, Quality, Extension
+      const qualityButtons = columns[1].querySelectorAll('.chord-col-button');
+      expect(qualityButtons.length).toBe(6); // maj, m, dim, aug, sus2, sus4
+      const extensionButtons = columns[2].querySelectorAll('.chord-col-button');
+      expect(extensionButtons.length).toBe(6); // 7, 9, 11, 13, add9, add11
     });
 
     it('should not show selected chord name when nothing is selected', () => {
