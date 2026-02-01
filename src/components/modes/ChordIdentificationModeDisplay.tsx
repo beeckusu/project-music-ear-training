@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import type { ChordIdentificationGameState } from '../../game/ChordIdentificationGameState';
 import type { CommonDisplayProps } from '../../game/GameStateFactory';
-import type { Note, ChordType } from '../../types/music';
+import type { Note } from '../../types/music';
 import type { FeedbackType } from '../FeedbackMessage';
+import type { ChordQuality, ChordExtension } from '../ChordSelection';
 import TimerDigital from '../TimerDigital';
 import TimerCircular from '../TimerCircular';
 import PianoKeyboard from '../PianoKeyboard';
 import ChordDisplay from '../ChordDisplay';
 import ChordInput from '../ChordInput';
-import ChordSelection from '../ChordSelection';
+import ChordSelection, { resolveChordType } from '../ChordSelection';
 import ChordGuessHistory from '../ChordGuessHistory';
 import FeedbackMessage from '../FeedbackMessage';
 import { formatChordName } from '../../constants/chords';
@@ -37,7 +38,8 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
   const { currentChord, correctChordsCount, currentStreak, totalAttempts, noteTrainingSettings } = gameState;
   const [guessInput, setGuessInput] = useState<string>('');
   const [selectedBaseNote, setSelectedBaseNote] = useState<Note | null>(null);
-  const [selectedChordType, setSelectedChordType] = useState<ChordType | null>(null);
+  const [selectedQuality, setSelectedQuality] = useState<ChordQuality | null>(null);
+  const [selectedExtension, setSelectedExtension] = useState<ChordExtension | null>(null);
   const [feedback, setFeedback] = useState<{ message: string; type: FeedbackType } | null>(null);
   const [, forceUpdate] = React.useReducer(x => x + 1, 0);
 
@@ -58,8 +60,10 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
     let chordName: string;
     if (guessInput.trim()) {
       chordName = guessInput.trim();
-    } else if (selectedBaseNote && selectedChordType) {
-      chordName = formatChordName(selectedBaseNote, selectedChordType);
+    } else if (selectedBaseNote) {
+      const chordType = resolveChordType(selectedQuality, selectedExtension);
+      if (!chordType) return;
+      chordName = formatChordName(selectedBaseNote, chordType);
     } else {
       return; // No input provided
     }
@@ -86,7 +90,8 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
     if (result.shouldAdvance) {
       setGuessInput('');
       setSelectedBaseNote(null);
-      setSelectedChordType(null);
+      setSelectedQuality(null);
+      setSelectedExtension(null);
 
       // Clear feedback after delay, then advance if not game completed
       if (!result.gameCompleted && onAdvanceRound) {
@@ -115,20 +120,26 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
     setFeedback(null);
     setGuessInput('');
     setSelectedBaseNote(null);
-    setSelectedChordType(null);
+    setSelectedQuality(null);
+    setSelectedExtension(null);
     if (onAdvanceRound) {
       onAdvanceRound(0); // Advance immediately
     }
   };
 
   // Handle button selection - clear manual input when buttons are used
-  const handleBaseNoteSelect = (note: Note) => {
+  const handleBaseNoteSelect = (note: Note | null) => {
     setSelectedBaseNote(note);
     setGuessInput(''); // Clear manual input
   };
 
-  const handleChordTypeSelect = (type: ChordType) => {
-    setSelectedChordType(type);
+  const handleQualitySelect = (quality: ChordQuality | null) => {
+    setSelectedQuality(quality);
+    setGuessInput(''); // Clear manual input
+  };
+
+  const handleExtensionSelect = (extension: ChordExtension | null) => {
+    setSelectedExtension(extension);
     setGuessInput(''); // Clear manual input
   };
 
@@ -137,7 +148,8 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
     setGuessInput(value);
     if (value.trim()) {
       setSelectedBaseNote(null);
-      setSelectedChordType(null);
+      setSelectedQuality(null);
+      setSelectedExtension(null);
     }
   };
 
@@ -164,8 +176,8 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
     }
   };
 
-  // Check if submit is possible
-  const canSubmit = !!(guessInput.trim() || (selectedBaseNote && selectedChordType)) && !gameState.isCompleted && !isPaused;
+  // Check if submit is possible — only root note is required for button selection
+  const canSubmit = !!(guessInput.trim() || selectedBaseNote) && !gameState.isCompleted && !isPaused;
 
   // Keyboard shortcuts
   // Note: These won't fire when user is typing in the ChordInput field (text input detection in hook)
@@ -329,9 +341,11 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
 
           <ChordSelection
             selectedBaseNote={selectedBaseNote}
-            selectedChordType={selectedChordType}
+            selectedQuality={selectedQuality}
+            selectedExtension={selectedExtension}
             onBaseNoteSelect={handleBaseNoteSelect}
-            onChordTypeSelect={handleChordTypeSelect}
+            onQualitySelect={handleQualitySelect}
+            onExtensionSelect={handleExtensionSelect}
             disabled={gameState.isCompleted}
           />
 
@@ -339,7 +353,7 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
           <button
             className="submit-guess-button"
             onClick={handleSubmitGuess}
-            disabled={(!guessInput.trim() && (!selectedBaseNote || !selectedChordType)) || gameState.isCompleted}
+            disabled={(!guessInput.trim() && !selectedBaseNote) || gameState.isCompleted}
           >
             Submit Guess
           </button>
