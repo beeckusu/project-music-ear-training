@@ -55,7 +55,7 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
   const isRoundTimerActive = currentNote && !gameState.isCompleted && !isPaused;
 
   // Determine if submit button should be enabled
-  const canSubmit = selectedNotes.size > 0 && currentChord !== null && !gameState.isCompleted;
+  const canSubmit = selectedNotes.size > 0 && currentChord !== null && !gameState.isCompleted && !isPaused;
 
   // Handle note selection with re-render (for mouse clicks - toggle behavior)
   const handleNoteClick = (note: NoteWithOctave) => {
@@ -208,24 +208,27 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
       }
     });
 
-    // Now submit the answer
-    const result = gameState.handleSubmitAnswer();
-
-    setFeedback({
-      message: result.feedback,
-      type: result.shouldAdvance ? 'success' : 'error'
-    });
-
-    forceUpdate();
-
+    // Submit through orchestrator (single validation path)
     if (onSubmitClick) {
       onSubmitClick();
     }
 
-    if (result.shouldAdvance && !result.gameCompleted && onAdvanceRound) {
-      setTimeout(() => setFeedback(null), 800);
-      onAdvanceRound(1000);
+    // Read result from game state (set synchronously by orchestrator's validation)
+    const result = gameState.lastSubmitResult;
+
+    if (result) {
+      setFeedback({
+        message: result.feedback,
+        type: result.shouldAdvance ? 'success' : 'error'
+      });
+
+      if (result.shouldAdvance && !result.gameCompleted && onAdvanceRound) {
+        setTimeout(() => setFeedback(null), 800);
+        onAdvanceRound(1000);
+      }
     }
+
+    forceUpdate();
   }, [currentChord, gameState, heldMidiNotes, selectedNotes, onPianoKeyClick, onSubmitClick, onAdvanceRound]);
 
   // Keep the submit ref updated for MIDI callback
@@ -252,8 +255,10 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
     // Add the wrong note to selected notes so it gets recorded
     onPianoKeyClick(note);
 
-    // Submit as incorrect attempt (will record partial correct + wrong note)
-    const result = gameState.handleSubmitAnswer();
+    // Submit through orchestrator (single validation path)
+    if (onSubmitClick) {
+      onSubmitClick();
+    }
 
     // Show error feedback with partial info
     const correctCount = heldMidiNotes.size;
@@ -268,10 +273,6 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
 
     forceUpdate();
 
-    if (onSubmitClick) {
-      onSubmitClick();
-    }
-
     // Clear feedback after delay but don't advance (wrong answer)
     setTimeout(() => setFeedback(null), 1500);
   }, [currentChord, gameState, heldMidiNotes, selectedNotes, onPianoKeyClick, onSubmitClick]);
@@ -281,27 +282,29 @@ const SingleChordModeDisplay: React.FC<SingleChordModeDisplayProps> = ({
 
   // Handle submit answer with re-render (for manual button click)
   const handleSubmitAnswer = () => {
-    // Call the game state's handleSubmitAnswer for immediate feedback
-    const result = gameState.handleSubmitAnswer();
-
-    // Set feedback based on result
-    setFeedback({
-      message: result.feedback,
-      type: result.shouldAdvance ? 'success' : 'error'
-    });
-
-    forceUpdate();
-
-    // Notify orchestrator of the submission for proper event handling
+    // Submit through orchestrator (single validation path)
     if (onSubmitClick) {
       onSubmitClick();
     }
 
-    // If the answer was correct, trigger round advancement
-    if (result.shouldAdvance && !result.gameCompleted && onAdvanceRound) {
-      setTimeout(() => setFeedback(null), 800);
-      onAdvanceRound(1000);
+    // Read result from game state (set synchronously by orchestrator's validation)
+    const result = gameState.lastSubmitResult;
+
+    if (result) {
+      // Set feedback based on result
+      setFeedback({
+        message: result.feedback,
+        type: result.shouldAdvance ? 'success' : 'error'
+      });
+
+      // If the answer was correct, trigger round advancement
+      if (result.shouldAdvance && !result.gameCompleted && onAdvanceRound) {
+        setTimeout(() => setFeedback(null), 800);
+        onAdvanceRound(1000);
+      }
     }
+
+    forceUpdate();
   };
 
   // Generate highlights that include held MIDI notes and wrong notes

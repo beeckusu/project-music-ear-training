@@ -1074,6 +1074,12 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
       console.log('[Orchestrator] handleUserAction:', action.type);
     }
 
+    // Ignore user actions while game is paused
+    if (this.isPaused()) {
+      console.log('[Orchestrator] Ignoring user action while paused');
+      return;
+    }
+
     if (!this.currentStrategy) {
       throw new Error('[Orchestrator] No strategy available for handling user action');
     }
@@ -1130,7 +1136,9 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
             const result = this.currentStrategy.validateAndAdvance(context);
             console.log('[Orchestrator] validateAndAdvance result:', result);
 
-            // Send result to state machine
+            // Transition state machine: WAITING_INPUT → PROCESSING_GUESS → result
+            // MAKE_GUESS is required first so CORRECT_GUESS/INCORRECT_GUESS are accepted
+            this.send({ type: GameAction.MAKE_GUESS, guessedNote: 'submit' });
             this.send({
               type: result.isCorrect ? GameAction.CORRECT_GUESS : GameAction.INCORRECT_GUESS,
             });

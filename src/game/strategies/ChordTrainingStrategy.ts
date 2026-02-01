@@ -104,11 +104,11 @@ export class ChordTrainingStrategy implements ModeStrategy {
       throw new Error('Game mode not initialized. Call startNewRound first.');
     }
 
-    // The handleSubmitAnswer method will update the game mode's internal state
-    // (correctNotes, incorrectNotes, etc.) which we'll read in validateAndAdvance
-    (this.gameMode as any).handleSubmitAnswer?.();
+    // Note: We intentionally do NOT call handleSubmitAnswer() here.
+    // Validation is handled exclusively by validateAndAdvance() to prevent
+    // duplicate scoring when the orchestrator calls both methods in sequence.
 
-    // Update context with latest highlights after submission
+    // Update context with latest highlights
     context.noteHighlights = (this.gameMode as any).getNoteHighlights?.() || [];
   }
 

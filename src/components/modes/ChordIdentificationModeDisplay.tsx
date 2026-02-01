@@ -165,7 +165,7 @@ const ChordIdentificationModeDisplay: React.FC<ChordIdentificationModeDisplayPro
   };
 
   // Check if submit is possible
-  const canSubmit = !!(guessInput.trim() || (selectedBaseNote && selectedChordType)) && !gameState.isCompleted;
+  const canSubmit = !!(guessInput.trim() || (selectedBaseNote && selectedChordType)) && !gameState.isCompleted && !isPaused;
 
   // Keyboard shortcuts
   // Note: These won't fire when user is typing in the ChordInput field (text input detection in hook)
