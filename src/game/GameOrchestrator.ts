@@ -895,7 +895,7 @@ export class GameOrchestrator extends EventEmitter<OrchestratorEvents> {
       case 'ear-training':
         return new EarTrainingStrategy(audioEngine, this.noteDuration);
       case 'chord-training':
-        return new ChordTrainingStrategy();
+        return new ChordTrainingStrategy(audioEngine);
       default:
         throw new Error(`[Orchestrator] Unknown strategy type: ${strategyType}`);
     }

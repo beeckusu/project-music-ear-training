@@ -5,6 +5,7 @@ import type { NoteTrainingModeSettings } from '../types/game';
 import type { NoteWithOctave, NoteFilter, Chord } from '../types/music';
 import { ChordType } from '../types/music';
 import type { RoundContext } from '../types/orchestrator';
+import type { AudioEngine } from '../utils/audioEngine';
 
 // Import test utilities
 import { TEST_NOTES, DEFAULT_NOTE_FILTER } from '../test/gameTestUtils';
@@ -34,7 +35,12 @@ describe('ChordIdentification Integration: Show Notes → Guess Chord', () => {
   beforeEach(() => {
     noteTrainingSettings = createNoteTrainingSettings({ targetChords: 3 });
     gameState = new ChordIdentificationGameState(noteTrainingSettings);
-    strategy = new ChordTrainingStrategy();
+    const mockAudioEngine = {
+      initialize: vi.fn().mockResolvedValue(undefined),
+      playChord: vi.fn(),
+      playNote: vi.fn(),
+    } as unknown as AudioEngine;
+    strategy = new ChordTrainingStrategy(mockAudioEngine);
   });
 
   describe('Complete Workflow Lifecycle', () => {
