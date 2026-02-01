@@ -179,12 +179,17 @@ describe('SingleChordModeDisplay', () => {
       gameState.selectedNotes.add(TEST_NOTE_E4);
       gameState.selectedNotes.add(TEST_NOTE_G4);
 
+      // Mock onSubmitClick to simulate orchestrator calling handleSubmitAnswer
+      const orchestratorSubmit = vi.fn(() => {
+        gameState.handleSubmitAnswer();
+      });
+
       renderWithSettings(
         <SingleChordModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
           onPianoKeyClick={mockOnPianoKeyClick}
-          onSubmitClick={mockOnSubmitClick}
+          onSubmitClick={orchestratorSubmit}
           onClearSelection={mockOnClearSelection}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}
@@ -200,12 +205,17 @@ describe('SingleChordModeDisplay', () => {
     it('should show error feedback for wrong answer', () => {
       gameState.selectedNotes.add(TEST_NOTE_A4);
 
+      // Mock onSubmitClick to simulate orchestrator calling handleSubmitAnswer
+      const orchestratorSubmit = vi.fn(() => {
+        gameState.handleSubmitAnswer();
+      });
+
       renderWithSettings(
         <SingleChordModeDisplay
           gameState={gameState}
           currentNote={TEST_NOTE_C4}
           onPianoKeyClick={mockOnPianoKeyClick}
-          onSubmitClick={mockOnSubmitClick}
+          onSubmitClick={orchestratorSubmit}
           onClearSelection={mockOnClearSelection}
           onAdvanceRound={mockOnAdvanceRound}
           onPlayAgain={mockOnPlayAgain}

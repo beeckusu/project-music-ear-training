@@ -288,7 +288,7 @@ describe('ChordTrainingStrategy', () => {
       );
     });
 
-    it('should call gameMode.handleSubmitAnswer()', () => {
+    it('should not call gameMode.handleSubmitAnswer() (deferred to validateAndAdvance)', () => {
       const context: RoundContext = {
         startTime: new Date(),
         elapsedTime: 0,
@@ -299,7 +299,9 @@ describe('ChordTrainingStrategy', () => {
 
       strategy.handleSubmitClick(context);
 
-      expect(mockGameMode.handleSubmitAnswer).toHaveBeenCalled();
+      // handleSubmitAnswer is NOT called here to prevent duplicate scoring
+      // It is called exclusively in validateAndAdvance()
+      expect(mockGameMode.handleSubmitAnswer).not.toHaveBeenCalled();
     });
 
     it('should update context.noteHighlights after submission', () => {
@@ -617,11 +619,10 @@ describe('ChordTrainingStrategy', () => {
       strategy.handlePianoKeyClick(ANOTHER_NOTE, context);
       expect(context.selectedNotes?.size).toBe(2);
 
-      // User clicks submit
+      // User clicks submit (prepares context, does not validate)
       strategy.handleSubmitClick(context);
-      expect(mockGameMode.handleSubmitAnswer).toHaveBeenCalled();
 
-      // Validate and check result
+      // Validate and check result (this is where handleSubmitAnswer is called)
       const result = strategy.validateAndAdvance(context);
       expect(result.shouldAdvance).toBeDefined();
       expect(strategy.shouldAutoAdvance()).toBe(false);
@@ -639,11 +640,10 @@ describe('ChordTrainingStrategy', () => {
       strategy.handlePianoKeyClick(SELECTED_NOTE, context);
       expect(mockGameMode.handleNoteSelection).toHaveBeenCalledWith(SELECTED_NOTE);
 
-      // 3. User submits answer
+      // 3. User submits answer (prepares context, does not validate)
       strategy.handleSubmitClick(context);
-      expect(mockGameMode.handleSubmitAnswer).toHaveBeenCalled();
 
-      // 4. Validate (correct answer)
+      // 4. Validate (correct answer - this is where handleSubmitAnswer is called)
       (mockGameMode as any).handleSubmitAnswer = vi.fn().mockReturnValue({
         feedback: 'Correct!',
         shouldAdvance: true,

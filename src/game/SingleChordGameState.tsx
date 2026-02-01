@@ -48,6 +48,7 @@ export class SingleChordGameState implements IGameMode {
   totalNotesCorrect: number = 0;         // Sum of correct notes across all attempts
   noteTrainingSettings: NoteTrainingModeSettings;
   guessHistory: ChordGuessAttempt[] = [];
+  lastSubmitResult: GameActionResult | null = null;
 
   /**
    * Creates a new ShowChordGuessNotesGameState instance.
@@ -320,20 +321,26 @@ export class SingleChordGameState implements IGameMode {
 
     // Check if user selected any incorrect notes
     if (this.incorrectNotes.size > 0) {
-      return this.handleIncorrectGuess();
+      const result = this.handleIncorrectGuess();
+      this.lastSubmitResult = result;
+      return result;
     }
 
     // Check if all chord notes are identified
     if (this.isChordComplete()) {
-      return this.handleCorrectGuess();
+      const result = this.handleCorrectGuess();
+      this.lastSubmitResult = result;
+      return result;
     }
 
     // Partial answer - not all notes selected yet
-    return {
+    const result: GameActionResult = {
       gameCompleted: false,
       feedback: `Keep going! ${this.correctNotes.size}/${this.currentChord.notes.length} notes identified`,
       shouldAdvance: false
     };
+    this.lastSubmitResult = result;
+    return result;
   };
 
   /**
