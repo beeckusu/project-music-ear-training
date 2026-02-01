@@ -3,6 +3,7 @@ import type { RoundContext } from '../../types/orchestrator';
 import type { GuessResult } from '../OrchestratorEvents';
 import type { IGameMode } from '../IGameMode';
 import type { ModeStrategy } from './ModeStrategy';
+import type { AudioEngine } from '../../utils/audioEngine';
 
 /**
  * Strategy implementation for chord training modes
@@ -11,13 +12,13 @@ import type { ModeStrategy } from './ModeStrategy';
  * mode-agnostic orchestration through the strategy pattern.
  *
  * Chord training flow:
- * 1. Generate a chord challenge (visual only, NO audio)
+ * 1. Generate a chord challenge and play chord audio
  * 2. User selects notes via piano keys
  * 3. User clicks submit button to validate selection
  * 4. Manual advancement after validation (no auto-advance)
  *
  * Key differences from ear training:
- * - NO audio playback (visual chord training only)
+ * - Plays chord audio (not single note) on round start
  * - Piano clicks toggle note selection (not auto-submit)
  * - Requires explicit submit button click
  * - Manual advancement (shouldAutoAdvance = false)
@@ -25,10 +26,14 @@ import type { ModeStrategy } from './ModeStrategy';
 export class ChordTrainingStrategy implements ModeStrategy {
   private gameMode?: IGameMode;
 
+  constructor(
+    private audioEngine: AudioEngine
+  ) {}
+
   /**
    * Start a new round by generating a chord challenge
    *
-   * For chord training: Generate a chord, NO audio playback,
+   * For chord training: Generate a chord, play chord audio,
    * return context with chord data and empty selection state.
    *
    * @param gameMode - The game mode instance
@@ -46,11 +51,15 @@ export class ChordTrainingStrategy implements ModeStrategy {
     // Update game mode state
     gameMode.onStartNewRound();
 
-    // NO AUDIO PLAYBACK - this is visual chord training only
-
     // Get the current chord from the game mode
     // We need to cast to access chord-specific properties
     const chord = (gameMode as any).currentChord;
+
+    // Play the chord audio
+    if (chord) {
+      await this.audioEngine.initialize();
+      this.audioEngine.playChord(chord);
+    }
 
     // Create and return round context
     // Include 'note' for orchestrator timeout detection (uses firstNote as representative note)

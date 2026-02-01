@@ -3,13 +3,14 @@ import { ChordTrainingStrategy } from './ChordTrainingStrategy';
 import type { IGameMode } from '../IGameMode';
 import type { NoteFilter, NoteWithOctave, Chord, NoteHighlight } from '../../types/music';
 import type { RoundContext } from '../../types/orchestrator';
+import type { AudioEngine } from '../../utils/audioEngine';
 
 /**
  * ChordTrainingStrategy Unit Tests
  *
  * Comprehensive test suite ensuring 100% coverage of the ChordTrainingStrategy
  * implementation. Tests verify that chord training logic correctly handles:
- * - Visual chord training (NO audio playback)
+ * - Chord audio playback on round start
  * - Piano key clicks (toggle note selection)
  * - Submit button (explicit validation)
  * - Manual advancement (no auto-advance)
@@ -17,6 +18,7 @@ import type { RoundContext } from '../../types/orchestrator';
 describe('ChordTrainingStrategy', () => {
   let strategy: ChordTrainingStrategy;
   let mockGameMode: IGameMode;
+  let mockAudioEngine: AudioEngine;
   let noteFilter: NoteFilter;
 
   const TEST_CHORD: Chord = {
@@ -52,6 +54,13 @@ describe('ChordTrainingStrategy', () => {
       incorrectNotes: new Set<NoteWithOctave>()
     } as any;
 
+    // Create mock audio engine
+    mockAudioEngine = {
+      initialize: vi.fn().mockResolvedValue(undefined),
+      playChord: vi.fn(),
+      playNote: vi.fn(),
+    } as any;
+
     // Create note filter
     noteFilter = {
       keyType: 'chromatic',
@@ -62,7 +71,7 @@ describe('ChordTrainingStrategy', () => {
     };
 
     // Create strategy instance
-    strategy = new ChordTrainingStrategy();
+    strategy = new ChordTrainingStrategy(mockAudioEngine);
   });
 
   describe('startNewRound()', () => {
@@ -80,12 +89,11 @@ describe('ChordTrainingStrategy', () => {
       expect(mockGameMode.onStartNewRound).toHaveBeenCalledTimes(1);
     });
 
-    it('should NOT play audio (visual training only)', async () => {
-      // The strategy should not have any audio playback logic
+    it('should initialize audio engine and play chord on round start', async () => {
       await strategy.startNewRound(mockGameMode, noteFilter);
 
-      // Verify no audio-related methods were called
-      // (ChordTrainingStrategy doesn't use AudioEngine at all)
+      expect(mockAudioEngine.initialize).toHaveBeenCalled();
+      expect(mockAudioEngine.playChord).toHaveBeenCalledWith(TEST_CHORD);
     });
 
     it('should return RoundContext with correct structure', async () => {
@@ -149,7 +157,7 @@ describe('ChordTrainingStrategy', () => {
     });
 
     it('should throw error if game mode not initialized', () => {
-      const freshStrategy = new ChordTrainingStrategy();
+      const freshStrategy = new ChordTrainingStrategy(mockAudioEngine);
       const context: RoundContext = {
         startTime: new Date(),
         elapsedTime: 0,
@@ -274,7 +282,7 @@ describe('ChordTrainingStrategy', () => {
     });
 
     it('should throw error if game mode not initialized', () => {
-      const freshStrategy = new ChordTrainingStrategy();
+      const freshStrategy = new ChordTrainingStrategy(mockAudioEngine);
       const context: RoundContext = {
         startTime: new Date(),
         elapsedTime: 0,
@@ -351,7 +359,7 @@ describe('ChordTrainingStrategy', () => {
     });
 
     it('should throw error if game mode not initialized', () => {
-      const freshStrategy = new ChordTrainingStrategy();
+      const freshStrategy = new ChordTrainingStrategy(mockAudioEngine);
       const context: RoundContext = {
         startTime: new Date(),
         elapsedTime: 0,
@@ -629,11 +637,11 @@ describe('ChordTrainingStrategy', () => {
     });
 
     it('should maintain exact behavior of chord training flow', async () => {
-      // 1. Start round (generate chord, NO audio)
+      // 1. Start round (generate chord, play audio)
       const context = await strategy.startNewRound(mockGameMode, noteFilter);
       expect(mockGameMode.generateNote).toHaveBeenCalled();
       expect(mockGameMode.onStartNewRound).toHaveBeenCalled();
-      // NO audio playback verification needed - ChordTrainingStrategy doesn't use audio
+      expect(mockAudioEngine.playChord).toHaveBeenCalledWith(TEST_CHORD);
 
       // 2. User selects notes (via piano clicks)
       (mockGameMode as any).selectedNotes = new Set([SELECTED_NOTE]);
