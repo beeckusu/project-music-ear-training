@@ -334,6 +334,26 @@ export class SingleChordGameState implements IGameMode {
     }
 
     // Partial answer - not all notes selected yet
+    this.totalAttempts = this.totalAttempts + 1;
+
+    // Track note-level accuracy for partial guess
+    const notesInChord = this.currentChord.notes.length;
+    this.totalNotesAttempted += notesInChord;
+    this.totalNotesCorrect += this.correctNotes.size;
+
+    // Add partial guess to history
+    const guessAttempt: ChordGuessAttempt = {
+      id: `${Date.now()}-${Math.random()}`,
+      timestamp: new Date(),
+      actualChord: this.currentChord,
+      isCorrect: false,
+      accuracy: (this.correctNotes.size / notesInChord) * 100,
+      correctNotes: [...this.correctNotes],
+      missedNotes: [...this.getMissingNotes()],
+      incorrectNotes: []
+    };
+    this.guessHistory = [...this.guessHistory, guessAttempt];
+
     const result: GameActionResult = {
       gameCompleted: false,
       feedback: `Keep going! ${this.correctNotes.size}/${this.currentChord.notes.length} notes identified`,
